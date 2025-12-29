@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
-import DeleteUserDialog from '@/components/users/DeleteUserDialog.vue';
+import DeleteTenantDialog from '@/components/tenants/DeleteTenantDialog.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { create, edit, index } from '@/routes/users';
-import type { BreadcrumbItem, User } from '@/types';
+import { create, show } from '@/routes/tenants';
+import type { BreadcrumbItem, Tenant } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Plus, Trash2 } from 'lucide-vue-next';
+import { Edit, Plus, School, Trash2, Eye } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface PaginationLink {
@@ -28,38 +27,34 @@ interface Paginated<T> {
 }
 
 interface Props {
-    users: Paginated<User>;
+    tenants: Paginated<Tenant>;
     filters: {
         search?: string | null;
-        role?: string | null;
         active?: string | null;
     };
-    roles: string[];
 }
 
 const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Usuários',
-        href: index().url,
+        title: 'Escolas',
+        href: '/admin/tenants',
     },
 ];
 
 const search = ref(props.filters.search ?? '');
-const role = ref(props.filters.role ?? '');
 const active = ref(props.filters.active ?? '');
 
 const hasAnyFilter = computed(
-    () => !!search.value || !!role.value || active.value !== '',
+    () => !!search.value || active.value !== '',
 );
 
 function applyFilters() {
     router.get(
-        index().url,
+        '/admin/tenants',
         {
             search: search.value || undefined,
-            role: role.value || undefined,
             active: active.value || undefined,
         },
         {
@@ -72,7 +67,6 @@ function applyFilters() {
 
 function clearFilters() {
     search.value = '';
-    role.value = '';
     active.value = '';
     applyFilters();
 }
@@ -80,22 +74,27 @@ function clearFilters() {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Usuários" />
+        <Head title="Escolas" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
-                    <Heading
-                        title="Usuários"
-                        description="Gerencie os usuários cadastrados"
-                    />
+                    <div class="mb-8 space-y-0.5">
+                        <h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight">
+                            <School class="h-5 w-5" />
+                            Escolas
+                        </h2>
+                        <p class="text-sm text-muted-foreground">
+                            Gerencie as escolas cadastradas
+                        </p>
+                    </div>
                 </div>
 
                 <div class="mt-2">
                     <Button as-child>
                         <Link :href="create()" class="flex items-center gap-2">
                             <Plus class="h-4 w-4" />
-                            Novo usuário
+                            Nova escola
                         </Link>
                     </Button>
                 </div>
@@ -109,21 +108,10 @@ function clearFilters() {
                         <div class="flex-1">
                             <Input
                                 v-model="search"
-                                placeholder="Buscar por nome, CPF, e-mail ou telefone..."
+                                placeholder="Buscar por nome, e-mail, telefone, subdomínio ou CNPJ..."
                                 @keyup.enter="applyFilters"
                             />
                         </div>
-
-                        <select
-                            v-model="role"
-                            class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-48"
-                            @change="applyFilters"
-                        >
-                            <option value="">Todos perfis</option>
-                            <option v-for="r in props.roles" :key="r" :value="r">
-                                {{ r }}
-                            </option>
-                        </select>
 
                         <select
                             v-model="active"
@@ -160,46 +148,43 @@ function clearFilters() {
                             <tr>
                                 <th class="px-4 py-3">Nome</th>
                                 <th class="px-4 py-3">E-mail</th>
-                                <th class="px-4 py-3">Perfil</th>
+                                <th class="px-4 py-3">Subdomínio</th>
                                 <th class="px-4 py-3">Telefone</th>
                                 <th class="px-4 py-3">Status</th>
-                                <th class="px-4 py-3">Último login</th>
                                 <th class="px-4 py-3 text-right">Ações</th>
                             </tr>
                         </thead>
 
                         <tbody>
                             <tr
-                                v-for="u in props.users.data"
-                                :key="u.id"
+                                v-for="t in props.tenants.data"
+                                :key="t.id"
                                 class="border-b last:border-0"
                             >
                                 <td class="px-4 py-3">
                                     <div class="font-medium">
-                                        {{ u.full_name }}
+                                        {{ t.name }}
                                     </div>
                                     <div
+                                        v-if="t.cnpj"
                                         class="mt-0.5 text-xs text-muted-foreground"
                                     >
-                                        Tipo: {{ u.role }}
+                                        CNPJ: {{ t.cnpj }}
                                     </div>
                                 </td>
-                                <td class="px-4 py-3">{{ u.email }}</td>
+                                <td class="px-4 py-3">{{ t.email }}</td>
                                 <td class="px-4 py-3">
-                                    <Badge variant="secondary">{{ u.role }}</Badge>
+                                    {{ t.subdomain ?? '—' }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ u.phone ?? '—' }}
+                                    {{ t.phone ?? '—' }}
                                 </td>
                                 <td class="px-4 py-3">
                                     <Badge
-                                        :variant="u.is_active ? 'default' : 'secondary'"
+                                        :variant="t.is_active ? 'default' : 'secondary'"
                                     >
-                                        {{ u.is_active ? 'Ativo' : 'Inativo' }}
+                                        {{ t.is_active ? 'Ativo' : 'Inativo' }}
                                     </Badge>
-                                </td>
-                                <td class="px-4 py-3">
-                                    {{ u.last_login_at ?? '—' }}
                                 </td>
                                 <td class="px-4 py-3">
                                     <div
@@ -211,23 +196,35 @@ function clearFilters() {
                                             variant="ghost"
                                             class="hover:bg-transparent"
                                         >
-                                            <Link :href="edit({ user: u.id })">
+                                            <Link :href="show({ tenant: t.id })">
+                                                <Eye
+                                                    class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                />
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            as-child
+                                            size="sm"
+                                            variant="ghost"
+                                            class="hover:bg-transparent"
+                                        >
+                                            <Link :href="`/admin/tenants/${t.id}/edit`">
                                                 <Edit
                                                     class="h-4 w-4 text-amber-500 dark:text-amber-400"
                                                 />
                                             </Link>
                                         </Button>
-                                        <DeleteUserDialog :user="u" />
+                                        <DeleteTenantDialog :tenant="t" />
                                     </div>
                                 </td>
                             </tr>
 
-                            <tr v-if="props.users.data.length === 0">
+                            <tr v-if="props.tenants.data.length === 0">
                                 <td
-                                    colspan="7"
+                                    colspan="6"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
-                                    Nenhum usuário encontrado.
+                                    Nenhuma escola encontrada.
                                 </td>
                             </tr>
                         </tbody>
@@ -238,9 +235,9 @@ function clearFilters() {
                     class="flex flex-col gap-3 border-t p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                     <p class="text-sm text-muted-foreground">
-                        Total: <span class="font-medium">{{ props.users.total }}</span>
+                        Total: <span class="font-medium">{{ props.tenants.total }}</span>
                     </p>
-                    <Pagination :links="props.users.links" />
+                    <Pagination :links="props.tenants.links" />
                 </div>
             </div>
         </div>

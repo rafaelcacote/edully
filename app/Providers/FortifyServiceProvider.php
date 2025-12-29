@@ -31,6 +31,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        $this->configureAuthentication();
     }
 
     /**
@@ -83,9 +84,31 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $cpf = $request->input(Fortify::username());
+            // Remove formatação do CPF para o rate limiting
+            $cpf = preg_replace('/[^0-9]/', '', $cpf);
+            $throttleKey = Str::transliterate($cpf.'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
+        });
+    }
+
+    /**
+     * Configure authentication.
+     */
+    private function configureAuthentication(): void
+    {
+        Fortify::authenticateUsing(function (Request $request) {
+            $cpf = $request->input(Fortify::username());
+            
+            // Remove formatação do CPF (pontos, traços, espaços)
+            $cpf = preg_replace('/[^0-9]/', '', $cpf);
+            
+            $user = \App\Models\User::where('cpf', $cpf)->first();
+
+            if ($user && \Illuminate\Support\Facades\Hash::check($request->password, $user->password_hash)) {
+                return $user;
+            }
         });
     }
 }

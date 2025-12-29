@@ -21,10 +21,13 @@ class UsersController extends Controller
         $users = User::query()
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
-                $query->where(function ($q) use ($search) {
-                    $q->where('full_name', 'ilike', "%{$search}%")
+                // Remove formatação do CPF para busca
+                $cpfSearch = preg_replace('/[^0-9]/', '', $search);
+                $query->where(function ($q) use ($search, $cpfSearch) {
+                    $q->where('nome_completo', 'ilike', "%{$search}%")
                         ->orWhere('email', 'ilike', "%{$search}%")
-                        ->orWhere('phone', 'ilike', "%{$search}%");
+                        ->orWhere('phone', 'ilike', "%{$search}%")
+                        ->orWhere('cpf', 'ilike', "%{$cpfSearch}%");
                 });
             })
             ->when($filters['role'] ?? null, fn ($query, string $role) => $query->where('role', $role))
@@ -34,7 +37,7 @@ class UsersController extends Controller
                     $query->where('is_active', $active);
                 }
             })
-            ->orderBy('full_name')
+            ->orderBy('nome_completo')
             ->paginate(10)
             ->withQueryString();
 
@@ -63,7 +66,7 @@ class UsersController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class, 'email')],
             'full_name' => ['required', 'string', 'max:255'],
-            'cpf' => ['required', 'string', 'size:11', Rule::unique(User::class, 'cpf')],
+            'cpf' => ['required', 'string', 'regex:/^[0-9]{11}$|^[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}$/', Rule::unique(User::class, 'cpf')],
             'role' => ['required', 'string', 'max:255', Rule::in($this->roles())],
             'phone' => ['nullable', 'string', 'max:20'],
             'avatar_url' => ['nullable', 'string', 'max:2048'],
@@ -71,10 +74,13 @@ class UsersController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
+        // Remove formatação do CPF (pontos, traços, espaços)
+        $cpf = preg_replace('/[^0-9]/', '', $validated['cpf']);
+
         $user = new User();
         $user->email = $validated['email'];
         $user->full_name = $validated['full_name'];
-        $user->cpf = $validated['cpf'];
+        $user->cpf = $cpf;
         $user->role = $validated['role'];
         $user->phone = $validated['phone'] ?? null;
         $user->avatar_url = $validated['avatar_url'] ?? null;
@@ -110,7 +116,7 @@ class UsersController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class, 'email')->ignore($user->id, 'id')],
             'full_name' => ['required', 'string', 'max:255'],
-            'cpf' => ['required', 'string', 'size:11', Rule::unique(User::class, 'cpf')->ignore($user->id, 'id')],
+            'cpf' => ['required', 'string', 'regex:/^[0-9]{11}$|^[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}$/', Rule::unique(User::class, 'cpf')->ignore($user->id, 'id')],
             'role' => ['required', 'string', 'max:255', Rule::in($this->roles())],
             'phone' => ['nullable', 'string', 'max:20'],
             'avatar_url' => ['nullable', 'string', 'max:2048'],
@@ -118,9 +124,12 @@ class UsersController extends Controller
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
+        // Remove formatação do CPF (pontos, traços, espaços)
+        $cpf = preg_replace('/[^0-9]/', '', $validated['cpf']);
+
         $user->email = $validated['email'];
         $user->full_name = $validated['full_name'];
-        $user->cpf = $validated['cpf'];
+        $user->cpf = $cpf;
         $user->role = $validated['role'];
         $user->phone = $validated['phone'] ?? null;
         $user->avatar_url = $validated['avatar_url'] ?? null;

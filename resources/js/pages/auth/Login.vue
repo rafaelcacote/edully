@@ -22,7 +22,7 @@ defineProps<{
 <template>
     <AuthBase
         title="Acesse sua conta"
-        description="Informe seu e-mail e senha para entrar"
+        description="Informe seu CPF e senha para entrar"
     >
         <Head title="Entrar" />
 
@@ -41,18 +41,18 @@ defineProps<{
         >
             <div class="grid gap-6">
                 <div class="grid gap-2">
-                    <Label for="email">E-mail</Label>
+                    <Label for="cpf">CPF</Label>
                     <Input
-                        id="email"
-                        type="email"
-                        name="email"
+                        id="cpf"
+                        type="text"
+                        name="cpf"
                         required
                         autofocus
                         :tabindex="1"
-                        autocomplete="email"
-                        placeholder="seuemail@exemplo.com"
+                        autocomplete="username"
+                        placeholder="000.000.000-00"
                     />
-                    <InputError :message="errors.email" />
+                    <InputError :message="errors.cpf" />
                 </div>
 
                 <div class="grid gap-2">

@@ -109,7 +109,7 @@ watch(
 
                     <button
                         type="button"
-                        class="rounded-md px-2 py-1 text-sm opacity-70 transition hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        class="rounded-sm px-2 py-1 text-sm opacity-70 transition hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         @click="dismiss(t.id)"
                         aria-label="Fechar"
                     >

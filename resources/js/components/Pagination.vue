@@ -19,7 +19,7 @@ defineProps<{
             :key="idx"
             :href="link.url ?? ''"
             :aria-disabled="!link.url"
-            class="rounded-md px-3 py-1.5 text-sm transition"
+            class="rounded-sm px-3 py-1.5 text-sm transition"
             :class="
                 link.active
                     ? 'bg-primary text-primary-foreground'

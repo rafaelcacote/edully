@@ -47,4 +47,28 @@ export interface User {
     deleted_at?: string | null;
 }
 
+export interface Tenant {
+    id: string;
+    name: string; // mapped from nome
+    email: string;
+    subdomain?: string | null; // mapped from subdominio
+    cnpj?: string | null;
+    phone?: string | null; // mapped from telefone
+    address?: string | null; // mapped from endereco
+    endereco_numero?: string | null;
+    endereco_complemento?: string | null;
+    endereco_bairro?: string | null;
+    endereco_cep?: string | null;
+    endereco_cidade?: string | null;
+    endereco_estado?: string | null;
+    endereco_pais?: string | null;
+    logo_url?: string | null;
+    plano_id?: string | null;
+    is_active: boolean; // mapped from ativo
+    trial_until?: string | null; // mapped from trial_ate
+    created_at: string;
+    updated_at: string;
+    deleted_at?: string | null;
+}
+
 export type BreadcrumbItemType = BreadcrumbItem;

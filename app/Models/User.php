@@ -33,7 +33,7 @@ class User extends Authenticatable
      *
      * @var string
      */
-    protected $table = 'users';
+    protected $table = 'shared.usuarios';
 
     /**
      * The attributes that are mass assignable.
@@ -43,7 +43,7 @@ class User extends Authenticatable
     protected $fillable = [
         'email',
         'password_hash',
-        'full_name',
+        'nome_completo',
         'cpf',
         'role',
         'phone',
@@ -78,24 +78,45 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the name attribute (maps to full_name).
+     * Get the full_name attribute (maps to nome_completo).
+     *
+     * @return string
+     */
+    public function getFullNameAttribute(): string
+    {
+        return $this->attributes['nome_completo'] ?? '';
+    }
+
+    /**
+     * Set the full_name attribute (maps to nome_completo).
+     *
+     * @param  string  $value
+     * @return void
+     */
+    public function setFullNameAttribute(string $value): void
+    {
+        $this->attributes['nome_completo'] = $value;
+    }
+
+    /**
+     * Get the name attribute (maps to nome_completo).
      *
      * @return string
      */
     public function getNameAttribute(): string
     {
-        return $this->attributes['full_name'] ?? '';
+        return $this->attributes['nome_completo'] ?? '';
     }
 
     /**
-     * Set the name attribute (maps to full_name).
+     * Set the name attribute (maps to nome_completo).
      *
      * @param  string  $value
      * @return void
      */
     public function setNameAttribute(string $value): void
     {
-        $this->attributes['full_name'] = $value;
+        $this->attributes['nome_completo'] = $value;
     }
 
     /**
