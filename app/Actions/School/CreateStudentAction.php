@@ -5,6 +5,7 @@ namespace App\Actions\School;
 use App\Models\Student;
 use App\Models\Tenant;
 use App\Models\Turma;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 class CreateStudentAction
@@ -14,11 +15,18 @@ class CreateStudentAction
         $driver = DB::connection('shared')->getDriverName();
         $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
 
+        // Processar upload da foto
+        $fotoUrl = null;
+        if (isset($validated['foto']) && $validated['foto'] instanceof UploadedFile) {
+            $fotoPath = $validated['foto']->store('students/photos', 'public');
+            $fotoUrl = asset('storage/'.$fotoPath);
+        }
+
         $student = Student::create([
             'tenant_id' => $tenant->id,
             'nome' => $validated['nome'],
             'nome_social' => $validated['nome_social'] ?? null,
-            'foto_url' => $validated['foto_url'] ?? null,
+            'foto_url' => $fotoUrl,
             'data_nascimento' => $validated['data_nascimento'] ?? null,
             'informacoes_medicas' => $validated['informacoes_medicas'] ?? null,
             'ativo' => $validated['ativo'] ?? true,

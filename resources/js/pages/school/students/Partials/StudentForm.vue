@@ -3,7 +3,8 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save } from 'lucide-vue-next';
+import { Save, Upload, X } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface Turma {
     id: string;
@@ -30,6 +31,34 @@ const props = defineProps<{
     processing: boolean;
     errors: Record<string, string>;
 }>();
+
+const fotoPreview = ref<string | null>(props.student?.foto_url ?? null);
+const fotoFile = ref<File | null>(null);
+
+function handleFotoChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+
+    if (file) {
+        fotoFile.value = file;
+
+        // Criar preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            fotoPreview.value = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removeFoto() {
+    fotoPreview.value = null;
+    fotoFile.value = null;
+    const input = document.getElementById('foto') as HTMLInputElement;
+    if (input) {
+        input.value = '';
+    }
+}
 </script>
 
 <template>
@@ -99,15 +128,44 @@ const props = defineProps<{
             </div>
 
             <div class="grid gap-2">
-                <Label for="foto_url">URL da foto</Label>
-                <Input
-                    id="foto_url"
-                    name="foto_url"
-                    type="url"
-                    :default-value="student?.foto_url ?? ''"
-                    placeholder="https://exemplo.com/foto.jpg"
-                />
-                <InputError :message="errors.foto_url" />
+                <Label for="foto">Foto do aluno</Label>
+                <div class="space-y-3">
+                    <div v-if="fotoPreview" class="relative inline-block">
+                        <img
+                            :src="fotoPreview"
+                            alt="Preview da foto"
+                            class="h-32 w-32 rounded-lg object-cover border border-input"
+                        />
+                        <button
+                            type="button"
+                            @click="removeFoto"
+                            class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            <X class="h-4 w-4" />
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label
+                            for="foto"
+                            class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
+                        >
+                            <Upload class="h-4 w-4" />
+                            <span>{{ fotoPreview ? 'Alterar foto' : 'Selecionar foto' }}</span>
+                        </label>
+                        <input
+                            id="foto"
+                            name="foto"
+                            type="file"
+                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                            class="hidden"
+                            @change="handleFotoChange"
+                        />
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        Formatos aceitos: JPEG, PNG, GIF, WebP. Tamanho máximo: 2MB.
+                    </p>
+                </div>
+                <InputError :message="errors.foto" />
             </div>
         </div>
 

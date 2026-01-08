@@ -64,7 +64,6 @@ class ReenrollStudentAction
                     'tenant_id' => $tenant->id,
                     'aluno_id' => $student->id,
                     'turma_id' => $novaTurma->id,
-                    'matricula' => $matriculaId,
                     'data_matricula' => now()->toDateString(),
                     'status' => 'ativo',
                     'created_at' => now(),

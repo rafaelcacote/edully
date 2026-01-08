@@ -20,7 +20,7 @@ class StoreStudentRequest extends FormRequest
         return [
             'nome' => ['required', 'string', 'max:255'],
             'nome_social' => ['nullable', 'string', 'max:255'],
-            'foto_url' => ['nullable', 'string', 'max:2048', 'url'],
+            'foto' => ['nullable', 'image', 'max:2048', 'mimes:jpeg,jpg,png,gif,webp'],
             'turma_id' => [
                 'required',
                 'string',
@@ -38,7 +38,9 @@ class StoreStudentRequest extends FormRequest
             'nome.required' => 'Informe o nome do aluno.',
             'turma_id.required' => 'Selecione uma turma.',
             'turma_id.exists' => 'A turma selecionada não é válida.',
-            'foto_url.url' => 'A URL da foto deve ser válida.',
+            'foto.image' => 'O arquivo deve ser uma imagem.',
+            'foto.max' => 'A imagem não pode ter mais de 2MB.',
+            'foto.mimes' => 'A imagem deve ser do tipo: jpeg, jpg, png, gif ou webp.',
         ];
     }
 }

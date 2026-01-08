@@ -13,6 +13,7 @@ use App\Models\Turma;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -305,11 +306,30 @@ class StudentsController extends Controller
 
         $validated = $request->validated();
 
-        DB::connection('shared')->transaction(function () use ($student, $validated, $tenant) {
+        DB::connection('shared')->transaction(function () use ($student, $validated, $tenant, $request) {
+            // Processar upload da foto
+            $fotoUrl = $student->foto_url;
+            if ($request->hasFile('foto')) {
+                // Deletar foto antiga se existir e for do storage local
+                if ($student->foto_url) {
+                    $storageBaseUrl = asset('storage/');
+                    if (str_starts_with($student->foto_url, $storageBaseUrl)) {
+                        $oldFotoPath = str_replace($storageBaseUrl, '', $student->foto_url);
+                        if (Storage::disk('public')->exists($oldFotoPath)) {
+                            Storage::disk('public')->delete($oldFotoPath);
+                        }
+                    }
+                }
+
+                $foto = $request->file('foto');
+                $fotoPath = $foto->store('students/photos', 'public');
+                $fotoUrl = asset('storage/'.$fotoPath);
+            }
+
             $student->update([
                 'nome' => $validated['nome'],
                 'nome_social' => $validated['nome_social'] ?? null,
-                'foto_url' => $validated['foto_url'] ?? null,
+                'foto_url' => $fotoUrl,
                 'data_nascimento' => $validated['data_nascimento'] ?? null,
                 'informacoes_medicas' => $validated['informacoes_medicas'] ?? null,
                 'ativo' => $validated['ativo'] ?? true,
