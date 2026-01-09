@@ -89,6 +89,10 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.provas.criar',
             'escola.provas.editar',
             'escola.provas.excluir',
+            'escola.disciplinas.visualizar',
+            'escola.disciplinas.criar',
+            'escola.disciplinas.editar',
+            'escola.disciplinas.excluir',
         ];
 
         // Permissões para Professores
@@ -101,6 +105,7 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.provas.criar',
             'escola.provas.editar',
             'escola.provas.excluir',
+            'escola.disciplinas.visualizar',
         ];
 
         // Todas as permissões

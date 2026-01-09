@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\School\ClassesController;
+use App\Http\Controllers\School\DisciplinasController;
 use App\Http\Controllers\School\ExercisesController;
 use App\Http\Controllers\School\ParentsController;
 use App\Http\Controllers\School\ParentStudentsController;
@@ -165,4 +166,30 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::delete('tests/{test}', [TestsController::class, 'destroy'])
         ->middleware('permission:escola.provas.excluir')
         ->name('tests.destroy');
+
+    // Disciplinas
+    Route::get('disciplinas', [DisciplinasController::class, 'index'])
+        ->middleware('permission:escola.disciplinas.visualizar')
+        ->name('disciplinas.index');
+    Route::get('disciplinas/create', [DisciplinasController::class, 'create'])
+        ->middleware('permission:escola.disciplinas.criar')
+        ->name('disciplinas.create');
+    Route::post('disciplinas', [DisciplinasController::class, 'store'])
+        ->middleware('permission:escola.disciplinas.criar')
+        ->name('disciplinas.store');
+    Route::get('disciplinas/{disciplina}', [DisciplinasController::class, 'show'])
+        ->middleware('permission:escola.disciplinas.visualizar')
+        ->name('disciplinas.show');
+    Route::get('disciplinas/{disciplina}/edit', [DisciplinasController::class, 'edit'])
+        ->middleware('permission:escola.disciplinas.editar')
+        ->name('disciplinas.edit');
+    Route::patch('disciplinas/{disciplina}/toggle-status', [DisciplinasController::class, 'toggleStatus'])
+        ->middleware('permission:escola.disciplinas.editar')
+        ->name('disciplinas.toggle-status');
+    Route::patch('disciplinas/{disciplina}', [DisciplinasController::class, 'update'])
+        ->middleware('permission:escola.disciplinas.editar')
+        ->name('disciplinas.update');
+    Route::delete('disciplinas/{disciplina}', [DisciplinasController::class, 'destroy'])
+        ->middleware('permission:escola.disciplinas.excluir')
+        ->name('disciplinas.destroy');
 });

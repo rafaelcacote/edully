@@ -7,6 +7,18 @@ import { Form, Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, UserCheck } from 'lucide-vue-next';
 import TeacherForm from './Partials/TeacherForm.vue';
 
+interface Disciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
+interface Props {
+    disciplinas: Disciplina[];
+}
+
+const props = defineProps<Props>();
+
 const breadcrumbItems: BreadcrumbItem[] = [
     {
         title: 'Professores',
@@ -57,6 +69,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         submit-label="Criar professor"
                         :processing="processing"
                         :errors="errors"
+                        :disciplinas="props.disciplinas"
                     />
                 </Form>
             </div>

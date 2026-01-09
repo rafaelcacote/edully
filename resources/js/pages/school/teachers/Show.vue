@@ -135,17 +135,21 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         </div>
                     </div>
 
-                    <div v-if="props.teacher.disciplinas && props.teacher.disciplinas.length > 0" class="border-t pt-6">
+                    <div class="border-t pt-6">
                         <h3 class="mb-4 text-lg font-semibold">Disciplinas</h3>
-                        <div class="flex flex-wrap gap-2">
-                            <span
+                        <div v-if="props.teacher.disciplinas && props.teacher.disciplinas.length > 0" class="flex flex-wrap gap-2">
+                            <Badge
                                 v-for="(disciplina, index) in props.teacher.disciplinas"
                                 :key="index"
-                                class="rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium"
+                                variant="secondary"
+                                class="px-3 py-1.5 text-sm"
                             >
                                 {{ disciplina }}
-                            </span>
+                            </Badge>
                         </div>
+                        <p v-else class="text-sm text-muted-foreground">
+                            Nenhuma disciplina vinculada a este professor.
+                        </p>
                     </div>
                 </div>
             </div>

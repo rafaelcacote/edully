@@ -5,12 +5,14 @@ namespace App\Http\Controllers\School;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreTeacherRequest;
 use App\Http\Requests\School\UpdateTeacherRequest;
+use App\Models\Disciplina;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -99,7 +101,10 @@ class TeachersController extends Controller
 
         $teachers = Teacher::query()
             ->where('tenant_id', $tenant->id)
-            ->with('usuario:id,nome_completo,cpf,email,telefone')
+            ->with([
+                'usuario:id,nome_completo,cpf,email,telefone',
+                'disciplinas:id,nome,sigla',
+            ])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
                 $cpfSearch = preg_replace('/[^0-9]/', '', $search);
@@ -123,10 +128,27 @@ class TeachersController extends Controller
             ->paginate(10)
             ->withQueryString()
             ->through(function ($teacher) {
+                try {
+                    $disciplinas = [];
+                    if ($teacher->relationLoaded('disciplinas')) {
+                        $disciplinasRelation = $teacher->getRelation('disciplinas');
+                        if (is_object($disciplinasRelation) && method_exists($disciplinasRelation, 'map')) {
+                            $disciplinas = $disciplinasRelation->map(fn ($d) => $d->nome ?? $d->sigla)->toArray();
+                        }
+                    } elseif (method_exists($teacher, 'disciplinas')) {
+                        $disciplinasRelation = $teacher->disciplinas;
+                        if (is_object($disciplinasRelation) && method_exists($disciplinasRelation, 'map')) {
+                            $disciplinas = $disciplinasRelation->map(fn ($d) => $d->nome ?? $d->sigla)->toArray();
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $disciplinas = [];
+                }
+
                 return [
                     'id' => $teacher->id,
                     'matricula' => $teacher->matricula,
-                    'disciplinas' => $teacher->disciplinas,
+                    'disciplinas' => $disciplinas,
                     'especializacao' => $teacher->especializacao,
                     'ativo' => $teacher->ativo,
                     'nome_completo' => $teacher->usuario?->nome_completo,
@@ -147,7 +169,21 @@ class TeachersController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('school/teachers/Create');
+        $tenant = $this->getTenant();
+
+        $disciplinas = Disciplina::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'sigla']);
+
+        return Inertia::render('school/teachers/Create', [
+            'disciplinas' => $disciplinas->map(fn ($d) => [
+                'id' => $d->id,
+                'nome' => $d->nome,
+                'sigla' => $d->sigla,
+            ]),
+        ]);
     }
 
     /**
@@ -159,6 +195,24 @@ class TeachersController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($tenant, $validated) {
+            // Process disciplinas if it's a JSON string
+            \Log::info('Store Teacher - Dados recebidos:', [
+                'disciplinas_raw' => $validated['disciplinas'] ?? 'não enviado',
+                'disciplinas_type' => gettype($validated['disciplinas'] ?? null),
+            ]);
+
+            if (isset($validated['disciplinas'])) {
+                if (is_string($validated['disciplinas'])) {
+                    $disciplinasJson = json_decode($validated['disciplinas'], true);
+                    $validated['disciplinas'] = is_array($disciplinasJson) ? $disciplinasJson : [];
+                } elseif (! is_array($validated['disciplinas'])) {
+                    $validated['disciplinas'] = [];
+                }
+            }
+
+            \Log::info('Store Teacher - Disciplinas processadas:', [
+                'disciplinas' => $validated['disciplinas'] ?? [],
+            ]);
             // Remove CPF formatting
             if (! empty($validated['cpf'])) {
                 $validated['cpf'] = preg_replace('/[^0-9]/', '', $validated['cpf']);
@@ -184,14 +238,17 @@ class TeachersController extends Controller
             $user->tenants()->syncWithoutDetaching([$tenant->id]);
 
             // Create the teacher linked to the user
-            Teacher::create([
+            $teacher = Teacher::create([
                 'tenant_id' => $tenant->id,
                 'usuario_id' => $user->id,
                 'matricula' => $validated['matricula'],
-                'disciplinas' => $validated['disciplinas'] ?? null,
                 'especializacao' => $validated['especializacao'] ?? null,
                 'ativo' => $validated['ativo'] ?? true,
             ]);
+
+            // Sync disciplinas if provided
+            $disciplinasToSync = $validated['disciplinas'] ?? [];
+            $this->syncTeacherDisciplinas($teacher, $disciplinasToSync, $tenant);
         });
 
         return redirect()
@@ -214,13 +271,31 @@ class TeachersController extends Controller
             abort(404);
         }
 
-        $teacher->load('usuario:id,nome_completo,cpf,email,telefone');
+        $teacher->load(['usuario:id,nome_completo,cpf,email,telefone', 'disciplinas:id,nome,sigla']);
+
+        // Get disciplinas names safely
+        $disciplinasNames = [];
+        try {
+            if ($teacher->relationLoaded('disciplinas')) {
+                $disciplinasRelation = $teacher->getRelation('disciplinas');
+                if (is_object($disciplinasRelation) && method_exists($disciplinasRelation, 'map')) {
+                    $disciplinasNames = $disciplinasRelation->map(fn ($d) => $d->nome ?? $d->sigla)->toArray();
+                }
+            } elseif (method_exists($teacher, 'disciplinas')) {
+                $disciplinasRelation = $teacher->disciplinas;
+                if (is_object($disciplinasRelation) && method_exists($disciplinasRelation, 'map')) {
+                    $disciplinasNames = $disciplinasRelation->map(fn ($d) => $d->nome ?? $d->sigla)->toArray();
+                }
+            }
+        } catch (\Exception $e) {
+            $disciplinasNames = [];
+        }
 
         return Inertia::render('school/teachers/Show', [
             'teacher' => [
                 'id' => $teacher->id,
                 'matricula' => $teacher->matricula,
-                'disciplinas' => $teacher->disciplinas,
+                'disciplinas' => $disciplinasNames,
                 'especializacao' => $teacher->especializacao,
                 'ativo' => $teacher->ativo,
                 'nome_completo' => $teacher->usuario?->nome_completo,
@@ -242,13 +317,31 @@ class TeachersController extends Controller
             abort(404);
         }
 
-        $teacher->load('usuario:id,nome_completo,cpf,email,telefone');
+        $teacher->load(['usuario:id,nome_completo,cpf,email,telefone']);
+
+        $disciplinas = Disciplina::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'sigla']);
+
+        // Get disciplinas IDs directly from pivot table
+        $pivotTable = $teacher->getConnection()->getDriverName() === 'sqlite'
+            ? 'professor_disciplinas'
+            : 'escola.professor_disciplinas';
+
+        $teacherDisciplinaIds = DB::connection('shared')
+            ->table($pivotTable)
+            ->where('tenant_id', $tenant->id)
+            ->where('professor_id', $teacher->id)
+            ->pluck('disciplina_id')
+            ->toArray();
 
         return Inertia::render('school/teachers/Edit', [
             'teacher' => [
                 'id' => $teacher->id,
                 'matricula' => $teacher->matricula,
-                'disciplinas' => $teacher->disciplinas,
+                'disciplinas' => $teacherDisciplinaIds,
                 'especializacao' => $teacher->especializacao,
                 'ativo' => $teacher->ativo,
                 'nome_completo' => $teacher->usuario?->nome_completo,
@@ -256,6 +349,11 @@ class TeachersController extends Controller
                 'email' => $teacher->usuario?->email,
                 'telefone' => $teacher->usuario?->telefone,
             ],
+            'disciplinas' => $disciplinas->map(fn ($d) => [
+                'id' => $d->id,
+                'nome' => $d->nome,
+                'sigla' => $d->sigla,
+            ]),
         ]);
     }
 
@@ -272,7 +370,26 @@ class TeachersController extends Controller
 
         $validated = $request->validated();
 
-        DB::transaction(function () use ($teacher, $validated) {
+        DB::transaction(function () use ($teacher, $validated, $tenant) {
+            // Process disciplinas if it's a JSON string
+            \Log::info('Update Teacher - Dados recebidos:', [
+                'teacher_id' => $teacher->id,
+                'disciplinas_raw' => $validated['disciplinas'] ?? 'não enviado',
+                'disciplinas_type' => gettype($validated['disciplinas'] ?? null),
+            ]);
+
+            if (isset($validated['disciplinas'])) {
+                if (is_string($validated['disciplinas'])) {
+                    $disciplinasJson = json_decode($validated['disciplinas'], true);
+                    $validated['disciplinas'] = is_array($disciplinasJson) ? $disciplinasJson : [];
+                } elseif (! is_array($validated['disciplinas'])) {
+                    $validated['disciplinas'] = [];
+                }
+            }
+
+            \Log::info('Update Teacher - Disciplinas processadas:', [
+                'disciplinas' => $validated['disciplinas'] ?? [],
+            ]);
             // Remove CPF formatting
             if (! empty($validated['cpf'])) {
                 $validated['cpf'] = preg_replace('/[^0-9]/', '', $validated['cpf']);
@@ -296,10 +413,13 @@ class TeachersController extends Controller
             // Update the teacher
             $teacher->update([
                 'matricula' => $validated['matricula'],
-                'disciplinas' => $validated['disciplinas'] ?? null,
                 'especializacao' => $validated['especializacao'] ?? null,
                 'ativo' => $validated['ativo'] ?? $teacher->ativo,
             ]);
+
+            // Sync disciplinas
+            $disciplinasToSync = $validated['disciplinas'] ?? [];
+            $this->syncTeacherDisciplinas($teacher, $disciplinasToSync, $tenant);
         });
 
         return redirect()
@@ -309,6 +429,96 @@ class TeachersController extends Controller
                 'title' => 'Professor atualizado',
                 'message' => 'As alterações foram salvas com sucesso.',
             ]);
+    }
+
+    /**
+     * Sync teacher disciplinas.
+     */
+    protected function syncTeacherDisciplinas(Teacher $teacher, array $disciplinaIds, $tenant): void
+    {
+        $pivotTable = $teacher->getConnection()->getDriverName() === 'sqlite'
+            ? 'professor_disciplinas'
+            : 'escola.professor_disciplinas';
+
+        \Log::info('=== SYNC DISCIPLINAS - INÍCIO ===', [
+            'teacher_id' => $teacher->id,
+            'tenant_id' => $tenant->id,
+            'disciplina_ids_recebidos' => $disciplinaIds,
+            'pivot_table' => $pivotTable,
+        ]);
+
+        // Normalize disciplinas array
+        if (empty($disciplinaIds) || ! is_array($disciplinaIds)) {
+            $disciplinaIds = [];
+        }
+
+        // Filter out empty values and ensure they are strings
+        $disciplinaIds = array_values(array_filter(array_map(function ($id) {
+            return is_string($id) ? trim($id) : (string) $id;
+        }, $disciplinaIds), function ($id) {
+            return ! empty($id) && $id !== 'null' && $id !== '0';
+        }));
+
+        \Log::info('Disciplinas após normalização:', [
+            'disciplina_ids' => $disciplinaIds,
+            'count' => count($disciplinaIds),
+        ]);
+
+        // Remove all existing disciplinas for this teacher and tenant
+        $deleted = DB::connection('shared')
+            ->table($pivotTable)
+            ->where('tenant_id', $tenant->id)
+            ->where('professor_id', $teacher->id)
+            ->delete();
+
+        \Log::info('Registros deletados da pivot:', ['count' => $deleted]);
+
+        // Attach new disciplinas
+        if (! empty($disciplinaIds)) {
+            $insertData = [];
+            foreach ($disciplinaIds as $disciplinaId) {
+                if (! empty($disciplinaId) && is_string($disciplinaId)) {
+                    $insertData[] = [
+                        'id' => Str::uuid()->toString(),
+                        'tenant_id' => $tenant->id,
+                        'professor_id' => $teacher->id,
+                        'disciplina_id' => $disciplinaId,
+                        'created_at' => now(),
+                    ];
+                }
+            }
+
+            \Log::info('Dados para inserir:', [
+                'insert_data' => $insertData,
+                'count' => count($insertData),
+            ]);
+
+            if (! empty($insertData)) {
+                try {
+                    DB::connection('shared')
+                        ->table($pivotTable)
+                        ->insert($insertData);
+
+                    \Log::info('✅ Disciplinas inseridas com sucesso!');
+                } catch (\Exception $e) {
+                    \Log::error('❌ ERRO ao inserir disciplinas: '.$e->getMessage(), [
+                        'teacher_id' => $teacher->id,
+                        'tenant_id' => $tenant->id,
+                        'disciplina_ids' => $disciplinaIds,
+                        'insert_data' => $insertData,
+                        'exception' => $e,
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    throw $e;
+                }
+            } else {
+                \Log::warning('⚠️ Nenhum dado para inserir após filtrar');
+            }
+        } else {
+            \Log::info('ℹ️ Nenhuma disciplina para vincular (array vazio)');
+        }
+
+        \Log::info('=== SYNC DISCIPLINAS - FIM ===');
     }
 
     /**

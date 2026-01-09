@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Teacher extends Model
+class Disciplina extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
@@ -39,13 +39,13 @@ class Teacher extends Model
      *
      * @var string
      */
-    protected $table = 'escola.professores';
+    protected $table = 'escola.disciplinas';
 
     public function getTable(): string
     {
-        // Em SQLite (testes), não existe schema. A migration cria a tabela como `professores`.
+        // Em SQLite (testes), não existe schema. A migration cria a tabela como `disciplinas`.
         if ($this->getConnection()->getDriverName() === 'sqlite') {
-            return 'professores';
+            return 'disciplinas';
         }
 
         return parent::getTable();
@@ -58,9 +58,10 @@ class Teacher extends Model
      */
     protected $fillable = [
         'tenant_id',
-        'usuario_id',
-        'matricula',
-        'especializacao',
+        'nome',
+        'sigla',
+        'descricao',
+        'carga_horaria_semanal',
         'ativo',
     ];
 
@@ -72,11 +73,20 @@ class Teacher extends Model
     protected function casts(): array
     {
         return [
+            'carga_horaria_semanal' => 'integer',
             'ativo' => 'boolean',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the tenant that owns the discipline.
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     /**
@@ -90,35 +100,21 @@ class Teacher extends Model
     }
 
     /**
-     * Get the disciplinas (disciplines) for the teacher.
+     * Get the professores (teachers) for the discipline.
      */
-    public function disciplinas(): BelongsToMany
+    public function professores(): BelongsToMany
     {
         $pivotTable = $this->professorDisciplinasPivotTable();
 
         return $this->belongsToMany(
-            Disciplina::class,
+            Teacher::class,
             $pivotTable,
-            'professor_id',
-            'disciplina_id'
+            'disciplina_id',
+            'professor_id'
         )
             ->withPivot(['tenant_id', 'created_at'])
-            ->wherePivot('tenant_id', $this->tenant_id);
-    }
-
-    /**
-     * Get the tenant that owns the teacher.
-     */
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
-    }
-
-    /**
-     * Get the user associated with the teacher.
-     */
-    public function usuario(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'usuario_id');
+            ->when($this->tenant_id, function ($query) {
+                $query->wherePivot('tenant_id', $this->tenant_id);
+            });
     }
 }

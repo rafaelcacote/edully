@@ -21,7 +21,7 @@ import { index as tenantsIndex } from '@/routes/tenants';
 import { index as usersIndex } from '@/routes/users';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, CreditCard, FileSearch, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck } from 'lucide-vue-next';
+import { BookOpen, CreditCard, FileSearch, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck, BookText } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -173,6 +173,11 @@ const schoolNavItems = computed<NavItem[]>(() => {
                 icon: BookOpen,
             },
             {
+                title: 'Disciplinas',
+                href: '/school/disciplinas',
+                icon: BookText,
+            },
+            {
                 title: 'Exercícios',
                 href: '/school/exercises',
                 icon: NotebookPen,
@@ -184,9 +189,14 @@ const schoolNavItems = computed<NavItem[]>(() => {
             }
         );
     } 
-    // Se for Professor, mostra Exercícios e Provas
+    // Se for Professor, mostra Disciplinas, Exercícios e Provas
     else if (isProfessor.value || hasExerciciosPermission.value) {
         items.push(
+            {
+                title: 'Disciplinas',
+                href: '/school/disciplinas',
+                icon: BookText,
+            },
             {
                 title: 'Exercícios',
                 href: '/school/exercises',

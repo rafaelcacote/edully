@@ -4,57 +4,32 @@ import Heading from '@/components/Heading.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, UserCheck } from 'lucide-vue-next';
-import TeacherForm from './Partials/TeacherForm.vue';
-
-interface Disciplina {
-    id: string;
-    nome: string;
-    sigla?: string | null;
-}
-
-interface Teacher {
-    id: string;
-    matricula: string;
-    disciplinas?: string[] | null;
-    especializacao?: string | null;
-    ativo: boolean;
-    nome_completo?: string;
-    cpf?: string | null;
-    email?: string | null;
-    telefone?: string | null;
-}
-
-interface Props {
-    teacher: Teacher;
-    disciplinas: Disciplina[];
-}
-
-const props = defineProps<Props>();
+import { ArrowLeft, BookOpen } from 'lucide-vue-next';
+import DisciplinaForm from './Partials/DisciplinaForm.vue';
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Professores',
-        href: '/school/teachers',
+        title: 'Disciplinas',
+        href: '/school/disciplinas',
     },
     {
-        title: 'Editar',
-        href: `/school/teachers/${props.teacher.id}/edit`,
+        title: 'Nova disciplina',
+        href: '#',
     },
 ];
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head :title="`Editar professor: ${props.teacher.nome_completo || props.teacher.matricula}`" />
+        <Head title="Nova disciplina" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
                     <Heading
-                        :title="props.teacher.nome_completo || props.teacher.matricula"
-                        description="Atualize os dados do professor"
-                        :icon="UserCheck"
+                        title="Nova disciplina"
+                        description="Cadastre uma nova disciplina"
+                        :icon="BookOpen"
                     />
                 </div>
 
@@ -63,7 +38,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     as-child
                     class="mt-4 rounded-lg border border-input bg-background shadow-sm transition-all hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 >
-                    <Link href="/school/teachers" class="flex items-center gap-2 px-4 py-2">
+                    <Link href="/school/disciplinas" class="flex items-center gap-2 px-4 py-2">
                         <ArrowLeft class="h-4 w-4" />
                         Voltar
                     </Link>
@@ -72,24 +47,21 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
             <div class="rounded-xl border bg-card p-6 shadow-sm">
                 <Form
-                    :action="`/school/teachers/${props.teacher.id}`"
-                    method="patch"
+                    action="/school/disciplinas"
+                    method="post"
+                    reset-on-success
                     class="space-y-6"
                     v-slot="{ errors, processing }"
                 >
-                    <TeacherForm
-                        :teacher="props.teacher"
-                        submit-label="Salvar alterações"
+                    <DisciplinaForm
+                        submit-label="Criar disciplina"
                         :processing="processing"
                         :errors="errors"
-                        :disciplinas="props.disciplinas"
                     />
                 </Form>
             </div>
         </div>
     </AppLayout>
 </template>
-
-
 
 

@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, X } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { Save } from 'lucide-vue-next';
+import { onMounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+
+interface Disciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
 
 interface Teacher {
     id?: string;
@@ -19,17 +26,21 @@ interface Teacher {
     telefone?: string | null;
 }
 
-const props = defineProps<{
+interface Props {
     teacher?: Teacher;
     submitLabel: string;
     processing: boolean;
     errors: Record<string, string>;
-}>();
+    disciplinas?: Disciplina[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    disciplinas: () => [],
+});
 
 const phoneDisplay = ref('');
 const cpfDisplay = ref('');
-const disciplinas = ref<string[]>(props.teacher?.disciplinas || []);
-const novaDisciplina = ref('');
+const selectedDisciplinas = ref<string[]>(props.teacher?.disciplinas || []);
 const cpfError = ref<string | null>(null);
 const cpfValidating = ref(false);
 const cpfValid = ref<boolean | null>(null);
@@ -201,17 +212,26 @@ function handlePhoneInput(value: string | number) {
     }
 }
 
-function adicionarDisciplina() {
-    const disciplina = novaDisciplina.value.trim();
-    if (disciplina && !disciplinas.value.includes(disciplina)) {
-        disciplinas.value.push(disciplina);
-        novaDisciplina.value = '';
+function toggleDisciplina(disciplinaId: string) {
+    userInteracted.value = true;
+    const index = selectedDisciplinas.value.indexOf(disciplinaId);
+    if (index > -1) {
+        selectedDisciplinas.value.splice(index, 1);
+    } else {
+        selectedDisciplinas.value.push(disciplinaId);
     }
+    console.log('🔄 Disciplinas selecionadas:', JSON.stringify(selectedDisciplinas.value));
+    console.log('📊 Total selecionadas:', selectedDisciplinas.value.length);
 }
 
-function removerDisciplina(index: number) {
-    disciplinas.value.splice(index, 1);
+function isDisciplinaSelected(disciplinaId: string): boolean {
+    const isSelected = selectedDisciplinas.value.includes(disciplinaId);
+    console.log(`🔍 Verificando disciplina ${disciplinaId.slice(0, 8)}...: ${isSelected}`);
+    return isSelected;
 }
+
+// Flag to track if user has interacted with disciplinas
+const userInteracted = ref(false);
 
 onMounted(() => {
     if (props.teacher?.telefone) {
@@ -221,7 +241,8 @@ onMounted(() => {
         cpfDisplay.value = formatCPF(props.teacher.cpf);
     }
     if (props.teacher?.disciplinas && props.teacher.disciplinas.length > 0) {
-        disciplinas.value = [...props.teacher.disciplinas];
+        selectedDisciplinas.value = [...props.teacher.disciplinas];
+        console.log('✅ Disciplinas carregadas no mount:', selectedDisciplinas.value);
     }
 });
 </script>
@@ -375,47 +396,48 @@ onMounted(() => {
 
             <div class="grid gap-2">
                 <Label for="disciplinas">Disciplinas</Label>
-                <div class="space-y-3">
-                    <div class="flex gap-2">
-                        <Input
-                            id="disciplinas"
-                            v-model="novaDisciplina"
-                            placeholder="Ex: Matemática, Física..."
-                            @keyup.enter="adicionarDisciplina"
-                        />
-                        <Button
-                            type="button"
-                            @click="adicionarDisciplina"
-                            :disabled="!novaDisciplina.trim()"
-                        >
-                            Adicionar
-                        </Button>
-                    </div>
-
-                    <div v-if="disciplinas.length > 0" class="flex flex-wrap gap-2">
+                <div v-if="props.disciplinas.length > 0" class="space-y-2 rounded-lg border border-input p-4">
+                    <div class="grid gap-3 sm:grid-cols-2">
                         <div
-                            v-for="(disciplina, index) in disciplinas"
-                            :key="index"
-                            class="flex items-center gap-1 rounded-md bg-primary/10 px-3 py-1 text-sm"
+                            v-for="disciplina in props.disciplinas"
+                            :key="disciplina.id"
+                            class="flex items-center gap-2 rounded-md p-2 hover:bg-accent cursor-pointer"
+                            @click="toggleDisciplina(disciplina.id)"
                         >
-                            <span>{{ disciplina }}</span>
-                            <button
-                                type="button"
-                                @click="removerDisciplina(index)"
-                                class="rounded-full hover:bg-destructive/20"
-                            >
-                                <X class="h-3 w-3" />
-                            </button>
-                            <input
-                                type="hidden"
-                                :name="`disciplinas[${index}]`"
-                                :value="disciplina"
+                            <Checkbox
+                                :key="`checkbox-${disciplina.id}-${isDisciplinaSelected(disciplina.id)}`"
+                                :checked="isDisciplinaSelected(disciplina.id)"
+                                :aria-label="`Selecionar disciplina ${disciplina.nome}`"
                             />
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">{{ disciplina.nome }}</span>
+                                <span v-if="disciplina.sigla" class="text-xs text-muted-foreground">
+                                    {{ disciplina.sigla }}
+                                </span>
+                            </div>
                         </div>
                     </div>
-
-                    <InputError :message="errors.disciplinas" />
+                    <input
+                        type="hidden"
+                        name="disciplinas"
+                        :value="JSON.stringify(selectedDisciplinas)"
+                    />
+                    <!-- Debug: Mostrar disciplinas selecionadas -->
+                    <p class="mt-2 text-xs text-muted-foreground">
+                        <strong>Debug:</strong> {{ selectedDisciplinas.length }} disciplina(s) selecionada(s)
+                        <code v-if="selectedDisciplinas.length > 0" class="ml-2 rounded bg-muted px-1">
+                            {{ JSON.stringify(selectedDisciplinas) }}
+                        </code>
+                    </p>
                 </div>
+                <p v-else class="text-sm text-muted-foreground">
+                    Nenhuma disciplina ativa cadastrada. Cadastre disciplinas primeiro.
+                </p>
+                <InputError :message="errors.disciplinas" />
+                <InputError
+                    v-if="errors['disciplinas.0']"
+                    :message="errors['disciplinas.0']"
+                />
             </div>
 
             <div class="grid gap-2">
@@ -453,7 +475,12 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center justify-end gap-2 border-t pt-6">
-            <Button type="submit" :disabled="processing" class="flex items-center gap-2">
+            <Button 
+                type="submit" 
+                :disabled="processing" 
+                class="flex items-center gap-2"
+                @click="console.log('🚀 Enviando formulário com disciplinas:', JSON.stringify(selectedDisciplinas))"
+            >
                 <Save class="h-4 w-4" />
                 {{ submitLabel }}
             </Button>

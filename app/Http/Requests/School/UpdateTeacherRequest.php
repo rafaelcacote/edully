@@ -36,8 +36,7 @@ class UpdateTeacherRequest extends FormRequest
                     ->ignore($teacherId)
                     ->whereNull('deleted_at'),
             ],
-            'disciplinas' => ['nullable', 'array'],
-            'disciplinas.*' => ['string', 'max:100'],
+            'disciplinas' => ['nullable', 'string'],
             'especializacao' => ['nullable', 'string', 'max:255'],
             'ativo' => ['nullable', 'boolean'],
         ];
@@ -54,7 +53,9 @@ class UpdateTeacherRequest extends FormRequest
             'matricula.unique' => 'Já existe um professor com esta matrícula nesta escola.',
             'matricula.max' => 'A matrícula não pode ter mais de 50 caracteres.',
             'disciplinas.array' => 'As disciplinas devem ser uma lista.',
-            'disciplinas.*.string' => 'Cada disciplina deve ser um texto.',
+            'disciplinas.*.required' => 'Cada disciplina deve ser um ID válido.',
+            'disciplinas.*.uuid' => 'Cada disciplina deve ser um ID válido.',
+            'disciplinas.*.exists' => 'Uma ou mais disciplinas selecionadas são inválidas ou não pertencem a esta escola.',
             'especializacao.max' => 'A especialização não pode ter mais de 255 caracteres.',
             'password.min' => 'A senha deve ter no mínimo 6 caracteres.',
         ];
