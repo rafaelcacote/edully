@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import UsersController from '@/actions/App/Http/Controllers/UsersController';
+import { changePassword } from '@/actions/App/Http/Controllers/UsersController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,7 +37,7 @@ defineProps<{
 
         <DialogContent class="sm:max-w-lg">
             <Form
-                v-bind="UsersController.changePassword.form({ user: user.id })"
+                v-bind="changePassword.form({ user: user.id })"
                 :options="{ preserveScroll: true }"
                 reset-on-success
                 class="space-y-6"

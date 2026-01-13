@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import UsersController from '@/actions/App/Http/Controllers/UsersController';
+import { destroy } from '@/actions/App/Http/Controllers/UsersController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,7 +35,7 @@ defineProps<{
 
         <DialogContent class="sm:max-w-lg">
             <Form
-                v-bind="UsersController.destroy.form({ user: user.id })"
+                v-bind="destroy.form({ user: user.id })"
                 :options="{ preserveScroll: true }"
                 class="space-y-6"
                 v-slot="{ errors, processing }"

@@ -9,7 +9,7 @@ import ExerciseForm from './Partials/ExerciseForm.vue';
 
 interface Exercise {
     id: string;
-    disciplina: string;
+    disciplina_id: string;
     titulo: string;
     descricao?: string | null;
     data_entrega: string;
@@ -24,9 +24,16 @@ interface Turma {
     ano_letivo?: number | string | null;
 }
 
+interface Disciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
 interface Props {
     exercise: Exercise;
     turmas: Turma[];
+    disciplinas: Disciplina[];
 }
 
 const props = defineProps<Props>();
@@ -79,6 +86,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     <ExerciseForm
                         :exercise-data="props.exercise"
                         :turmas="props.turmas"
+                        :disciplinas="props.disciplinas"
                         submit-label="Salvar alterações"
                         :processing="processing"
                         :errors="errors"

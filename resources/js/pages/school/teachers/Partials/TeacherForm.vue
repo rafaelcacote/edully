@@ -40,11 +40,27 @@ const props = withDefaults(defineProps<Props>(), {
 
 const phoneDisplay = ref('');
 const cpfDisplay = ref('');
-const selectedDisciplinas = ref<string[]>(props.teacher?.disciplinas || []);
+const selectedDisciplinas = ref<string[]>(normalizeDisciplinaIds(props.teacher?.disciplinas));
 const cpfError = ref<string | null>(null);
 const cpfValidating = ref(false);
 const cpfValid = ref<boolean | null>(null);
 const cpfExists = ref(false);
+
+function normalizeDisciplinaIds(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .map((item) => {
+            if (typeof item === 'object' && item !== null && 'id' in (item as Record<string, unknown>)) {
+                return String((item as Record<string, unknown>).id);
+            }
+
+            return String(item);
+        })
+        .filter((id) => id.length > 0);
+}
 
 function validateCpf(cpf: string): boolean {
     const numbers = cpf.replace(/\D/g, '');
@@ -212,22 +228,30 @@ function handlePhoneInput(value: string | number) {
     }
 }
 
-function toggleDisciplina(disciplinaId: string) {
+function setDisciplinaSelection(disciplinaId: string | number, checked: boolean) {
     userInteracted.value = true;
-    const index = selectedDisciplinas.value.indexOf(disciplinaId);
-    if (index > -1) {
-        selectedDisciplinas.value.splice(index, 1);
+    const id = String(disciplinaId);
+
+    if (checked) {
+        if (!selectedDisciplinas.value.includes(id)) {
+            selectedDisciplinas.value = [...selectedDisciplinas.value, id];
+        }
     } else {
-        selectedDisciplinas.value.push(disciplinaId);
+        selectedDisciplinas.value = selectedDisciplinas.value.filter((selectedId) => selectedId !== id);
     }
-    console.log('🔄 Disciplinas selecionadas:', JSON.stringify(selectedDisciplinas.value));
-    console.log('📊 Total selecionadas:', selectedDisciplinas.value.length);
 }
 
-function isDisciplinaSelected(disciplinaId: string): boolean {
-    const isSelected = selectedDisciplinas.value.includes(disciplinaId);
-    console.log(`🔍 Verificando disciplina ${disciplinaId.slice(0, 8)}...: ${isSelected}`);
-    return isSelected;
+function handleDisciplinaChecked(disciplinaId: string | number, checked: boolean | 'indeterminate') {
+    setDisciplinaSelection(disciplinaId, checked === true);
+}
+
+function toggleDisciplina(disciplinaId: string | number) {
+    setDisciplinaSelection(disciplinaId, !isDisciplinaSelected(disciplinaId));
+}
+
+function isDisciplinaSelected(disciplinaId: string | number): boolean {
+    const id = String(disciplinaId);
+    return selectedDisciplinas.value.includes(id);
 }
 
 // Flag to track if user has interacted with disciplinas
@@ -240,9 +264,9 @@ onMounted(() => {
     if (props.teacher?.cpf) {
         cpfDisplay.value = formatCPF(props.teacher.cpf);
     }
-    if (props.teacher?.disciplinas && props.teacher.disciplinas.length > 0) {
-        selectedDisciplinas.value = [...props.teacher.disciplinas];
-        console.log('✅ Disciplinas carregadas no mount:', selectedDisciplinas.value);
+    const initialDisciplinas = normalizeDisciplinaIds(props.teacher?.disciplinas);
+    if (initialDisciplinas.length > 0) {
+        selectedDisciplinas.value = initialDisciplinas;
     }
 });
 </script>
@@ -405,9 +429,11 @@ onMounted(() => {
                             @click="toggleDisciplina(disciplina.id)"
                         >
                             <Checkbox
-                                :key="`checkbox-${disciplina.id}-${isDisciplinaSelected(disciplina.id)}`"
-                                :checked="isDisciplinaSelected(disciplina.id)"
+                                :key="`checkbox-${disciplina.id}`"
+                                :model-value="isDisciplinaSelected(disciplina.id)"
                                 :aria-label="`Selecionar disciplina ${disciplina.nome}`"
+                                @update:model-value="handleDisciplinaChecked(disciplina.id, $event)"
+                                @click.stop
                             />
                             <div class="flex flex-col">
                                 <span class="text-sm font-medium">{{ disciplina.nome }}</span>
@@ -422,13 +448,6 @@ onMounted(() => {
                         name="disciplinas"
                         :value="JSON.stringify(selectedDisciplinas)"
                     />
-                    <!-- Debug: Mostrar disciplinas selecionadas -->
-                    <p class="mt-2 text-xs text-muted-foreground">
-                        <strong>Debug:</strong> {{ selectedDisciplinas.length }} disciplina(s) selecionada(s)
-                        <code v-if="selectedDisciplinas.length > 0" class="ml-2 rounded bg-muted px-1">
-                            {{ JSON.stringify(selectedDisciplinas) }}
-                        </code>
-                    </p>
                 </div>
                 <p v-else class="text-sm text-muted-foreground">
                     Nenhuma disciplina ativa cadastrada. Cadastre disciplinas primeiro.
@@ -479,7 +498,6 @@ onMounted(() => {
                 type="submit" 
                 :disabled="processing" 
                 class="flex items-center gap-2"
-                @click="console.log('🚀 Enviando formulário com disciplinas:', JSON.stringify(selectedDisciplinas))"
             >
                 <Save class="h-4 w-4" />
                 {{ submitLabel }}

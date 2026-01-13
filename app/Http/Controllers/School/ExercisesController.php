@@ -57,25 +57,32 @@ class ExercisesController extends Controller
     {
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
-        $filters = $request->only(['search', 'turma_id', 'disciplina']);
+        $filters = $request->only(['search', 'turma_id', 'disciplina_id']);
 
         $exercises = Exercise::query()
             ->where('tenant_id', $tenant->id)
             ->where('professor_id', $teacher->id)
-            ->with(['turma:id,nome,serie,turma_letra,ano_letivo'])
+            ->with([
+                'turma:id,nome,serie,turma_letra,ano_letivo',
+                'disciplinaRelation:id,nome,sigla',
+            ])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
                 $query->where(function ($q) use ($search) {
                     $q->where('titulo', 'ilike', "%{$search}%")
-                        ->orWhere('disciplina', 'ilike', "%{$search}%")
-                        ->orWhere('descricao', 'ilike', "%{$search}%");
+                        ->orWhere('descricao', 'ilike', "%{$search}%")
+                        ->orWhereHas('disciplinaRelation', function ($subQuery) use ($search) {
+                            $subQuery->where('nome', 'ilike', "%{$search}%")
+                                ->orWhere('sigla', 'ilike', "%{$search}%");
+                        })
+                        ->orWhere('disciplina', 'ilike', "%{$search}%");
                 });
             })
             ->when($filters['turma_id'] ?? null, function ($query, string $turmaId) {
                 $query->where('turma_id', $turmaId);
             })
-            ->when($filters['disciplina'] ?? null, function ($query, string $disciplina) {
-                $query->where('disciplina', $disciplina);
+            ->when($filters['disciplina_id'] ?? null, function ($query, string $disciplinaId) {
+                $query->where('disciplina_id', $disciplinaId);
             })
             ->orderBy('data_entrega', 'desc')
             ->orderBy('created_at', 'desc')
@@ -85,7 +92,9 @@ class ExercisesController extends Controller
                 return [
                     'id' => $exercise->id,
                     'titulo' => $exercise->titulo,
-                    'disciplina' => $exercise->disciplina,
+                    'disciplina' => $exercise->disciplinaRelation
+                        ? ($exercise->disciplinaRelation->nome.($exercise->disciplinaRelation->sigla ? ' ('.$exercise->disciplinaRelation->sigla.')' : ''))
+                        : $exercise->disciplina,
                     'data_entrega' => $exercise->data_entrega->format('d/m/Y'),
                     'turma' => $exercise->turma
                         ? [
@@ -112,13 +121,16 @@ class ExercisesController extends Controller
                 ];
             });
 
-        $disciplinas = Exercise::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->distinct()
-            ->pluck('disciplina')
-            ->sort()
-            ->values();
+        $disciplinas = $teacher->disciplinas()
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get()
+            ->map(function ($disciplina) {
+                return [
+                    'id' => $disciplina->id,
+                    'nome' => $disciplina->nome.($disciplina->sigla ? ' ('.$disciplina->sigla.')' : ''),
+                ];
+            });
 
         return Inertia::render('school/exercises/Index', [
             'exercises' => $exercises,
@@ -151,8 +163,21 @@ class ExercisesController extends Controller
                 ];
             });
 
+        $disciplinas = $teacher->disciplinas()
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get()
+            ->map(function ($disciplina) {
+                return [
+                    'id' => $disciplina->id,
+                    'nome' => $disciplina->nome,
+                    'sigla' => $disciplina->sigla,
+                ];
+            });
+
         return Inertia::render('school/exercises/Create', [
             'turmas' => $turmas,
+            'disciplinas' => $disciplinas,
         ]);
     }
 
@@ -192,12 +217,18 @@ class ExercisesController extends Controller
             abort(404);
         }
 
-        $exercise->load(['turma:id,nome,serie,ano_letivo', 'professor.usuario:id,nome_completo']);
+        $exercise->load([
+            'turma:id,nome,serie,ano_letivo',
+            'professor.usuario:id,nome_completo',
+            'disciplinaRelation:id,nome,sigla',
+        ]);
 
         return Inertia::render('school/exercises/Show', [
             'exercise' => [
                 'id' => $exercise->id,
-                'disciplina' => $exercise->disciplina,
+                'disciplina' => $exercise->disciplinaRelation
+                    ? ($exercise->disciplinaRelation->nome.($exercise->disciplinaRelation->sigla ? ' ('.$exercise->disciplinaRelation->sigla.')' : ''))
+                    : $exercise->disciplina,
                 'titulo' => $exercise->titulo,
                 'descricao' => $exercise->descricao,
                 'data_entrega' => $exercise->data_entrega->format('Y-m-d'),
@@ -252,10 +283,22 @@ class ExercisesController extends Controller
                 ];
             });
 
+        $disciplinas = $teacher->disciplinas()
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get()
+            ->map(function ($disciplina) {
+                return [
+                    'id' => $disciplina->id,
+                    'nome' => $disciplina->nome,
+                    'sigla' => $disciplina->sigla,
+                ];
+            });
+
         return Inertia::render('school/exercises/Edit', [
             'exercise' => [
                 'id' => $exercise->id,
-                'disciplina' => $exercise->disciplina,
+                'disciplina_id' => $exercise->disciplina_id,
                 'titulo' => $exercise->titulo,
                 'descricao' => $exercise->descricao,
                 'data_entrega' => $exercise->data_entrega->format('Y-m-d'),
@@ -263,6 +306,7 @@ class ExercisesController extends Controller
                 'turma_id' => $exercise->turma_id,
             ],
             'turmas' => $turmas,
+            'disciplinas' => $disciplinas,
         ]);
     }
 

@@ -47,13 +47,14 @@ class HandleInertiaRequests extends Middleware
 
         if ($user) {
             // Carregar roles e tenants explicitamente para evitar queries N+1
-            $user->load('roles', 'tenants');
+            $user->load('roles', 'tenants', 'permissions');
             $isAdminGeral = $user->hasRole('Administrador Geral');
 
             $userData = [
                 ...$user->toArray(),
                 'roles' => $user->roles->pluck('name')->toArray(),
                 'is_admin_geral' => $isAdminGeral,
+                'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
                 'tenants' => $user->tenants->map(fn ($tenant) => [
                     'id' => $tenant->id,
                     'name' => $tenant->nome,

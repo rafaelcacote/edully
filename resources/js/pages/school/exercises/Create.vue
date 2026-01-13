@@ -14,8 +14,15 @@ interface Turma {
     ano_letivo?: number | string | null;
 }
 
+interface Disciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
 interface Props {
     turmas: Turma[];
+    disciplinas: Disciplina[];
 }
 
 const props = defineProps<Props>();
@@ -68,6 +75,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 >
                     <ExerciseForm
                         :turmas="props.turmas"
+                        :disciplinas="props.disciplinas"
                         submit-label="Criar exercício"
                         :processing="processing"
                         :errors="errors"

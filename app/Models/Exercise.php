@@ -59,6 +59,7 @@ class Exercise extends Model
         'tenant_id',
         'professor_id',
         'turma_id',
+        'disciplina_id',
         'disciplina',
         'titulo',
         'descricao',
@@ -103,5 +104,13 @@ class Exercise extends Model
     public function turma(): BelongsTo
     {
         return $this->belongsTo(Turma::class, 'turma_id');
+    }
+
+    /**
+     * Get the discipline (disciplina) for which the exercise was created.
+     */
+    public function disciplinaRelation(): BelongsTo
+    {
+        return $this->belongsTo(Disciplina::class, 'disciplina_id');
     }
 }

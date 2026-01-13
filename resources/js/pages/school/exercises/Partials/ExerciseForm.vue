@@ -7,7 +7,7 @@ import { computed, ref, watch } from 'vue';
 
 interface ExerciseData {
     id?: string;
-    disciplina?: string;
+    disciplina_id?: string;
     titulo?: string;
     descricao?: string | null;
     data_entrega?: string;
@@ -22,15 +22,22 @@ interface Turma {
     ano_letivo?: number | string | null;
 }
 
+interface Disciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
 const props = defineProps<{
     exerciseData?: ExerciseData;
     turmas?: Turma[];
+    disciplinas?: Disciplina[];
     submitLabel: string;
     processing: boolean;
     errors: Record<string, string>;
 }>();
 
-const disciplina = ref(props.exerciseData?.disciplina || '');
+const disciplinaId = ref(props.exerciseData?.disciplina_id || '');
 const titulo = ref(props.exerciseData?.titulo || '');
 const descricao = ref(props.exerciseData?.descricao || '');
 const dataEntrega = ref(props.exerciseData?.data_entrega || '');
@@ -41,7 +48,7 @@ const isEdit = computed(() => !!props.exerciseData?.id);
 
 watch(() => props.exerciseData, (newData) => {
     if (newData) {
-        disciplina.value = newData.disciplina || '';
+        disciplinaId.value = newData.disciplina_id || '';
         titulo.value = newData.titulo || '';
         descricao.value = newData.descricao || '';
         dataEntrega.value = newData.data_entrega || '';
@@ -55,18 +62,24 @@ watch(() => props.exerciseData, (newData) => {
     <div class="grid gap-6">
         <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label for="disciplina">Disciplina</Label>
-                <input
-                    id="disciplina"
-                    name="disciplina"
-                    v-model="disciplina"
-                    type="text"
-                    placeholder="Ex: Matemática"
+                <Label for="disciplina_id">Disciplina</Label>
+                <select
+                    id="disciplina_id"
+                    name="disciplina_id"
+                    v-model="disciplinaId"
                     required
-                    maxlength="100"
-                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
-                />
-                <InputError :message="errors.disciplina" />
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option value="">Selecione uma disciplina</option>
+                    <option
+                        v-for="disciplina in disciplinas"
+                        :key="disciplina.id"
+                        :value="disciplina.id"
+                    >
+                        {{ disciplina.nome }}{{ disciplina.sigla ? ` (${disciplina.sigla})` : '' }}
+                    </option>
+                </select>
+                <InputError :message="errors.disciplina_id" />
             </div>
 
             <div class="grid gap-2">

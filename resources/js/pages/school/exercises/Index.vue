@@ -41,14 +41,19 @@ interface Paginated<T> {
     total: number;
 }
 
+interface Disciplina {
+    id: string;
+    nome: string;
+}
+
 interface Props {
     exercises: Paginated<Exercise>;
     turmas: Turma[];
-    disciplinas: string[];
+    disciplinas: Disciplina[];
     filters: {
         search?: string | null;
         turma_id?: string | null;
-        disciplina?: string | null;
+        disciplina_id?: string | null;
     };
 }
 
@@ -63,10 +68,10 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 const search = ref(props.filters.search ?? '');
 const turmaId = ref(props.filters.turma_id ?? '');
-const disciplina = ref(props.filters.disciplina ?? '');
+const disciplinaId = ref(props.filters.disciplina_id ?? '');
 
 const hasAnyFilter = computed(
-    () => !!search.value || turmaId.value !== '' || disciplina.value !== '',
+    () => !!search.value || turmaId.value !== '' || disciplinaId.value !== '',
 );
 
 function applyFilters() {
@@ -75,7 +80,7 @@ function applyFilters() {
         {
             search: search.value || undefined,
             turma_id: turmaId.value || undefined,
-            disciplina: disciplina.value || undefined,
+            disciplina_id: disciplinaId.value || undefined,
         },
         {
             preserveState: true,
@@ -88,7 +93,7 @@ function applyFilters() {
 function clearFilters() {
     search.value = '';
     turmaId.value = '';
-    disciplina.value = '';
+    disciplinaId.value = '';
     applyFilters();
 }
 </script>
@@ -146,17 +151,17 @@ function clearFilters() {
                         </select>
 
                         <select
-                            v-model="disciplina"
+                            v-model="disciplinaId"
                             class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-48"
                             @change="applyFilters"
                         >
                             <option value="">Todas as disciplinas</option>
                             <option
                                 v-for="disc in disciplinas"
-                                :key="disc"
-                                :value="disc"
+                                :key="disc.id"
+                                :value="disc.id"
                             >
-                                {{ disc }}
+                                {{ disc.nome }}
                             </option>
                         </select>
                     </div>

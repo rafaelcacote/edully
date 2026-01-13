@@ -26,50 +26,39 @@ import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage();
-const isAdminGeral = computed(() => page.props.auth.user?.is_admin_geral ?? false);
-const isAdminEscola = computed(() => {
-    const user = page.props.auth.user;
-    if (!user) return false;
-    
-    // Verifica se o usuário tem a role "Administrador Escola"
-    const roles = (user as any).roles || [];
-    const hasAdminEscolaRole = roles.includes('Administrador Escola');
-    
-    // Verifica se o usuário tem pelo menos um tenant associado
-    const tenants = (user as any).tenants || [];
-    const hasTenants = tenants.length > 0;
-    
-    // Retorna true apenas se tiver a role E tenants associados
-    return hasAdminEscolaRole && hasTenants;
-});
+const user = computed(() => page.props.auth.user);
+const roles = computed(() => user.value?.roles ?? []);
+const permissions = computed(() => user.value?.permissions ?? []);
+const tenants = computed(() => user.value?.tenants ?? []);
 
-const isProfessor = computed(() => {
-    const user = page.props.auth.user;
-    if (!user) return false;
-    
-    // Verifica se o usuário tem a role "Professor"
-    const roles = (user as any).roles || [];
-    const hasProfessorRole = roles.includes('Professor');
-    
-    // Verifica se o usuário tem pelo menos um tenant associado
-    const tenants = (user as any).tenants || [];
-    const hasTenants = tenants.length > 0;
-    
-    // Retorna true apenas se tiver a role E tenants associados
-    return hasProfessorRole && hasTenants;
-});
+const hasPermission = (permission: string): boolean => permissions.value.includes(permission);
 
-const hasExerciciosPermission = computed(() => {
-    const user = page.props.auth.user;
-    if (!user) return false;
-    
-    // Verifica se tem permissão de visualizar exercícios
-    // As permissões podem estar em user.permissions ou precisamos verificar via role
-    const roles = (user as any).roles || [];
-    
-    // Se for Administrador Escola ou Professor, tem acesso
-    return roles.includes('Administrador Escola') || roles.includes('Professor');
-});
+const isAdminGeral = computed(() => user.value?.is_admin_geral ?? false);
+const hasTenant = computed(() => tenants.value.length > 0);
+
+const isAdminEscola = computed(() => roles.value.includes('Administrador Escola') && hasTenant.value);
+const isProfessor = computed(() => roles.value.includes('Professor') && hasTenant.value);
+
+const canViewSchoolProfile = computed(() => isAdminEscola.value || hasPermission('escola.perfil.visualizar'));
+const canViewStudents = computed(() => isAdminEscola.value || hasPermission('escola.alunos.visualizar'));
+const canViewParents = computed(() => isAdminEscola.value || hasPermission('escola.responsaveis.visualizar'));
+const canViewTeachers = computed(() => isAdminEscola.value || hasPermission('escola.professores.visualizar'));
+const canViewClasses = computed(() => isAdminEscola.value || hasPermission('escola.turmas.visualizar'));
+const canViewDisciplinas = computed(() => isAdminEscola.value || hasPermission('escola.disciplinas.visualizar'));
+const canViewExercises = computed(() => isAdminEscola.value || hasPermission('escola.exercicios.visualizar'));
+const canViewTests = computed(() => isAdminEscola.value || hasPermission('escola.provas.visualizar'));
+
+const hasAnySchoolPermission = computed(
+    () =>
+        canViewSchoolProfile.value ||
+        canViewStudents.value ||
+        canViewParents.value ||
+        canViewTeachers.value ||
+        canViewClasses.value ||
+        canViewDisciplinas.value ||
+        canViewExercises.value ||
+        canViewTests.value
+);
 
 const generalNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -143,73 +132,75 @@ const usersAndPermissionsNavItems = computed<NavItem[]>(() => {
 
 const schoolNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [];
-    
-    // Se for Administrador Escola, mostra todos os itens
-    if (isAdminEscola.value) {
-        items.push(
-            {
-                title: 'Perfil da Escola',
-                href: '/school/profile',
-                icon: School,
-            },
-            {
-                title: 'Alunos',
-                href: '/school/students',
-                icon: GraduationCap,
-            },
-            {
-                title: 'Responsáveis',
-                href: '/school/parents',
-                icon: Users,
-            },
-            {
-                title: 'Professores',
-                href: '/school/teachers',
-                icon: UserCheck,
-            },
-            {
-                title: 'Turmas',
-                href: '/school/classes',
-                icon: BookOpen,
-            },
-            {
-                title: 'Disciplinas',
-                href: '/school/disciplinas',
-                icon: BookText,
-            },
-            {
-                title: 'Exercícios',
-                href: '/school/exercises',
-                icon: NotebookPen,
-            },
-            {
-                title: 'Provas',
-                href: '/school/tests',
-                icon: ClipboardCheck,
-            }
-        );
-    } 
-    // Se for Professor, mostra Disciplinas, Exercícios e Provas
-    else if (isProfessor.value || hasExerciciosPermission.value) {
-        items.push(
-            {
-                title: 'Disciplinas',
-                href: '/school/disciplinas',
-                icon: BookText,
-            },
-            {
-                title: 'Exercícios',
-                href: '/school/exercises',
-                icon: NotebookPen,
-            },
-            {
-                title: 'Provas',
-                href: '/school/tests',
-                icon: ClipboardCheck,
-            }
-        );
+
+    if (!hasTenant.value || (!isAdminEscola.value && !isProfessor.value && !hasAnySchoolPermission.value)) {
+        return items;
     }
-    
+
+    if (canViewSchoolProfile.value) {
+        items.push({
+            title: 'Perfil da Escola',
+            href: '/school/profile',
+            icon: School,
+        });
+    }
+
+    if (canViewStudents.value) {
+        items.push({
+            title: 'Alunos',
+            href: '/school/students',
+            icon: GraduationCap,
+        });
+    }
+
+    if (canViewParents.value) {
+        items.push({
+            title: 'Responsáveis',
+            href: '/school/parents',
+            icon: Users,
+        });
+    }
+
+    if (canViewTeachers.value) {
+        items.push({
+            title: 'Professores',
+            href: '/school/teachers',
+            icon: UserCheck,
+        });
+    }
+
+    if (canViewClasses.value) {
+        items.push({
+            title: 'Turmas',
+            href: '/school/classes',
+            icon: BookOpen,
+        });
+    }
+
+    if (canViewDisciplinas.value) {
+        items.push({
+            title: 'Disciplinas',
+            href: '/school/disciplinas',
+            icon: BookText,
+        });
+    }
+
+    if (canViewExercises.value) {
+        items.push({
+            title: 'Exercícios',
+            href: '/school/exercises',
+            icon: NotebookPen,
+        });
+    }
+
+    if (canViewTests.value) {
+        items.push({
+            title: 'Provas',
+            href: '/school/tests',
+            icon: ClipboardCheck,
+        });
+    }
+
     return items;
 });
 

@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\School;
 
+use App\Models\Disciplina;
+use App\Models\Teacher;
 use App\Models\Turma;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class StoreExerciseRequest extends FormRequest
@@ -16,9 +19,46 @@ class StoreExerciseRequest extends FormRequest
     public function rules(): array
     {
         $tenantId = auth()->user()?->tenants()->first()?->id;
+        $user = auth()->user();
+        $teacher = $user ? Teacher::query()
+            ->where('tenant_id', $tenantId)
+            ->where('usuario_id', $user->id)
+            ->where('ativo', true)
+            ->first() : null;
+
+        $pivotTable = $teacher && $teacher->getConnection()->getDriverName() === 'sqlite'
+            ? 'professor_disciplinas'
+            : 'escola.professor_disciplinas';
+
+        $teacherDisciplinaIds = $teacher
+            ? DB::connection('shared')
+                ->table($pivotTable)
+                ->where('tenant_id', $tenantId)
+                ->where('professor_id', $teacher->id)
+                ->pluck('disciplina_id')
+                ->toArray()
+            : [];
 
         return [
-            'disciplina' => ['required', 'string', 'max:100'],
+            'disciplina_id' => [
+                'required',
+                'uuid',
+                Rule::exists(Disciplina::class, 'id')
+                    ->where('tenant_id', $tenantId)
+                    ->where('ativo', true)
+                    ->whereNull('deleted_at'),
+                function ($attribute, $value, $fail) use ($teacherDisciplinaIds) {
+                    if (empty($teacherDisciplinaIds)) {
+                        $fail('Você não tem disciplinas vinculadas. Entre em contato com o administrador.');
+
+                        return;
+                    }
+
+                    if (! in_array($value, $teacherDisciplinaIds)) {
+                        $fail('Você não tem acesso a esta disciplina.');
+                    }
+                },
+            ],
             'titulo' => ['required', 'string', 'max:255'],
             'descricao' => ['nullable', 'string'],
             'data_entrega' => ['required', 'date', 'after_or_equal:today'],
@@ -36,8 +76,8 @@ class StoreExerciseRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'disciplina.required' => 'Informe a disciplina.',
-            'disciplina.max' => 'A disciplina não pode ter mais de 100 caracteres.',
+            'disciplina_id.required' => 'Selecione uma disciplina.',
+            'disciplina_id.exists' => 'Disciplina não encontrada ou inativa.',
             'titulo.required' => 'Informe o título do exercício.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'data_entrega.required' => 'Informe a data de entrega.',

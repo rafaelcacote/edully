@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import UsersController from '@/actions/App/Http/Controllers/UsersController';
+import { update } from '@/actions/App/Http/Controllers/UsersController';
 import { Button } from '@/components/ui/button';
 import Heading from '@/components/Heading.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -57,7 +57,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
             <div class="rounded-xl border bg-card p-6 shadow-sm">
                 <Form
-                    v-bind="UsersController.update.form({ user: props.user.id })"
+                    v-bind="update.form({ user: props.user.id })"
                     class="space-y-6"
                     v-slot="{ errors, processing }"
                 >

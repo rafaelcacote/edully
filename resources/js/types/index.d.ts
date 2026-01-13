@@ -40,6 +40,12 @@ export interface User {
     cpf?: string | null;
     role: string;
     roles?: string[];
+    permissions?: string[];
+    tenants?: Array<{
+        id: string;
+        name: string;
+        logo_url?: string | null;
+    }>;
     is_admin_geral?: boolean;
     phone?: string | null;
     avatar_url?: string | null;
