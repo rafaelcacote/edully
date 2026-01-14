@@ -7,7 +7,7 @@ import { computed, ref, watch } from 'vue';
 
 interface TestData {
     id?: string;
-    disciplina?: string;
+    disciplina_id?: string;
     titulo?: string;
     descricao?: string | null;
     data_prova?: string;
@@ -24,15 +24,26 @@ interface Turma {
     ano_letivo?: number | string | null;
 }
 
-const props = defineProps<{
+interface Disciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
+const props = withDefaults(defineProps<{
     testData?: TestData;
     turmas?: Turma[];
+    disciplinas?: Disciplina[];
     submitLabel: string;
     processing: boolean;
     errors: Record<string, string>;
-}>();
+}>(), {
+    turmas: () => [],
+    disciplinas: () => [],
+    errors: () => ({}),
+});
 
-const disciplina = ref(props.testData?.disciplina || '');
+const disciplinaId = ref(props.testData?.disciplina_id || '');
 const titulo = ref(props.testData?.titulo || '');
 const descricao = ref(props.testData?.descricao || '');
 const dataProva = ref(props.testData?.data_prova || '');
@@ -41,11 +52,15 @@ const sala = ref(props.testData?.sala || '');
 const duracaoMinutos = ref(props.testData?.duracao_minutos || '');
 const turmaId = ref(props.testData?.turma_id || '');
 
+// Garantir que disciplinas seja sempre um array
+const disciplinasList = computed(() => props.disciplinas || []);
+const turmasList = computed(() => props.turmas || []);
+
 const isEdit = computed(() => !!props.testData?.id);
 
 watch(() => props.testData, (newData) => {
     if (newData) {
-        disciplina.value = newData.disciplina || '';
+        disciplinaId.value = newData.disciplina_id || '';
         titulo.value = newData.titulo || '';
         descricao.value = newData.descricao || '';
         dataProva.value = newData.data_prova || '';
@@ -61,18 +76,24 @@ watch(() => props.testData, (newData) => {
     <div class="grid gap-6">
         <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label for="disciplina">Disciplina</Label>
-                <input
-                    id="disciplina"
-                    name="disciplina"
-                    v-model="disciplina"
-                    type="text"
-                    placeholder="Ex: Matemática"
+                <Label for="disciplina_id">Disciplina</Label>
+                <select
+                    id="disciplina_id"
+                    name="disciplina_id"
+                    v-model="disciplinaId"
                     required
-                    maxlength="100"
-                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
-                />
-                <InputError :message="errors.disciplina" />
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option value="">Selecione uma disciplina</option>
+                    <option
+                        v-for="disciplina in (disciplinasList || [])"
+                        :key="disciplina.id"
+                        :value="disciplina.id"
+                    >
+                        {{ disciplina.nome }}{{ disciplina.sigla ? ` (${disciplina.sigla})` : '' }}
+                    </option>
+                </select>
+                <InputError :message="errors.disciplina_id" />
             </div>
 
             <div class="grid gap-2">
@@ -86,7 +107,7 @@ watch(() => props.testData, (newData) => {
                 >
                     <option value="">Selecione uma turma</option>
                     <option
-                        v-for="turma in turmas"
+                        v-for="turma in (turmasList || [])"
                         :key="turma.id"
                         :value="turma.id"
                     >

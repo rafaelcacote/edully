@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\School;
 
+use App\Models\Teacher;
 use App\Models\Turma;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -17,8 +18,23 @@ class StoreTestRequest extends FormRequest
     {
         $tenantId = auth()->user()?->tenants()->first()?->id;
 
+        $teacher = Teacher::query()
+            ->where('tenant_id', $tenantId)
+            ->where('usuario_id', auth()->id())
+            ->where('ativo', true)
+            ->first();
+
+        $disciplinaIds = $teacher?->disciplinas()
+            ->where('ativo', true)
+            ->pluck('disciplina_id')
+            ->toArray() ?? [];
+
         return [
-            'disciplina' => ['required', 'string', 'max:100'],
+            'disciplina_id' => [
+                'required',
+                'uuid',
+                Rule::in($disciplinaIds),
+            ],
             'titulo' => ['required', 'string', 'max:255'],
             'descricao' => ['nullable', 'string'],
             'data_prova' => ['required', 'date', 'after_or_equal:today'],
@@ -38,8 +54,8 @@ class StoreTestRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'disciplina.required' => 'Informe a disciplina.',
-            'disciplina.max' => 'A disciplina não pode ter mais de 100 caracteres.',
+            'disciplina_id.required' => 'Selecione uma disciplina.',
+            'disciplina_id.in' => 'Disciplina inválida. Você só pode criar provas para disciplinas que leciona.',
             'titulo.required' => 'Informe o título da prova.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'data_prova.required' => 'Informe a data da prova.',

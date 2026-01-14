@@ -9,7 +9,7 @@ import TestForm from './Partials/TestForm.vue';
 
 interface Test {
     id: string;
-    disciplina: string;
+    disciplina_id: string;
     titulo: string;
     descricao?: string | null;
     data_prova: string;
@@ -26,9 +26,16 @@ interface Turma {
     ano_letivo?: number | string | null;
 }
 
+interface Disciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
 interface Props {
     test: Test;
     turmas: Turma[];
+    disciplinas: Disciplina[];
 }
 
 const props = defineProps<Props>();
@@ -81,6 +88,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     <TestForm
                         :test-data="props.test"
                         :turmas="props.turmas"
+                        :disciplinas="props.disciplinas"
                         submit-label="Salvar alterações"
                         :processing="processing"
                         :errors="errors"

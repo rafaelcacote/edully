@@ -57,25 +57,28 @@ class TestsController extends Controller
     {
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
-        $filters = $request->only(['search', 'turma_id', 'disciplina']);
+        $filters = $request->only(['search', 'turma_id', 'disciplina_id']);
 
         $tests = Test::query()
             ->where('tenant_id', $tenant->id)
             ->where('professor_id', $teacher->id)
-            ->with(['turma:id,nome,serie,turma_letra,ano_letivo'])
+            ->with(['turma:id,nome,serie,turma_letra,ano_letivo', 'disciplinaRelation:id,nome,sigla'])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
                 $query->where(function ($q) use ($search) {
                     $q->where('titulo', 'ilike', "%{$search}%")
-                        ->orWhere('disciplina', 'ilike', "%{$search}%")
-                        ->orWhere('descricao', 'ilike', "%{$search}%");
+                        ->orWhere('descricao', 'ilike', "%{$search}%")
+                        ->orWhereHas('disciplinaRelation', function ($q) use ($search) {
+                            $q->where('nome', 'ilike', "%{$search}%")
+                                ->orWhere('sigla', 'ilike', "%{$search}%");
+                        });
                 });
             })
             ->when($filters['turma_id'] ?? null, function ($query, string $turmaId) {
                 $query->where('turma_id', $turmaId);
             })
-            ->when($filters['disciplina'] ?? null, function ($query, string $disciplina) {
-                $query->where('disciplina', $disciplina);
+            ->when($filters['disciplina_id'] ?? null, function ($query, string $disciplinaId) {
+                $query->where('disciplina_id', $disciplinaId);
             })
             ->orderBy('data_prova', 'desc')
             ->orderBy('created_at', 'desc')
@@ -85,7 +88,9 @@ class TestsController extends Controller
                 return [
                     'id' => $test->id,
                     'titulo' => $test->titulo,
-                    'disciplina' => $test->disciplina,
+                    'disciplina' => $test->disciplinaRelation
+                        ? ($test->disciplinaRelation->nome.($test->disciplinaRelation->sigla ? ' ('.$test->disciplinaRelation->sigla.')' : ''))
+                        : null,
                     'data_prova' => $test->data_prova->format('d/m/Y'),
                     'horario' => $test->horario,
                     'turma' => $test->turma
@@ -113,13 +118,16 @@ class TestsController extends Controller
                 ];
             });
 
-        $disciplinas = Test::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->distinct()
-            ->pluck('disciplina')
-            ->sort()
-            ->values();
+        $disciplinas = $teacher->disciplinas()
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get()
+            ->map(function ($disciplina) {
+                return [
+                    'id' => $disciplina->id,
+                    'nome' => $disciplina->nome.($disciplina->sigla ? ' ('.$disciplina->sigla.')' : ''),
+                ];
+            });
 
         return Inertia::render('school/tests/Index', [
             'tests' => $tests,
@@ -152,8 +160,21 @@ class TestsController extends Controller
                 ];
             });
 
+        $disciplinas = $teacher->disciplinas()
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get()
+            ->map(function ($disciplina) {
+                return [
+                    'id' => $disciplina->id,
+                    'nome' => $disciplina->nome,
+                    'sigla' => $disciplina->sigla,
+                ];
+            });
+
         return Inertia::render('school/tests/Create', [
             'turmas' => $turmas,
+            'disciplinas' => $disciplinas,
         ]);
     }
 
@@ -193,12 +214,18 @@ class TestsController extends Controller
             abort(404);
         }
 
-        $test->load(['turma:id,nome,serie,turma_letra,ano_letivo', 'professor.usuario:id,nome_completo']);
+        $test->load([
+            'turma:id,nome,serie,turma_letra,ano_letivo',
+            'professor.usuario:id,nome_completo',
+            'disciplinaRelation:id,nome,sigla',
+        ]);
 
         return Inertia::render('school/tests/Show', [
             'test' => [
                 'id' => $test->id,
-                'disciplina' => $test->disciplina,
+                'disciplina' => $test->disciplinaRelation
+                    ? ($test->disciplinaRelation->nome.($test->disciplinaRelation->sigla ? ' ('.$test->disciplinaRelation->sigla.')' : ''))
+                    : null,
                 'titulo' => $test->titulo,
                 'descricao' => $test->descricao,
                 'data_prova' => $test->data_prova->format('Y-m-d'),
@@ -257,10 +284,22 @@ class TestsController extends Controller
                 ];
             });
 
+        $disciplinas = $teacher->disciplinas()
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get()
+            ->map(function ($disciplina) {
+                return [
+                    'id' => $disciplina->id,
+                    'nome' => $disciplina->nome,
+                    'sigla' => $disciplina->sigla,
+                ];
+            });
+
         return Inertia::render('school/tests/Edit', [
             'test' => [
                 'id' => $test->id,
-                'disciplina' => $test->disciplina,
+                'disciplina_id' => $test->disciplina_id,
                 'titulo' => $test->titulo,
                 'descricao' => $test->descricao,
                 'data_prova' => $test->data_prova->format('Y-m-d'),
@@ -270,6 +309,7 @@ class TestsController extends Controller
                 'turma_id' => $test->turma_id,
             ],
             'turmas' => $turmas,
+            'disciplinas' => $disciplinas,
         ]);
     }
 
