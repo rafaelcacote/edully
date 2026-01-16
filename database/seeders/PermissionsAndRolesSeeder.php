@@ -89,6 +89,10 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.provas.criar',
             'escola.provas.editar',
             'escola.provas.excluir',
+            'escola.mensagens.visualizar',
+            'escola.mensagens.criar',
+            'escola.mensagens.editar',
+            'escola.mensagens.excluir',
             'escola.disciplinas.visualizar',
             'escola.disciplinas.criar',
             'escola.disciplinas.editar',
@@ -105,6 +109,10 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.provas.criar',
             'escola.provas.editar',
             'escola.provas.excluir',
+            'escola.mensagens.visualizar',
+            'escola.mensagens.criar',
+            'escola.mensagens.editar',
+            'escola.mensagens.excluir',
             'escola.disciplinas.visualizar',
         ];
 
@@ -120,8 +128,22 @@ class PermissionsAndRolesSeeder extends Seeder
             $escolaPermissions
         );
 
+        // Garantir que todas as permissões usadas nos roles sejam incluídas
+        $allPermissionsToCreate = array_unique(array_merge($allPermissions, $professorPermissions));
+
+        // Remover permissões antigas com nomes incorretos (singular em vez de plural)
+        $incorrectPermissions = Permission::where('name', 'like', 'escola.mensagem.%')
+            ->where('guard_name', $guard)
+            ->get();
+        foreach ($incorrectPermissions as $permission) {
+            // Remover de todos os roles antes de deletar
+            $permission->roles()->detach();
+            $permission->users()->detach();
+            $permission->delete();
+        }
+
         // Criar todas as permissões
-        foreach ($allPermissions as $permissionName) {
+        foreach ($allPermissionsToCreate as $permissionName) {
             Permission::findOrCreate($permissionName, $guard);
         }
 

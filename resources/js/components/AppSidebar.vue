@@ -21,7 +21,7 @@ import { index as tenantsIndex } from '@/routes/tenants';
 import { index as usersIndex } from '@/routes/users';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, CreditCard, FileSearch, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck, BookText } from 'lucide-vue-next';
+import { BookOpen, CreditCard, FileSearch, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck, BookText, MessageSquare } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -47,6 +47,7 @@ const canViewClasses = computed(() => isAdminEscola.value || hasPermission('esco
 const canViewDisciplinas = computed(() => isAdminEscola.value || hasPermission('escola.disciplinas.visualizar'));
 const canViewExercises = computed(() => isAdminEscola.value || hasPermission('escola.exercicios.visualizar'));
 const canViewTests = computed(() => isAdminEscola.value || hasPermission('escola.provas.visualizar'));
+const canViewMessages = computed(() => isAdminEscola.value || hasPermission('escola.mensagens.visualizar'));
 
 const hasAnySchoolPermission = computed(
     () =>
@@ -57,7 +58,8 @@ const hasAnySchoolPermission = computed(
         canViewClasses.value ||
         canViewDisciplinas.value ||
         canViewExercises.value ||
-        canViewTests.value
+        canViewTests.value ||
+        canViewMessages.value
 );
 
 const generalNavItems = computed<NavItem[]>(() => {
@@ -198,6 +200,14 @@ const schoolNavItems = computed<NavItem[]>(() => {
             title: 'Provas',
             href: '/school/tests',
             icon: ClipboardCheck,
+        });
+    }
+
+    if (canViewMessages.value) {
+        items.push({
+            title: 'Mensagens',
+            href: '/school/messages',
+            icon: MessageSquare,
         });
     }
 

@@ -51,6 +51,7 @@ const getGroupName = (permissionName: string): string => {
 const getGroupLabel = (groupName: string): string => {
     const labels: Record<string, string> = {
         escolas: 'Escolas',
+        escola: 'Escola',
         usuarios: 'Usuários',
         roles: 'Roles',
         permissoes: 'Permissões',
@@ -61,11 +62,27 @@ const getGroupLabel = (groupName: string): string => {
     return labels[groupName] || groupName.charAt(0).toUpperCase() + groupName.slice(1);
 };
 
+// Função para obter o label amigável do subgrupo
+const getSubgroupLabel = (subgroupName: string): string => {
+    const labels: Record<string, string> = {
+        perfil: 'Perfil',
+        alunos: 'Alunos',
+        responsaveis: 'Responsáveis',
+        professores: 'Professores',
+        turmas: 'Turmas',
+        exercicios: 'Exercícios',
+        provas: 'Provas',
+        mensagens: 'Mensagens',
+        disciplinas: 'Disciplinas',
+    };
+    return labels[subgroupName] || subgroupName.charAt(0).toUpperCase() + subgroupName.slice(1);
+};
+
 // Função para obter a ação da permissão (parte após o ponto)
 const getPermissionAction = (permissionName: string): string => {
     const parts = permissionName.split('.');
     if (parts.length > 1) {
-        return parts.slice(1).join('.');
+        return parts[parts.length - 1];
     }
     return permissionName;
 };
@@ -92,28 +109,73 @@ const groupedPermissions = computed(() => {
         );
     }
 
-    // Agrupar por módulo
-    const groups: Record<string, PermissionRow[]> = {};
+    // Separar permissões de escola das demais
+    const escolaPermissions: PermissionRow[] = [];
+    const otherPermissions: PermissionRow[] = [];
     
     filtered.forEach((permission) => {
         const groupName = getGroupName(permission.name);
-        if (!groups[groupName]) {
-            groups[groupName] = [];
+        if (groupName === 'escola') {
+            escolaPermissions.push(permission);
+        } else {
+            otherPermissions.push(permission);
         }
-        groups[groupName].push(permission);
     });
 
-    // Ordenar grupos e permissões dentro de cada grupo
-    const sortedGroups: Record<string, PermissionRow[]> = {};
-    Object.keys(groups)
+    // Agrupar outras permissões normalmente
+    const otherGroups: Record<string, PermissionRow[]> = {};
+    otherPermissions.forEach((permission) => {
+        const groupName = getGroupName(permission.name);
+        if (!otherGroups[groupName]) {
+            otherGroups[groupName] = [];
+        }
+        otherGroups[groupName].push(permission);
+    });
+
+    // Agrupar permissões de escola por subgrupo
+    const escolaSubgroups: Record<string, PermissionRow[]> = {};
+    escolaPermissions.forEach((permission) => {
+        const parts = permission.name.split('.');
+        if (parts.length >= 2) {
+            const subgroupName = parts[1];
+            if (!escolaSubgroups[subgroupName]) {
+                escolaSubgroups[subgroupName] = [];
+            }
+            escolaSubgroups[subgroupName].push(permission);
+        } else {
+            // Se não tiver subgrupo, adiciona a um grupo "outros"
+            if (!escolaSubgroups['outros']) {
+                escolaSubgroups['outros'] = [];
+            }
+            escolaSubgroups['outros'].push(permission);
+        }
+    });
+
+    // Ordenar grupos de outras permissões
+    const sortedOtherGroups: Record<string, PermissionRow[]> = {};
+    Object.keys(otherGroups)
         .sort()
         .forEach((groupName) => {
-            sortedGroups[groupName] = groups[groupName].sort((a, b) => 
+            sortedOtherGroups[groupName] = otherGroups[groupName].sort((a, b) => 
                 a.name.localeCompare(b.name)
             );
         });
 
-    return sortedGroups;
+    // Ordenar subgrupos de escola
+    const sortedEscolaSubgroups: Record<string, PermissionRow[]> = {};
+    Object.keys(escolaSubgroups)
+        .sort()
+        .forEach((subgroupName) => {
+            sortedEscolaSubgroups[subgroupName] = escolaSubgroups[subgroupName].sort((a, b) => 
+                a.name.localeCompare(b.name)
+            );
+        });
+
+    // Retornar estrutura combinada
+    return {
+        escola: escolaPermissions.length > 0 ? sortedEscolaSubgroups : null,
+        others: sortedOtherGroups,
+    };
 });
 
 // Função para lidar com a mudança de seleção de permissão
@@ -156,9 +218,52 @@ const handlePermissionChange = (permissionId: number, checked: boolean) => {
             </div>
 
             <div class="rounded-xl border bg-card p-4 shadow-sm">
-                <div v-if="Object.keys(groupedPermissions).length > 0" class="space-y-6">
+                <div v-if="groupedPermissions.escola || Object.keys(groupedPermissions.others).length > 0" class="space-y-6">
+                    <!-- Grupo Escola com subgrupos -->
+                    <div v-if="groupedPermissions.escola" class="space-y-4">
+                        <h3 class="text-sm font-semibold text-foreground">
+                            {{ getGroupLabel('escola') }}
+                        </h3>
+                        <div
+                            v-for="(permissions, subgroupName) in groupedPermissions.escola"
+                            :key="subgroupName"
+                            class="space-y-3 ml-4"
+                        >
+                            <h4 class="text-sm font-medium text-foreground/80">
+                                {{ getSubgroupLabel(subgroupName) }}
+                            </h4>
+                            <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                <label
+                                    v-for="p in permissions"
+                                    :key="p.id"
+                                    class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent transition-colors"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="permissions[]"
+                                        :value="p.id"
+                                        class="h-4 w-4 rounded border border-input"
+                                        :checked="selectedPermissionIds.includes(p.id)"
+                                        @change="
+                                            (e) => {
+                                                handlePermissionChange(
+                                                    p.id,
+                                                    (e.target as HTMLInputElement).checked,
+                                                );
+                                            }
+                                        "
+                                    />
+                                    <span class="text-muted-foreground">
+                                        {{ getActionLabel(getPermissionAction(p.name)) }}
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Outros grupos -->
                     <div
-                        v-for="(permissions, groupName) in groupedPermissions"
+                        v-for="(permissions, groupName) in groupedPermissions.others"
                         :key="groupName"
                         class="space-y-3"
                     >

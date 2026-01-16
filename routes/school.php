@@ -3,6 +3,7 @@
 use App\Http\Controllers\School\ClassesController;
 use App\Http\Controllers\School\DisciplinasController;
 use App\Http\Controllers\School\ExercisesController;
+use App\Http\Controllers\School\MessagesController;
 use App\Http\Controllers\School\ParentsController;
 use App\Http\Controllers\School\ParentStudentsController;
 use App\Http\Controllers\School\SchoolProfileController;
@@ -166,6 +167,29 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::delete('tests/{test}', [TestsController::class, 'destroy'])
         ->middleware('permission:escola.provas.excluir')
         ->name('tests.destroy');
+
+    // Mensagens
+    Route::get('messages', [MessagesController::class, 'index'])
+        ->middleware('permission:escola.mensagens.visualizar')
+        ->name('messages.index');
+    Route::get('messages/create', [MessagesController::class, 'create'])
+        ->middleware('permission:escola.mensagens.criar')
+        ->name('messages.create');
+    Route::post('messages', [MessagesController::class, 'store'])
+        ->middleware('permission:escola.mensagens.criar')
+        ->name('messages.store');
+    Route::get('messages/{message}', [MessagesController::class, 'show'])
+        ->middleware('permission:escola.mensagens.visualizar')
+        ->name('messages.show');
+    Route::get('messages/{message}/edit', [MessagesController::class, 'edit'])
+        ->middleware('permission:escola.mensagens.editar')
+        ->name('messages.edit');
+    Route::patch('messages/{message}', [MessagesController::class, 'update'])
+        ->middleware('permission:escola.mensagens.editar')
+        ->name('messages.update');
+    Route::delete('messages/{message}', [MessagesController::class, 'destroy'])
+        ->middleware('permission:escola.mensagens.excluir')
+        ->name('messages.destroy');
 
     // Disciplinas
     Route::get('disciplinas', [DisciplinasController::class, 'index'])
