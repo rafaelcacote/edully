@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreMessageRequest;
 use App\Http\Requests\School\UpdateMessageRequest;
 use App\Models\Message;
-use App\Models\Student;
 use App\Models\Teacher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -135,7 +134,7 @@ class MessagesController extends Controller
                 ->map(function ($aluno) {
                     return [
                         'id' => $aluno->id,
-                        'nome' => $aluno->nome_social ?? $aluno->nome,
+                        'nome' => $aluno->nome,
                     ];
                 })
                 ->toArray();
@@ -190,7 +189,7 @@ class MessagesController extends Controller
                 ->map(function ($aluno) {
                     return [
                         'id' => $aluno->id,
-                        'nome' => $aluno->nome_social ?? $aluno->nome,
+                        'nome' => $aluno->nome,
                     ];
                 })
                 ->toArray();
@@ -315,7 +314,7 @@ class MessagesController extends Controller
                 ->map(function ($aluno) {
                     return [
                         'id' => $aluno->id,
-                        'nome' => $aluno->nome_social ?? $aluno->nome,
+                        'nome' => $aluno->nome,
                     ];
                 })
                 ->toArray();

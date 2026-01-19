@@ -11,16 +11,20 @@ import { usePage } from '@inertiajs/vue3';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import {
     ArrowRight,
     BookOpen,
+    ClipboardCheck,
     CreditCard,
     FileText,
     GraduationCap,
     School,
     UserCheck,
     Users,
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-vue-next';
 
 interface AdminGeralStats {
@@ -70,14 +74,45 @@ interface AdminEscolaStats {
     };
 }
 
+interface ProfessorStats {
+    total_provas: number;
+    total_exercicios: number;
+}
+
+interface CalendarEvent {
+    date: string;
+    date_formatted: string;
+    provas: Array<{
+        id: string;
+        titulo: string;
+        data: string;
+        data_formatted: string;
+        horario?: string | null;
+        turma?: string | null;
+        disciplina?: string | null;
+        tipo: string;
+    }>;
+    exercicios: Array<{
+        id: string;
+        titulo: string;
+        data: string;
+        data_formatted: string;
+        turma?: string | null;
+        disciplina?: string | null;
+        tipo: string;
+    }>;
+    total: number;
+}
+
 interface Props {
-    dashboardType: 'admin_geral' | 'admin_escola';
-    stats: AdminGeralStats | AdminEscolaStats;
+    dashboardType: 'admin_geral' | 'admin_escola' | 'professor';
+    stats: AdminGeralStats | AdminEscolaStats | ProfessorStats;
     tenant?: {
         id: string;
         nome: string;
         logo_url?: string | null;
     } | null;
+    calendarEvents?: CalendarEvent[];
 }
 
 const props = defineProps<Props>();
@@ -91,16 +126,118 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const page = usePage();
 const auth = computed(() => page.props.auth as any);
+const user = computed(() => auth.value?.user);
 
 const userName = computed(() => {
-    return auth.value?.user?.nome_completo || auth.value?.user?.name || 'Usuário';
+    return user.value?.nome_completo || user.value?.name || 'Usuário';
 });
 
-const isAdminGeral = computed(() => props.dashboardType === 'admin_geral');
-const isAdminEscola = computed(() => props.dashboardType === 'admin_escola');
+const isAdminGeral = computed(() => user.value?.is_admin_geral ?? false);
+const isAdminEscola = computed(() => !isAdminGeral.value && (user.value?.roles?.includes('Administrador Escola') ?? false));
+const isProfessor = computed(() => !isAdminGeral.value && (user.value?.roles?.includes('Professor') ?? false));
 
 const adminGeralStats = computed(() => (isAdminGeral.value ? (props.stats as AdminGeralStats) : null));
 const adminEscolaStats = computed(() => (isAdminEscola.value ? (props.stats as AdminEscolaStats) : null));
+const professorStats = computed(() => (isProfessor.value ? (props.stats as ProfessorStats) : null));
+const calendarEvents = computed(() => props.calendarEvents || []);
+
+// Calendário mensal
+const currentDate = ref(new Date());
+const currentMonth = computed(() => currentDate.value.getMonth());
+const currentYear = computed(() => currentDate.value.getFullYear());
+
+const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+const goToPreviousMonth = () => {
+    const newDate = new Date(currentDate.value);
+    newDate.setMonth(newDate.getMonth() - 1);
+    currentDate.value = newDate;
+};
+
+const goToNextMonth = () => {
+    const newDate = new Date(currentDate.value);
+    newDate.setMonth(newDate.getMonth() + 1);
+    currentDate.value = newDate;
+};
+
+const goToToday = () => {
+    currentDate.value = new Date();
+};
+
+const getCalendarDays = computed(() => {
+    const year = currentYear.value;
+    const month = currentMonth.value;
+    
+    // Primeiro dia do mês
+    const firstDay = new Date(year, month, 1);
+    const firstDayWeek = firstDay.getDay();
+    
+    // Último dia do mês
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    
+    const days: Array<{
+        date: Date;
+        day: number;
+        isCurrentMonth: boolean;
+        isToday: boolean;
+        events: CalendarEvent | null;
+    }> = [];
+    
+    // Dias do mês anterior (para preencher o início da semana)
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = firstDayWeek - 1; i >= 0; i--) {
+        const date = new Date(year, month - 1, prevMonthLastDay - i);
+        days.push({
+            date,
+            day: prevMonthLastDay - i,
+            isCurrentMonth: false,
+            isToday: false,
+            events: null,
+        });
+    }
+    
+    // Dias do mês atual
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        date.setHours(0, 0, 0, 0);
+        
+        const dateStr = date.toISOString().split('T')[0];
+        const event = calendarEvents.value.find((e) => e.date === dateStr) || null;
+        
+        days.push({
+            date,
+            day,
+            isCurrentMonth: true,
+            isToday: date.getTime() === today.getTime(),
+            events: event,
+        });
+    }
+    
+    // Dias do próximo mês (para completar a última semana)
+    const remainingDays = 42 - days.length; // 6 semanas * 7 dias
+    for (let day = 1; day <= remainingDays; day++) {
+        const date = new Date(year, month + 1, day);
+        days.push({
+            date,
+            day,
+            isCurrentMonth: false,
+            isToday: false,
+            events: null,
+        });
+    }
+    
+    return days;
+});
+
+const selectedDay = ref<CalendarEvent | null>(null);
+const selectDay = (day: { events: CalendarEvent | null }) => {
+    selectedDay.value = day.events;
+};
 </script>
 
 <template>
@@ -121,6 +258,9 @@ const adminEscolaStats = computed(() => (isAdminEscola.value ? (props.stats as A
                             <template v-if="isAdminGeral">
                                 Bem-vindo ao painel de administração geral.
                             </template>
+                            <template v-else-if="isProfessor">
+                                Bem-vindo ao painel do professor.
+                            </template>
                             <template v-else>
                                 Bem-vindo ao painel de administração da escola.
                             </template>
@@ -133,9 +273,10 @@ const adminEscolaStats = computed(() => (isAdminEscola.value ? (props.stats as A
                                 class="border-white/20 bg-white/15 text-white"
                             >
                                 <template v-if="isAdminGeral">Administrador Geral</template>
+                                <template v-else-if="isProfessor">Professor</template>
                                 <template v-else>Administrador Escola</template>
                             </Badge>
-                            <template v-if="isAdminEscola && props.tenant">
+                            <template v-if="(isAdminEscola || isProfessor) && props.tenant">
                                 <span class="text-sm text-white/80">•</span>
                                 <span class="text-sm text-white/80">{{ props.tenant.nome }}</span>
                             </template>
@@ -694,6 +835,285 @@ const adminEscolaStats = computed(() => (isAdminEscola.value ? (props.stats as A
                         </div>
                     </Card>
                 </div>
+            </template>
+
+            <!-- Dashboard Professor -->
+            <template v-else-if="isProfessor && professorStats">
+                <!-- KPIs - Estatísticas Principais -->
+                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+                    <!-- Card Provas -->
+                    <Card class="p-6 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1">
+                                <p class="text-sm text-muted-foreground">
+                                    Provas Agendadas
+                                </p>
+                                <p class="mt-2 text-3xl font-semibold">
+                                    {{ professorStats.total_provas }}
+                                </p>
+                                <p class="mt-3 text-xs text-muted-foreground">
+                                    Próximos 60 dias
+                                </p>
+                            </div>
+                            <div
+                                class="flex size-12 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30"
+                            >
+                                <ClipboardCheck class="size-6 text-purple-600 dark:text-purple-400" />
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <Link href="/school/tests">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    class="w-full justify-between text-xs"
+                                >
+                                    Ver todas
+                                    <ArrowRight class="size-3" />
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
+                    <!-- Card Exercícios -->
+                    <Card class="p-6 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1">
+                                <p class="text-sm text-muted-foreground">
+                                    Exercícios com Entrega
+                                </p>
+                                <p class="mt-2 text-3xl font-semibold">
+                                    {{ professorStats.total_exercicios }}
+                                </p>
+                                <p class="mt-3 text-xs text-muted-foreground">
+                                    Próximos 60 dias
+                                </p>
+                            </div>
+                            <div
+                                class="flex size-12 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30"
+                            >
+                                <BookOpen class="size-6 text-blue-600 dark:text-blue-400" />
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <Link href="/school/exercises">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    class="w-full justify-between text-xs"
+                                >
+                                    Ver todos
+                                    <ArrowRight class="size-3" />
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+                </div>
+
+                <!-- Calendário de Provas e Exercícios -->
+                <Card class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="min-w-0">
+                            <p class="text-lg font-semibold">
+                                Calendário de Provas e Exercícios
+                            </p>
+                            <p class="text-sm text-muted-foreground">
+                                Clique em um dia para ver os detalhes
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Navegação do Calendário -->
+                    <div class="flex items-center justify-between mb-4">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            @click="goToPreviousMonth"
+                            class="h-8 w-8 p-0"
+                        >
+                            <ChevronLeft class="size-4" />
+                        </Button>
+                        
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-lg font-semibold">
+                                {{ monthNames[currentMonth] }} {{ currentYear }}
+                            </h3>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                @click="goToToday"
+                                class="h-8 text-xs"
+                            >
+                                Hoje
+                            </Button>
+                        </div>
+                        
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            @click="goToNextMonth"
+                            class="h-8 w-8 p-0"
+                        >
+                            <ChevronRight class="size-4" />
+                        </Button>
+                    </div>
+
+                    <!-- Grade do Calendário -->
+                    <div class="grid grid-cols-7 gap-1 mb-4">
+                        <!-- Cabeçalho dos dias da semana -->
+                        <div
+                            v-for="day in weekDays"
+                            :key="day"
+                            class="p-2 text-center text-xs font-medium text-muted-foreground"
+                        >
+                            {{ day }}
+                        </div>
+
+                        <!-- Dias do calendário -->
+                        <button
+                            v-for="(day, index) in getCalendarDays"
+                            :key="index"
+                            @click="selectDay(day)"
+                            :class="[
+                                'relative p-2 text-sm rounded-lg transition-colors',
+                                'hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring',
+                                !day.isCurrentMonth && 'text-muted-foreground/40',
+                                day.isToday && !day.events && 'bg-primary/10 text-primary font-semibold',
+                                day.events && 'bg-primary/20 text-primary font-semibold hover:bg-primary/30',
+                                !day.isToday && !day.events && day.isCurrentMonth && 'hover:bg-muted',
+                            ]"
+                        >
+                            <span>{{ day.day }}</span>
+                            
+                            <!-- Indicadores de atividades -->
+                            <div
+                                v-if="day.events"
+                                class="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5"
+                            >
+                                <span
+                                    v-if="day.events.provas.length > 0"
+                                    class="w-1.5 h-1.5 rounded-full bg-purple-500"
+                                    title="Prova"
+                                />
+                                <span
+                                    v-if="day.events.exercicios.length > 0"
+                                    class="w-1.5 h-1.5 rounded-full bg-blue-500"
+                                    title="Exercício"
+                                />
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Legenda -->
+                    <div class="flex items-center justify-center gap-6 text-xs text-muted-foreground mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-purple-500" />
+                            <span>Prova</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-500" />
+                            <span>Exercício</span>
+                        </div>
+                    </div>
+
+                    <!-- Detalhes do dia selecionado -->
+                    <div
+                        v-if="selectedDay"
+                        class="mt-6 rounded-xl border border-border/70 p-4 bg-muted/30"
+                    >
+                        <div class="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                                <p class="text-sm font-medium">
+                                    {{ selectedDay.date_formatted }}
+                                </p>
+                                <p class="mt-1 text-xs text-muted-foreground">
+                                    {{ selectedDay.total }}
+                                    {{ selectedDay.total === 1 ? 'atividade' : 'atividades' }}
+                                </p>
+                            </div>
+                            <Badge variant="outline" class="text-xs">
+                                {{ new Date(selectedDay.date).toLocaleDateString('pt-BR', { weekday: 'long' }) }}
+                            </Badge>
+                        </div>
+
+                        <div class="space-y-2">
+                            <!-- Provas -->
+                            <div
+                                v-for="prova in selectedDay.provas"
+                                :key="`prova-${prova.id}`"
+                                class="flex items-start gap-3 rounded-lg bg-purple-50 dark:bg-purple-950/20 p-3"
+                            >
+                                <ClipboardCheck class="mt-0.5 size-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium">
+                                        {{ prova.titulo }}
+                                    </p>
+                                    <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        <span v-if="prova.turma">
+                                            Turma: {{ prova.turma }}
+                                        </span>
+                                        <span v-if="prova.disciplina">
+                                            {{ prova.disciplina }}
+                                        </span>
+                                        <span v-if="prova.horario">
+                                            Horário: {{ prova.horario }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <Badge variant="secondary" class="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shrink-0">
+                                    Prova
+                                </Badge>
+                            </div>
+
+                            <!-- Exercícios -->
+                            <div
+                                v-for="exercicio in selectedDay.exercicios"
+                                :key="`exercicio-${exercicio.id}`"
+                                class="flex items-start gap-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 p-3"
+                            >
+                                <BookOpen class="mt-0.5 size-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium">
+                                        {{ exercicio.titulo }}
+                                    </p>
+                                    <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        <span v-if="exercicio.turma">
+                                            Turma: {{ exercicio.turma }}
+                                        </span>
+                                        <span v-if="exercicio.disciplina">
+                                            {{ exercicio.disciplina }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <Badge variant="secondary" class="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 shrink-0">
+                                    Exercício
+                                </Badge>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mensagem quando não há eventos -->
+                    <div
+                        v-else-if="calendarEvents.length === 0"
+                        class="py-12 text-center"
+                    >
+                        <Calendar class="mx-auto size-12 text-muted-foreground/50" />
+                        <p class="mt-4 text-sm text-muted-foreground">
+                            Nenhuma prova ou exercício agendado nos próximos 60 dias.
+                        </p>
+                    </div>
+
+                    <!-- Mensagem quando não há seleção -->
+                    <div
+                        v-else
+                        class="mt-6 py-8 text-center border border-dashed rounded-lg"
+                    >
+                        <Calendar class="mx-auto size-8 text-muted-foreground/50" />
+                        <p class="mt-2 text-sm text-muted-foreground">
+                            Clique em um dia com atividades para ver os detalhes
+                        </p>
+                    </div>
+                </Card>
             </template>
         </div>
     </AppLayout>

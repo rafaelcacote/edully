@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\School\AvisosController;
 use App\Http\Controllers\School\ClassesController;
 use App\Http\Controllers\School\DisciplinasController;
 use App\Http\Controllers\School\ExercisesController;
@@ -216,4 +217,27 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::delete('disciplinas/{disciplina}', [DisciplinasController::class, 'destroy'])
         ->middleware('permission:escola.disciplinas.excluir')
         ->name('disciplinas.destroy');
+
+    // Avisos
+    Route::get('avisos', [AvisosController::class, 'index'])
+        ->middleware('permission:escola.avisos.visualizar')
+        ->name('avisos.index');
+    Route::get('avisos/create', [AvisosController::class, 'create'])
+        ->middleware('permission:escola.avisos.criar')
+        ->name('avisos.create');
+    Route::post('avisos', [AvisosController::class, 'store'])
+        ->middleware('permission:escola.avisos.criar')
+        ->name('avisos.store');
+    Route::get('avisos/{aviso}', [AvisosController::class, 'show'])
+        ->middleware('permission:escola.avisos.visualizar')
+        ->name('avisos.show');
+    Route::get('avisos/{aviso}/edit', [AvisosController::class, 'edit'])
+        ->middleware('permission:escola.avisos.editar')
+        ->name('avisos.edit');
+    Route::patch('avisos/{aviso}', [AvisosController::class, 'update'])
+        ->middleware('permission:escola.avisos.editar')
+        ->name('avisos.update');
+    Route::delete('avisos/{aviso}', [AvisosController::class, 'destroy'])
+        ->middleware('permission:escola.avisos.excluir')
+        ->name('avisos.destroy');
 });

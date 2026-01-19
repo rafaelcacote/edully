@@ -93,12 +93,12 @@ class TenantsController extends Controller
         ]);
 
         // Remove formatação do CNPJ (pontos, traços, barras, espaços)
-        if (!empty($validated['cnpj'])) {
+        if (! empty($validated['cnpj'])) {
             $validated['cnpj'] = preg_replace('/[^0-9]/', '', $validated['cnpj']);
         }
 
         // Remove formatação do CEP (pontos, traços, espaços)
-        if (!empty($validated['endereco_cep'])) {
+        if (! empty($validated['endereco_cep'])) {
             $validated['endereco_cep'] = preg_replace('/[^0-9]/', '', $validated['endereco_cep']);
         }
 
@@ -107,7 +107,7 @@ class TenantsController extends Controller
         if ($request->hasFile('logo')) {
             $logo = $request->file('logo');
             $logoPath = $logo->store('tenants/logos', 'public');
-            $logoUrl = asset('storage/'.$logoPath);
+            $logoUrl = Storage::disk('public')->url($logoPath);
         }
 
         $tenant = Tenant::create([
@@ -176,12 +176,12 @@ class TenantsController extends Controller
         ]);
 
         // Remove formatação do CNPJ (pontos, traços, barras, espaços)
-        if (!empty($validated['cnpj'])) {
+        if (! empty($validated['cnpj'])) {
             $validated['cnpj'] = preg_replace('/[^0-9]/', '', $validated['cnpj']);
         }
 
         // Remove formatação do CEP (pontos, traços, espaços)
-        if (!empty($validated['endereco_cep'])) {
+        if (! empty($validated['endereco_cep'])) {
             $validated['endereco_cep'] = preg_replace('/[^0-9]/', '', $validated['endereco_cep']);
         }
 
@@ -189,10 +189,21 @@ class TenantsController extends Controller
         $logoUrl = $validated['logo_url'] ?? $tenant->logo_url;
         if ($request->hasFile('logo')) {
             // Deletar logo antiga se existir e for do storage local
-            if ($tenant->logo_url) {
-                $storageBaseUrl = asset('storage/');
-                if (str_starts_with($tenant->logo_url, $storageBaseUrl)) {
-                    $oldLogoPath = str_replace($storageBaseUrl, '', $tenant->logo_url);
+            $storedLogoUrl = $tenant->getRawOriginal('logo_url');
+            if ($storedLogoUrl) {
+                $storageBaseUrl = Storage::disk('public')->url('');
+                $oldLogoPath = null;
+
+                if (str_starts_with($storedLogoUrl, $storageBaseUrl)) {
+                    $oldLogoPath = substr($storedLogoUrl, strlen($storageBaseUrl));
+                } elseif (str_starts_with($storedLogoUrl, '/storage/')) {
+                    $oldLogoPath = substr($storedLogoUrl, strlen('/storage/'));
+                } elseif (str_starts_with($storedLogoUrl, 'storage/')) {
+                    $oldLogoPath = substr($storedLogoUrl, strlen('storage/'));
+                }
+
+                if ($oldLogoPath) {
+                    $oldLogoPath = ltrim($oldLogoPath, '/');
                     if (Storage::disk('public')->exists($oldLogoPath)) {
                         Storage::disk('public')->delete($oldLogoPath);
                     }
@@ -201,7 +212,7 @@ class TenantsController extends Controller
 
             $logo = $request->file('logo');
             $logoPath = $logo->store('tenants/logos', 'public');
-            $logoUrl = asset('storage/'.$logoPath);
+            $logoUrl = Storage::disk('public')->url($logoPath);
         }
 
         $tenant->update([
@@ -249,4 +260,3 @@ class TenantsController extends Controller
             ]);
     }
 }
-

@@ -3,9 +3,11 @@
 namespace App\Providers;
 
 use App\Listeners\UpdateLastLoginAt;
+use App\Models\PersonalAccessToken;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use Illuminate\Support\Facades\Event;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends EventServiceProvider
 {
@@ -34,5 +36,8 @@ class AppServiceProvider extends EventServiceProvider
     public function boot(): void
     {
         parent::boot();
+
+        // Configurar Sanctum para usar o modelo customizado com schema laravel
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
     }
 }

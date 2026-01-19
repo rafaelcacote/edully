@@ -4,16 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes;
 
     /**
      * The "type" of the primary key ID.
@@ -217,5 +219,45 @@ class User extends Authenticatable
     public function tenant()
     {
         return $this->tenants();
+    }
+
+    /**
+     * Get the teacher relationship.
+     */
+    public function teacher(): HasOne
+    {
+        return $this->hasOne(Teacher::class, 'usuario_id');
+    }
+
+    /**
+     * Get the responsavel (parent/guardian) relationship.
+     */
+    public function responsavel(): HasOne
+    {
+        return $this->hasOne(Responsavel::class, 'usuario_id');
+    }
+
+    /**
+     * Check if the user is a teacher.
+     */
+    public function isTeacher(): bool
+    {
+        return $this->teacher()->exists();
+    }
+
+    /**
+     * Check if the user is a responsavel (parent/guardian).
+     */
+    public function isResponsavel(): bool
+    {
+        return $this->responsavel()->exists();
+    }
+
+    /**
+     * Check if the user can access the mobile API (is teacher or responsavel).
+     */
+    public function canAccessMobileApi(): bool
+    {
+        return $this->isTeacher() || $this->isResponsavel();
     }
 }

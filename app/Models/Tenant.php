@@ -176,7 +176,22 @@ class Tenant extends Model
      */
     public function getLogoUrlAttribute(): ?string
     {
-        return $this->attributes['logo_url'] ?? null;
+        $value = $this->attributes['logo_url'] ?? null;
+
+        if (! $value) {
+            return null;
+        }
+
+        if (str_starts_with($value, 'storage/')) {
+            return '/'.$value;
+        }
+
+        $storagePosition = strpos($value, '/storage/');
+        if ($storagePosition !== false) {
+            return substr($value, $storagePosition);
+        }
+
+        return $value;
     }
 
     /**

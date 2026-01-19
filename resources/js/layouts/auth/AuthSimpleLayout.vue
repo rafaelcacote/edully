@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 
@@ -21,10 +20,12 @@ defineProps<{
                         class="flex flex-col items-center gap-2 font-medium"
                     >
                         <div
-                            class="mb-1 flex h-9 w-9 items-center justify-center rounded-md"
+                            class="mb-1 flex h-12 w-12 items-center justify-center rounded-xl bg-white/90 shadow-lg ring-1 ring-white/60 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10"
                         >
-                            <AppLogoIcon
-                                class="size-9 fill-current text-[var(--foreground)] dark:text-white"
+                            <img
+                                src="/images/logo.png"
+                                :alt="title ?? 'Logo'"
+                                class="h-9 w-9 object-contain drop-shadow-[0_6px_10px_rgba(15,23,42,0.25)]"
                             />
                         </div>
                         <span class="sr-only">{{ title }}</span>
