@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import Can from '@/components/Can.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, BookOpen, Edit } from 'lucide-vue-next';
+import { ArrowLeft, BookOpen, Edit, Users } from 'lucide-vue-next';
 
 interface Professor {
     id: string;
@@ -22,6 +23,7 @@ interface Class {
     capacidade?: number | null;
     ativo: boolean;
     professor?: Professor | null;
+    professores?: Professor[];
 }
 
 interface Props {
@@ -71,12 +73,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             Voltar
                         </Link>
                     </Button>
-                    <Button as-child>
-                        <Link :href="`/school/classes/${props.turma.id}/edit`" class="flex items-center gap-2">
-                            <Edit class="h-4 w-4" />
-                            Editar
-                        </Link>
-                    </Button>
+                    <Can permission="escola.turmas.editar">
+                        <Button as-child>
+                            <Link :href="`/school/classes/${props.turma.id}/edit`" class="flex items-center gap-2">
+                                <Edit class="h-4 w-4" />
+                                Editar
+                            </Link>
+                        </Button>
+                    </Can>
                 </div>
             </div>
 
@@ -120,6 +124,36 @@ const breadcrumbItems: BreadcrumbItem[] = [
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Professores Vinculados -->
+                    <div v-if="props.turma.professores && props.turma.professores.length > 0" class="border-t pt-6">
+                        <div class="mb-4 flex items-center gap-2">
+                            <Users class="h-5 w-5 text-muted-foreground" />
+                            <h3 class="text-lg font-semibold">Professores Responsáveis</h3>
+                            <Badge variant="secondary" class="ml-2">
+                                {{ props.turma.professores.length }} {{ props.turma.professores.length === 1 ? 'professor' : 'professores' }}
+                            </Badge>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <Badge
+                                v-for="professor in props.turma.professores"
+                                :key="professor.id"
+                                variant="outline"
+                                class="px-3 py-1.5 text-sm"
+                            >
+                                {{ professor.usuario?.nome_completo || 'Sem nome' }}
+                            </Badge>
+                        </div>
+                    </div>
+                    <div v-else class="border-t pt-6">
+                        <div class="mb-4 flex items-center gap-2">
+                            <Users class="h-5 w-5 text-muted-foreground" />
+                            <h3 class="text-lg font-semibold">Professores Responsáveis</h3>
+                        </div>
+                        <p class="text-sm text-muted-foreground">
+                            Nenhum professor vinculado a esta turma.
+                        </p>
                     </div>
                 </div>
             </div>

@@ -7,6 +7,7 @@ use App\Http\Requests\School\StoreMessageRequest;
 use App\Http\Requests\School\UpdateMessageRequest;
 use App\Models\Message;
 use App\Models\Teacher;
+use App\Models\Turma;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,24 +32,19 @@ class MessagesController extends Controller
     }
 
     /**
-     * Get the current teacher from the authenticated user.
+     * Get the current teacher from the authenticated user (if exists).
+     * Returns null if user is not a teacher (e.g., Administrador Escola).
      */
     protected function getCurrentTeacher()
     {
         $user = auth()->user();
         $tenant = $this->getTenant();
 
-        $teacher = Teacher::query()
+        return Teacher::query()
             ->where('tenant_id', $tenant->id)
             ->where('usuario_id', $user->id)
             ->where('ativo', true)
             ->first();
-
-        if (! $teacher) {
-            abort(403, 'Acesso negado. Você precisa ser um professor para acessar esta área.');
-        }
-
-        return $teacher;
     }
 
     /**
@@ -58,11 +54,18 @@ class MessagesController extends Controller
     {
         $tenant = $this->getTenant();
         $user = auth()->user();
-        $filters = $request->only(['search', 'aluno_id']);
+        $filters = $request->only(['search', 'aluno_id', 'turma_id']);
+
+        // Get teacher and turmas using many-to-many relationship
+        $teacher = $this->getCurrentTeacher();
 
         $messages = Message::query()
             ->where('tenant_id', $tenant->id)
-            ->where('remetente_id', $user->id)
+            ->when($teacher, function ($query) use ($user) {
+                // Se for professor, mostrar apenas mensagens que ele enviou
+                $query->where('remetente_id', $user->id);
+            })
+            // Se for Administrador Escola, mostrar todas as mensagens do tenant (sem filtro adicional)
             ->with(['aluno:id,nome,nome_social'])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
@@ -77,6 +80,9 @@ class MessagesController extends Controller
             })
             ->when($filters['aluno_id'] ?? null, function ($query, string $alunoId) {
                 $query->where('aluno_id', $alunoId);
+            })
+            ->when($filters['turma_id'] ?? null, function ($query, string $turmaId) {
+                $query->where('turma_id', $turmaId);
             })
             ->orderBy('created_at', 'desc')
             ->paginate(10)
@@ -99,20 +105,43 @@ class MessagesController extends Controller
                 ];
             });
 
-        // Get students from teacher's turmas
-        $teacher = $this->getCurrentTeacher();
+        // Get turmas
+        if ($teacher) {
+            // Se for professor, usar as turmas dele
+            $turmas = $teacher->turmas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                    ];
+                })
+                ->toArray();
+
+            $turmaIds = collect($turmas)->pluck('id')->toArray();
+        } else {
+            // Administrador Escola: buscar todas as turmas do tenant
+            $turmas = Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                    ];
+                })
+                ->toArray();
+
+            $turmaIds = collect($turmas)->pluck('id')->toArray();
+        }
+
         $driver = DB::connection('shared')->getDriverName();
         $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
         $alunosTable = $driver === 'sqlite' ? 'alunos' : 'escola.alunos';
-        $turmasTable = $driver === 'sqlite' ? 'turmas' : 'escola.turmas';
-
-        $turmaIds = DB::connection('shared')
-            ->table($turmasTable)
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->pluck('id')
-            ->toArray();
 
         $alunos = [];
         if (! empty($turmaIds)) {
@@ -143,6 +172,7 @@ class MessagesController extends Controller
         return Inertia::render('school/messages/Index', [
             'messages' => $messages,
             'alunos' => $alunos,
+            'turmas' => $turmas,
             'filters' => $filters,
         ]);
     }
@@ -155,19 +185,40 @@ class MessagesController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
+        // Get turmas
+        if ($teacher) {
+            // Se for professor, usar as turmas dele
+            $turmas = $teacher->turmas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                    ];
+                });
+        } else {
+            // Administrador Escola: buscar todas as turmas do tenant
+            $turmas = Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                    ];
+                });
+        }
+
+        $turmaIds = $turmas->pluck('id')->toArray();
+
         // Get students from teacher's turmas
         $driver = DB::connection('shared')->getDriverName();
         $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
         $alunosTable = $driver === 'sqlite' ? 'alunos' : 'escola.alunos';
-        $turmasTable = $driver === 'sqlite' ? 'turmas' : 'escola.turmas';
-
-        $turmaIds = DB::connection('shared')
-            ->table($turmasTable)
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->pluck('id')
-            ->toArray();
 
         $alunos = [];
         if (! empty($turmaIds)) {
@@ -197,6 +248,7 @@ class MessagesController extends Controller
 
         return Inertia::render('school/messages/Create', [
             'alunos' => $alunos,
+            'turmas' => $turmas,
         ]);
     }
 
@@ -209,6 +261,45 @@ class MessagesController extends Controller
         $user = auth()->user();
         $validated = $request->validated();
 
+        // Se turma_id foi enviado, criar mensagem para todos os alunos da turma
+        if (isset($validated['turma_id'])) {
+            $turma = Turma::where('id', $validated['turma_id'])
+                ->where('tenant_id', $tenant->id)
+                ->firstOrFail();
+
+            $alunos = $turma->alunos()->get();
+
+            if ($alunos->isEmpty()) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['turma_id' => 'Esta turma não possui alunos matriculados.']);
+            }
+
+            foreach ($alunos as $aluno) {
+                Message::create([
+                    'tenant_id' => $tenant->id,
+                    'remetente_id' => $user->id,
+                    'aluno_id' => $aluno->id,
+                    'turma_id' => $validated['turma_id'],
+                    'titulo' => $validated['titulo'],
+                    'conteudo' => $validated['conteudo'],
+                    'tipo' => $validated['tipo'] ?? 'outro',
+                    'prioridade' => $validated['prioridade'] ?? 'normal',
+                    'anexo_url' => $validated['anexo_url'] ?? null,
+                    'lida' => false,
+                ]);
+            }
+
+            return redirect()
+                ->route('school.messages.index')
+                ->with('toast', [
+                    'type' => 'success',
+                    'title' => 'Mensagens enviadas',
+                    'message' => "Mensagem enviada para {$alunos->count()} aluno(s) da turma {$turma->nome}.",
+                ]);
+        }
+
+        // Comportamento normal: mensagem para um aluno específico
         Message::create([
             ...$validated,
             'tenant_id' => $tenant->id,
@@ -231,8 +322,15 @@ class MessagesController extends Controller
     {
         $tenant = $this->getTenant();
         $user = auth()->user();
+        $teacher = $this->getCurrentTeacher();
 
-        if ($message->tenant_id !== $tenant->id || $message->remetente_id !== $user->id) {
+        // Verificar se a mensagem pertence ao tenant
+        if ($message->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se a mensagem é dele
+        if ($teacher && $message->remetente_id !== $user->id) {
             abort(404);
         }
 
@@ -273,26 +371,37 @@ class MessagesController extends Controller
     {
         $tenant = $this->getTenant();
         $user = auth()->user();
+        $teacher = $this->getCurrentTeacher();
 
-        if ($message->tenant_id !== $tenant->id || $message->remetente_id !== $user->id) {
+        // Verificar se a mensagem pertence ao tenant
+        if ($message->tenant_id !== $tenant->id) {
             abort(404);
         }
 
-        $teacher = $this->getCurrentTeacher();
+        // Se for professor, verificar se a mensagem é dele
+        if ($teacher && $message->remetente_id !== $user->id) {
+            abort(404);
+        }
+
+        // Get turmas
+        if ($teacher) {
+            $turmaIds = $teacher->turmas()
+                ->where('ativo', true)
+                ->pluck('id')
+                ->toArray();
+        } else {
+            // Administrador Escola: buscar todas as turmas do tenant
+            $turmaIds = Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->pluck('id')
+                ->toArray();
+        }
 
         // Get students from teacher's turmas
         $driver = DB::connection('shared')->getDriverName();
         $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
         $alunosTable = $driver === 'sqlite' ? 'alunos' : 'escola.alunos';
-        $turmasTable = $driver === 'sqlite' ? 'turmas' : 'escola.turmas';
-
-        $turmaIds = DB::connection('shared')
-            ->table($turmasTable)
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->pluck('id')
-            ->toArray();
 
         $alunos = [];
         if (! empty($turmaIds)) {
@@ -341,8 +450,15 @@ class MessagesController extends Controller
     {
         $tenant = $this->getTenant();
         $user = auth()->user();
+        $teacher = $this->getCurrentTeacher();
 
-        if ($message->tenant_id !== $tenant->id || $message->remetente_id !== $user->id) {
+        // Verificar se a mensagem pertence ao tenant
+        if ($message->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se a mensagem é dele
+        if ($teacher && $message->remetente_id !== $user->id) {
             abort(404);
         }
 
@@ -366,8 +482,15 @@ class MessagesController extends Controller
     {
         $tenant = $this->getTenant();
         $user = auth()->user();
+        $teacher = $this->getCurrentTeacher();
 
-        if ($message->tenant_id !== $tenant->id || $message->remetente_id !== $user->id) {
+        // Verificar se a mensagem pertence ao tenant
+        if ($message->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se a mensagem é dele
+        if ($teacher && $message->remetente_id !== $user->id) {
             abort(404);
         }
 

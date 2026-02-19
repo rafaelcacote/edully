@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import MessagesController from '@/actions/App/Http/Controllers/MessagesController';
 import { Button } from '@/components/ui/button';
 import Heading from '@/components/Heading.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -78,7 +77,8 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
             <div class="rounded-xl border bg-card p-6 shadow-sm">
                 <Form
-                    v-bind="MessagesController.update.form({ message: props.message.id })"
+                    :action="`/messages/${props.message.id}`"
+                    method="patch"
                     class="space-y-6"
                     v-slot="{ errors, processing }"
                 >

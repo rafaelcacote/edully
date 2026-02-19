@@ -5,6 +5,7 @@ use App\Http\Controllers\School\ClassesController;
 use App\Http\Controllers\School\DisciplinasController;
 use App\Http\Controllers\School\ExercisesController;
 use App\Http\Controllers\School\MessagesController;
+use App\Http\Controllers\School\NotasController;
 use App\Http\Controllers\School\ParentsController;
 use App\Http\Controllers\School\ParentStudentsController;
 use App\Http\Controllers\School\SchoolProfileController;
@@ -26,6 +27,9 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::get('students/create', [StudentsController::class, 'create'])
         ->middleware('permission:escola.alunos.criar')
         ->name('students.create');
+    Route::get('students/search', [StudentsController::class, 'search'])
+        ->middleware('permission:escola.alunos.visualizar')
+        ->name('students.search');
     Route::post('students', [StudentsController::class, 'store'])
         ->middleware('permission:escola.alunos.criar')
         ->name('students.store');
@@ -67,6 +71,9 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::post('parents/{parent}/students', [ParentStudentsController::class, 'store'])
         ->middleware('permission:escola.alunos.criar')
         ->name('parents.students.store');
+    Route::post('parents/{parent}/students/attach', [ParentStudentsController::class, 'attach'])
+        ->middleware('permission:escola.alunos.editar')
+        ->name('parents.students.attach');
     Route::delete('parents/{parent}/students/{student}', [ParentStudentsController::class, 'destroy'])
         ->middleware('permission:escola.alunos.editar')
         ->name('parents.students.destroy');
@@ -108,7 +115,7 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
         ->middleware('permission:escola.turmas.visualizar')
         ->name('classes.show');
     Route::get('classes/{class}/students', [ClassesController::class, 'students'])
-        ->middleware('permission:escola.turmas.visualizar')
+        ->middleware('permission:escola.turmas.alunos')
         ->name('classes.students');
     Route::get('classes/{class}/edit', [ClassesController::class, 'edit'])
         ->middleware('permission:escola.turmas.editar')
@@ -240,4 +247,24 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::delete('avisos/{aviso}', [AvisosController::class, 'destroy'])
         ->middleware('permission:escola.avisos.excluir')
         ->name('avisos.destroy');
+
+    // Notas
+    Route::get('notas', [NotasController::class, 'index'])
+        ->middleware('permission:escola.notas.visualizar')
+        ->name('notas.index');
+    Route::get('notas/create', [NotasController::class, 'create'])
+        ->middleware('permission:escola.notas.criar')
+        ->name('notas.create');
+    Route::post('notas', [NotasController::class, 'store'])
+        ->middleware('permission:escola.notas.criar')
+        ->name('notas.store');
+    Route::get('notas/{nota}/edit', [NotasController::class, 'edit'])
+        ->middleware('permission:escola.notas.editar')
+        ->name('notas.edit');
+    Route::patch('notas/{nota}', [NotasController::class, 'update'])
+        ->middleware('permission:escola.notas.editar')
+        ->name('notas.update');
+    Route::delete('notas/{nota}', [NotasController::class, 'destroy'])
+        ->middleware('permission:escola.notas.excluir')
+        ->name('notas.destroy');
 });

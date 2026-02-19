@@ -59,6 +59,7 @@ class Message extends Model
         'tenant_id',
         'remetente_id',
         'aluno_id',
+        'turma_id',
         'titulo',
         'conteudo',
         'tipo',
@@ -106,5 +107,13 @@ class Message extends Model
     public function aluno(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'aluno_id');
+    }
+
+    /**
+     * Get the turma that the message was sent to.
+     */
+    public function turma(): BelongsTo
+    {
+        return $this->belongsTo(Turma::class, 'turma_id');
     }
 }

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\School;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreTestRequest;
 use App\Http\Requests\School\UpdateTestRequest;
+use App\Models\Disciplina;
 use App\Models\Teacher;
 use App\Models\Test;
+use App\Models\Turma;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -30,24 +32,19 @@ class TestsController extends Controller
     }
 
     /**
-     * Get the current teacher from the authenticated user.
+     * Get the current teacher from the authenticated user (if exists).
+     * Returns null if user is not a teacher (e.g., Administrador Escola).
      */
     protected function getCurrentTeacher()
     {
         $user = auth()->user();
         $tenant = $this->getTenant();
 
-        $teacher = Teacher::query()
+        return Teacher::query()
             ->where('tenant_id', $tenant->id)
             ->where('usuario_id', $user->id)
             ->where('ativo', true)
             ->first();
-
-        if (! $teacher) {
-            abort(403, 'Acesso negado. Você precisa ser um professor para acessar esta área.');
-        }
-
-        return $teacher;
     }
 
     /**
@@ -61,7 +58,10 @@ class TestsController extends Controller
 
         $tests = Test::query()
             ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
+            ->when($teacher, function ($query) use ($teacher) {
+                // Se for professor, mostrar apenas provas que ele criou
+                $query->where('professor_id', $teacher->id);
+            })
             ->with(['turma:id,nome,serie,turma_letra,ano_letivo', 'disciplinaRelation:id,nome,sigla'])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
@@ -105,29 +105,56 @@ class TestsController extends Controller
                 ];
             });
 
-        $turmas = \App\Models\Turma::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($turma) {
-                return [
-                    'id' => $turma->id,
-                    'nome' => $turma->nome,
-                ];
-            });
+        // Buscar turmas e disciplinas
+        // Se for professor, usar as turmas/disciplinas dele; se for admin escola, buscar todas
+        if ($teacher) {
+            $turmas = $teacher->turmas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                    ];
+                });
 
-        $disciplinas = $teacher->disciplinas()
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($disciplina) {
-                return [
-                    'id' => $disciplina->id,
-                    'nome' => $disciplina->nome.($disciplina->sigla ? ' ('.$disciplina->sigla.')' : ''),
-                ];
-            });
+            $disciplinas = $teacher->disciplinas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome.($disciplina->sigla ? ' ('.$disciplina->sigla.')' : ''),
+                    ];
+                });
+        } else {
+            // Administrador Escola: buscar todas as turmas e disciplinas do tenant
+            $turmas = Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                    ];
+                });
+
+            $disciplinas = Disciplina::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome.($disciplina->sigla ? ' ('.$disciplina->sigla.')' : ''),
+                    ];
+                });
+        }
 
         return Inertia::render('school/tests/Index', [
             'tests' => $tests,
@@ -145,32 +172,61 @@ class TestsController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        $turmas = \App\Models\Turma::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($turma) {
-                return [
-                    'id' => $turma->id,
-                    'nome' => $turma->nome,
-                    'serie' => $turma->serie,
-                    'ano_letivo' => $turma->ano_letivo,
-                ];
-            });
+        // Buscar turmas e disciplinas
+        if ($teacher) {
+            $turmas = $teacher->turmas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ];
+                });
 
-        $disciplinas = $teacher->disciplinas()
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($disciplina) {
-                return [
-                    'id' => $disciplina->id,
-                    'nome' => $disciplina->nome,
-                    'sigla' => $disciplina->sigla,
-                ];
-            });
+            $disciplinas = $teacher->disciplinas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                });
+        } else {
+            // Administrador Escola: buscar todas as turmas e disciplinas do tenant
+            $turmas = \App\Models\Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ];
+                });
+
+            $disciplinas = \App\Models\Disciplina::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                });
+        }
 
         return Inertia::render('school/tests/Create', [
             'turmas' => $turmas,
@@ -187,10 +243,30 @@ class TestsController extends Controller
         $teacher = $this->getCurrentTeacher();
         $validated = $request->validated();
 
+        // Se for professor, usar o professor_id dele
+        // Se for Administrador Escola, precisa fornecer o professor_id no request
+        if ($teacher) {
+            $professorId = $teacher->id;
+        } else {
+            // Administrador Escola deve selecionar um professor
+            // Por enquanto, usar o primeiro professor ativo do tenant como fallback
+            // TODO: Adicionar campo professor_id no formulário para Administrador Escola
+            $professorId = $validated['professor_id'] ?? Teacher::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->first()?->id;
+
+            if (! $professorId) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['professor_id' => 'Nenhum professor ativo encontrado na escola.']);
+            }
+        }
+
         Test::create([
             ...$validated,
             'tenant_id' => $tenant->id,
-            'professor_id' => $teacher->id,
+            'professor_id' => $professorId,
         ]);
 
         return redirect()
@@ -210,7 +286,13 @@ class TestsController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        if ($test->tenant_id !== $tenant->id || $test->professor_id !== $teacher->id) {
+        // Verificar se a prova pertence ao tenant
+        if ($test->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se a prova é dele
+        if ($teacher && $test->professor_id !== $teacher->id) {
             abort(404);
         }
 
@@ -265,36 +347,71 @@ class TestsController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        if ($test->tenant_id !== $tenant->id || $test->professor_id !== $teacher->id) {
+        // Verificar se a prova pertence ao tenant
+        if ($test->tenant_id !== $tenant->id) {
             abort(404);
         }
 
-        $turmas = \App\Models\Turma::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($turma) {
-                return [
-                    'id' => $turma->id,
-                    'nome' => $turma->nome,
-                    'serie' => $turma->serie,
-                    'ano_letivo' => $turma->ano_letivo,
-                ];
-            });
+        // Se for professor, verificar se a prova é dele
+        if ($teacher && $test->professor_id !== $teacher->id) {
+            abort(404);
+        }
 
-        $disciplinas = $teacher->disciplinas()
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($disciplina) {
-                return [
-                    'id' => $disciplina->id,
-                    'nome' => $disciplina->nome,
-                    'sigla' => $disciplina->sigla,
-                ];
-            });
+        // Buscar turmas e disciplinas
+        if ($teacher) {
+            $turmas = $teacher->turmas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ];
+                });
+
+            $disciplinas = $teacher->disciplinas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                });
+        } else {
+            // Administrador Escola: buscar todas as turmas e disciplinas do tenant
+            $turmas = \App\Models\Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ];
+                });
+
+            $disciplinas = \App\Models\Disciplina::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                });
+        }
 
         return Inertia::render('school/tests/Edit', [
             'test' => [
@@ -321,7 +438,13 @@ class TestsController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        if ($test->tenant_id !== $tenant->id || $test->professor_id !== $teacher->id) {
+        // Verificar se a prova pertence ao tenant
+        if ($test->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se a prova é dele
+        if ($teacher && $test->professor_id !== $teacher->id) {
             abort(404);
         }
 
@@ -346,7 +469,13 @@ class TestsController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        if ($test->tenant_id !== $tenant->id || $test->professor_id !== $teacher->id) {
+        // Verificar se a prova pertence ao tenant
+        if ($test->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se a prova é dele
+        if ($teacher && $test->professor_id !== $teacher->id) {
             abort(404);
         }
 

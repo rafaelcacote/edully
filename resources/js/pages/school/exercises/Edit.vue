@@ -15,6 +15,7 @@ interface Exercise {
     data_entrega: string;
     anexo_url?: string | null;
     turma_id: string;
+    tipo_exercicio: string;
 }
 
 interface Turma {

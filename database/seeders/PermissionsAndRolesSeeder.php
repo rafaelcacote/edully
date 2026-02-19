@@ -81,6 +81,7 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.turmas.criar',
             'escola.turmas.editar',
             'escola.turmas.excluir',
+            'escola.turmas.alunos',
             'escola.exercicios.visualizar',
             'escola.exercicios.criar',
             'escola.exercicios.editar',
@@ -101,6 +102,10 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.avisos.criar',
             'escola.avisos.editar',
             'escola.avisos.excluir',
+            'escola.notas.visualizar',
+            'escola.notas.criar',
+            'escola.notas.editar',
+            'escola.notas.excluir',
         ];
 
         // Permissões para Professores
@@ -118,10 +123,15 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.mensagens.editar',
             'escola.mensagens.excluir',
             'escola.disciplinas.visualizar',
+            'escola.turmas.alunos',
             'escola.avisos.visualizar',
             'escola.avisos.criar',
             'escola.avisos.editar',
             'escola.avisos.excluir',
+            'escola.notas.visualizar',
+            'escola.notas.criar',
+            'escola.notas.editar',
+            'escola.notas.excluir',
         ];
 
         // Todas as permissões

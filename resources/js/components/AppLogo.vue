@@ -30,7 +30,7 @@ const appLogo = computed(() => {
 
     // Se for administrador geral, usar logo do Eduly
     if (user?.is_admin_geral) {
-        return '/images/eduly_logo.png';
+        return '/images/logo.svg';
     }
 
     // Se tiver tenant vinculado e tiver logo, mostrar logo da escola
@@ -46,12 +46,12 @@ const appLogo = computed(() => {
 <template>
     <div
         v-if="appLogo"
-        class="flex aspect-square size-8 items-center justify-center rounded-md overflow-hidden"
+        class="flex h-10 items-center justify-center rounded-md overflow-hidden"
     >
         <img
             :src="appLogo"
             :alt="appName"
-            class="h-full w-full object-cover"
+            class="h-full w-auto object-contain"
         />
     </div>
     <div
@@ -60,9 +60,5 @@ const appLogo = computed(() => {
     >
         <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
     </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold">
-            {{ appName }}
-        </span>
-    </div>
+  
 </template>

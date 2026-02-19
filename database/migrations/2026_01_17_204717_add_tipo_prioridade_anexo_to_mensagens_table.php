@@ -19,6 +19,7 @@ return new class extends Migration
                 $table->string('prioridade')->nullable()->after('tipo');
                 $table->string('anexo_url', 2048)->nullable()->after('prioridade');
                 $table->uuid('aluno_id')->nullable()->after('remetente_id');
+                $table->uuid('turma_id')->nullable()->after('aluno_id');
             });
 
             return;
@@ -163,7 +164,7 @@ return new class extends Migration
 
         if ($driver === 'sqlite') {
             Schema::connection('shared')->table('mensagens', function ($table) {
-                $table->dropColumn(['tipo', 'prioridade', 'anexo_url', 'aluno_id']);
+                $table->dropColumn(['tipo', 'prioridade', 'anexo_url', 'aluno_id', 'turma_id']);
             });
 
             return;
@@ -175,7 +176,8 @@ return new class extends Migration
             DROP COLUMN IF EXISTS tipo,
             DROP COLUMN IF EXISTS prioridade,
             DROP COLUMN IF EXISTS anexo_url,
-            DROP COLUMN IF EXISTS aluno_id
+            DROP COLUMN IF EXISTS aluno_id,
+            DROP COLUMN IF EXISTS turma_id
         ');
     }
 };

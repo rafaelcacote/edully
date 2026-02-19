@@ -107,6 +107,33 @@ class Teacher extends Model
     }
 
     /**
+     * Get the pivot table name for the professor_turma relationship.
+     */
+    protected function professorTurmaPivotTable(): string
+    {
+        return $this->getConnection()->getDriverName() === 'sqlite'
+            ? 'professor_turma'
+            : 'escola.professor_turma';
+    }
+
+    /**
+     * Get the turmas (classes) for the teacher.
+     */
+    public function turmas(): BelongsToMany
+    {
+        $pivotTable = $this->professorTurmaPivotTable();
+
+        return $this->belongsToMany(
+            Turma::class,
+            $pivotTable,
+            'professor_id',
+            'turma_id'
+        )
+            ->withPivot(['tenant_id', 'created_at'])
+            ->wherePivot('tenant_id', $this->tenant_id);
+    }
+
+    /**
      * Get the tenant that owns the teacher.
      */
     public function tenant(): BelongsTo

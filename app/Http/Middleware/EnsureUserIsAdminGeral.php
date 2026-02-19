@@ -19,7 +19,15 @@ class EnsureUserIsAdminGeral
             return redirect()->route('login');
         }
 
-        if (! $request->user()->hasRole('Administrador Geral')) {
+        $user = $request->user();
+        // Carregar roles explicitamente para garantir que estão disponíveis
+        $user->load('roles');
+
+        // Verificar se é Administrador Geral - verificar tanto pelo método quanto pelos nomes das roles
+        $roleNames = $user->roles->pluck('name')->toArray();
+        $isAdminGeral = $user->hasRole('Administrador Geral') || in_array('Administrador Geral', $roleNames);
+
+        if (! $isAdminGeral) {
             abort(403, 'Acesso negado. Apenas administradores gerais podem acessar esta área.');
         }
 

@@ -12,6 +12,7 @@ use App\Models\Tenant;
 use App\Models\Test;
 use App\Models\Turma;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,21 +22,29 @@ class DashboardController extends Controller
     /**
      * Display the dashboard.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
-        $isAdminGeral = $user->hasRole('Administrador Geral');
+
+        // Carregar roles e tenants explicitamente
+        $user->load('roles', 'tenants');
+
+        // Verificar se é Administrador Geral
+        // Verificar tanto pelo método hasRole quanto pelos nomes das roles diretamente
+        $roleNames = $user->roles->pluck('name')->toArray();
+        $isAdminGeral = $user->hasRole('Administrador Geral') || in_array('Administrador Geral', $roleNames);
 
         if ($isAdminGeral) {
             return $this->adminGeralDashboard($request);
         }
 
         // Verificar se é professor
-        $isProfessor = $user->hasRole('Professor');
+        $isProfessor = $user->hasRole('Professor') || in_array('Professor', $roleNames);
         if ($isProfessor) {
             return $this->professorDashboard($request);
         }
 
+        // Se não é admin geral nem professor, é Administrador Escola
         return $this->adminEscolaDashboard($request);
     }
 
@@ -96,9 +105,18 @@ class DashboardController extends Controller
     /**
      * Dashboard para Administrador Escola.
      */
-    protected function adminEscolaDashboard(Request $request): Response
+    protected function adminEscolaDashboard(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
+        $user->load('roles', 'tenants');
+
+        // Verificar novamente se é Administrador Geral (caso não tenha sido detectado antes)
+        // Verificar tanto pelo método hasRole quanto pelos nomes das roles diretamente
+        $roleNames = $user->roles->pluck('name')->toArray();
+        if ($user->hasRole('Administrador Geral') || in_array('Administrador Geral', $roleNames)) {
+            return $this->adminGeralDashboard($request);
+        }
+
         $tenantId = $request->session()->get('tenant_id');
 
         // Se não tem tenant_id na sessão, mas tem apenas um tenant, usar esse
@@ -107,8 +125,38 @@ class DashboardController extends Controller
             $request->session()->put('tenant_id', $tenantId);
         }
 
+        // Se ainda não tem tenant_id, verificar se o usuário tem tenants
         if (! $tenantId) {
-            abort(404, 'Escola não encontrada');
+            if ($user->tenants->count() === 0) {
+                // Redirecionar para login em vez de abortar
+                auth()->logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+
+                return redirect()->route('login')->withErrors([
+                    'cpf' => 'Você não possui acesso a nenhuma escola. Entre em contato com o administrador.',
+                ]);
+            }
+
+            // Se tem múltiplos tenants mas nenhum selecionado, redirecionar para seleção
+            if ($user->tenants->count() > 1) {
+                auth()->logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+
+                return redirect()->route('login')->withErrors([
+                    'tenant_id' => 'Por favor, selecione uma escola para continuar.',
+                ]);
+            }
+
+            // Se chegou aqui, algo deu errado - redirecionar para login
+            auth()->logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'cpf' => 'Erro ao acessar o sistema. Por favor, tente fazer login novamente.',
+            ]);
         }
 
         // Estatísticas de Professores
@@ -174,9 +222,10 @@ class DashboardController extends Controller
     /**
      * Dashboard para Professor.
      */
-    protected function professorDashboard(Request $request): Response
+    protected function professorDashboard(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
+        $user->load('tenants');
         $tenantId = $request->session()->get('tenant_id');
 
         // Se não tem tenant_id na sessão, mas tem apenas um tenant, usar esse
@@ -185,8 +234,38 @@ class DashboardController extends Controller
             $request->session()->put('tenant_id', $tenantId);
         }
 
+        // Se ainda não tem tenant_id, verificar se o usuário tem tenants
         if (! $tenantId) {
-            abort(404, 'Escola não encontrada');
+            if ($user->tenants->count() === 0) {
+                // Redirecionar para login em vez de abortar
+                auth()->logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+
+                return redirect()->route('login')->withErrors([
+                    'cpf' => 'Você não possui acesso a nenhuma escola. Entre em contato com o administrador.',
+                ]);
+            }
+
+            // Se tem múltiplos tenants mas nenhum selecionado, redirecionar para seleção
+            if ($user->tenants->count() > 1) {
+                auth()->logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+
+                return redirect()->route('login')->withErrors([
+                    'tenant_id' => 'Por favor, selecione uma escola para continuar.',
+                ]);
+            }
+
+            // Se chegou aqui, algo deu errado - redirecionar para login
+            auth()->logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'cpf' => 'Erro ao acessar o sistema. Por favor, tente fazer login novamente.',
+            ]);
         }
 
         // Buscar o professor do usuário logado

@@ -13,6 +13,15 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
+// Rota temporária para limpar sessão e fazer logout forçado
+Route::get('/force-logout', function () {
+    auth()->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+
+    return redirect()->route('login');
+})->name('force-logout');
+
 Route::get('/welcome', function () {
     return Inertia::render('Welcome', [
         'canRegister' => Features::enabled(Features::registration()),

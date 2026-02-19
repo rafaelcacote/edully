@@ -17,24 +17,41 @@ class StoreTestRequest extends FormRequest
     public function rules(): array
     {
         $tenantId = auth()->user()?->tenants()->first()?->id;
+        $user = auth()->user();
 
         $teacher = Teacher::query()
             ->where('tenant_id', $tenantId)
-            ->where('usuario_id', auth()->id())
+            ->where('usuario_id', $user->id)
             ->where('ativo', true)
             ->first();
 
-        $disciplinaIds = $teacher?->disciplinas()
-            ->where('ativo', true)
-            ->pluck('disciplina_id')
-            ->toArray() ?? [];
+        // Se for professor, validar apenas disciplinas que ele leciona
+        // Se for Administrador Escola, pode usar qualquer disciplina do tenant
+        if ($teacher) {
+            $disciplinaIds = $teacher->disciplinas()
+                ->where('ativo', true)
+                ->pluck('disciplina_id')
+                ->toArray();
 
-        return [
-            'disciplina_id' => [
+            $disciplinaRule = [
                 'required',
                 'uuid',
                 Rule::in($disciplinaIds),
-            ],
+            ];
+        } else {
+            // Administrador Escola: pode usar qualquer disciplina do tenant
+            $disciplinaRule = [
+                'required',
+                'uuid',
+                Rule::exists(\App\Models\Disciplina::class, 'id')
+                    ->where('tenant_id', $tenantId)
+                    ->where('ativo', true)
+                    ->whereNull('deleted_at'),
+            ];
+        }
+
+        return [
+            'disciplina_id' => $disciplinaRule,
             'titulo' => ['required', 'string', 'max:255'],
             'descricao' => ['nullable', 'string'],
             'data_prova' => ['required', 'date', 'after_or_equal:today'],
@@ -56,6 +73,7 @@ class StoreTestRequest extends FormRequest
         return [
             'disciplina_id.required' => 'Selecione uma disciplina.',
             'disciplina_id.in' => 'Disciplina inválida. Você só pode criar provas para disciplinas que leciona.',
+            'disciplina_id.exists' => 'Disciplina não encontrada ou inativa.',
             'titulo.required' => 'Informe o título da prova.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'data_prova.required' => 'Informe a data da prova.',

@@ -39,7 +39,7 @@ class ClassesController extends Controller
 
         $classes = Turma::query()
             ->where('tenant_id', $tenant->id)
-            ->with(['professor.usuario:id,nome_completo'])
+            ->with(['professor.usuario:id,nome_completo', 'professores.usuario:id,nome_completo'])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
                 $query->where(function ($q) use ($search) {
@@ -76,6 +76,16 @@ class ClassesController extends Controller
                                 : null,
                         ]
                         : null,
+                    'professores' => $class->professores->map(function ($professor) {
+                        return [
+                            'id' => $professor->id,
+                            'usuario' => $professor->usuario
+                                ? [
+                                    'nome_completo' => $professor->usuario->nome_completo,
+                                ]
+                                : null,
+                        ];
+                    }),
                 ];
             });
 
@@ -117,11 +127,23 @@ class ClassesController extends Controller
         $tenant = $this->getTenant();
         $validated = $request->validated();
 
-        Turma::create([
+        $professorIds = $validated['professor_ids'] ?? [];
+        unset($validated['professor_ids']);
+
+        $turma = Turma::create([
             ...$validated,
             'tenant_id' => $tenant->id,
             'ativo' => $validated['ativo'] ?? true,
         ]);
+
+        // Sincronizar professores usando a relação many-to-many
+        if (! empty($professorIds)) {
+            $turma->professores()->sync(
+                collect($professorIds)->mapWithKeys(function ($professorId) use ($tenant) {
+                    return [$professorId => ['tenant_id' => $tenant->id]];
+                })->toArray()
+            );
+        }
 
         return redirect()
             ->route('school.classes.index')
@@ -145,6 +167,22 @@ class ClassesController extends Controller
 
         $class->load('professor.usuario:id,nome_completo');
 
+        // Carregar professores separadamente para garantir que o tenant_id seja usado corretamente
+        $professores = $class->professores()
+            ->with('usuario:id,nome_completo')
+            ->get();
+
+        $professoresArray = $professores->map(function ($professor) {
+            return [
+                'id' => $professor->id,
+                'usuario' => $professor->usuario
+                    ? [
+                        'nome_completo' => $professor->usuario->nome_completo,
+                    ]
+                    : null,
+            ];
+        })->values()->toArray();
+
         return Inertia::render('school/classes/Show', [
             'turma' => [
                 'id' => $class->id,
@@ -164,6 +202,7 @@ class ClassesController extends Controller
                             : null,
                     ]
                     : null,
+                'professores' => $professoresArray,
             ],
         ]);
     }
@@ -191,6 +230,9 @@ class ClassesController extends Controller
                 ];
             });
 
+        // Carregar professores vinculados separadamente para garantir que o tenant_id seja usado corretamente
+        $professoresVinculados = $class->professores()->get();
+
         return Inertia::render('school/classes/Edit', [
             'turma' => [
                 'id' => $class->id,
@@ -200,6 +242,7 @@ class ClassesController extends Controller
                 'capacidade' => $class->capacidade,
                 'ano_letivo' => $class->ano_letivo,
                 'professor_id' => $class->professor_id,
+                'professor_ids' => $professoresVinculados->pluck('id')->toArray(),
                 'ativo' => (bool) $class->ativo,
             ],
             'teachers' => $teachers,
@@ -219,10 +262,20 @@ class ClassesController extends Controller
 
         $validated = $request->validated();
 
+        $professorIds = $validated['professor_ids'] ?? [];
+        unset($validated['professor_ids']);
+
         $class->update([
             ...$validated,
             'ativo' => $validated['ativo'] ?? $class->ativo,
         ]);
+
+        // Sincronizar professores usando a relação many-to-many
+        $class->professores()->sync(
+            collect($professorIds)->mapWithKeys(function ($professorId) use ($tenant) {
+                return [$professorId => ['tenant_id' => $tenant->id]];
+            })->toArray()
+        );
 
         return redirect()
             ->route('school.classes.edit', $class)

@@ -62,13 +62,22 @@ class UpdateExerciseRequest extends FormRequest
             'titulo' => ['required', 'string', 'max:255'],
             'descricao' => ['nullable', 'string'],
             'data_entrega' => ['required', 'date'],
-            'anexo_url' => ['nullable', 'url', 'max:2048'],
+            'anexo' => ['nullable', 'file', 'mimes:pdf,doc,docx,xls,xlsx,txt,rtf,odt,ods', 'max:10240'],
             'turma_id' => [
                 'required',
                 'uuid',
                 Rule::exists(Turma::class, 'id')
                     ->where('tenant_id', $tenantId)
                     ->whereNull('deleted_at'),
+            ],
+            'tipo_exercicio' => [
+                'required',
+                'string',
+                Rule::in([
+                    'exercicio_caderno',
+                    'exercicio_livro',
+                    'trabalho',
+                ]),
             ],
         ];
     }
@@ -82,17 +91,19 @@ class UpdateExerciseRequest extends FormRequest
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'data_entrega.required' => 'Informe a data de entrega.',
             'data_entrega.date' => 'A data de entrega deve ser uma data válida.',
-            'anexo_url.url' => 'A URL do anexo deve ser válida.',
-            'anexo_url.max' => 'A URL do anexo não pode ter mais de 2048 caracteres.',
+            'anexo.file' => 'O anexo deve ser um arquivo.',
+            'anexo.mimes' => 'O anexo deve ser um arquivo PDF, Word, Excel ou texto.',
+            'anexo.max' => 'O anexo não pode ter mais de 10MB.',
             'turma_id.required' => 'Selecione uma turma.',
             'turma_id.exists' => 'Turma não encontrada.',
+            'tipo_exercicio.required' => 'Selecione o tipo de exercício.',
+            'tipo_exercicio.in' => 'O tipo de exercício selecionado é inválido.',
         ];
     }
 
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'anexo_url' => $this->anexo_url === '' ? null : $this->anexo_url,
             'descricao' => $this->descricao === '' ? null : $this->descricao,
         ]);
     }

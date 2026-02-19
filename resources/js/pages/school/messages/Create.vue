@@ -12,8 +12,14 @@ interface Aluno {
     nome: string;
 }
 
+interface Turma {
+    id: string;
+    nome: string;
+}
+
 interface Props {
     alunos: Aluno[];
+    turmas: Turma[];
 }
 
 const props = defineProps<Props>();
@@ -66,6 +72,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 >
                     <MessageForm
                         :alunos="props.alunos"
+                        :turmas="props.turmas"
                         submit-label="Enviar mensagem"
                         :processing="processing"
                         :errors="errors"

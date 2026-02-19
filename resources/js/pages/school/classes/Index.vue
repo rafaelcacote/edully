@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Can from '@/components/Can.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -129,12 +130,14 @@ function toggleStatus(classId: string, nextStatus: boolean) {
                 </div>
 
                 <div class="mt-2">
-                    <Button as-child>
-                        <Link href="/school/classes/create" class="flex items-center gap-2">
-                            <Plus class="h-4 w-4" />
-                            Nova turma
-                        </Link>
-                    </Button>
+                    <Can permission="escola.turmas.criar">
+                        <Button as-child>
+                            <Link href="/school/classes/create" class="flex items-center gap-2">
+                                <Plus class="h-4 w-4" />
+                                Nova turma
+                            </Link>
+                        </Button>
+                    </Can>
                 </div>
             </div>
 
@@ -187,7 +190,6 @@ function toggleStatus(classId: string, nextStatus: boolean) {
                                 <th class="px-4 py-3">Nome</th>
                                 <th class="px-4 py-3">Série</th>
                                 <th class="px-4 py-3">Ano Letivo</th>
-                                <th class="px-4 py-3">Professor Responsável</th>
                                 <th class="px-4 py-3">Capacidade</th>
                                 <th class="px-4 py-3">Status</th>
                                 <th class="px-4 py-3 text-center">Ações</th>
@@ -207,9 +209,6 @@ function toggleStatus(classId: string, nextStatus: boolean) {
                                 </td>
                                 <td class="px-4 py-3">{{ classItem.serie || '—' }}</td>
                                 <td class="px-4 py-3">{{ classItem.ano_letivo || '—' }}</td>
-                                <td class="px-4 py-3">
-                                    {{ classItem.professor?.usuario?.nome_completo || '—' }}
-                                </td>
                                 <td class="px-4 py-3">{{ classItem.capacidade || '—' }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-2">
@@ -236,49 +235,55 @@ function toggleStatus(classId: string, nextStatus: boolean) {
                                     <div
                                         class="flex items-center justify-center gap-2"
                                     >
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/classes/${classItem.id}/students`">
-                                                <GraduationCap
-                                                    class="h-4 w-4 text-green-500 dark:text-green-400"
-                                                />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/classes/${classItem.id}`">
-                                                <Eye
-                                                    class="h-4 w-4 text-blue-500 dark:text-blue-400"
-                                                />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/classes/${classItem.id}/edit`">
-                                                <Edit
-                                                    class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                />
-                                            </Link>
-                                        </Button>
+                                        <Can permission="escola.turmas.alunos">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/classes/${classItem.id}/students`">
+                                                    <GraduationCap
+                                                        class="h-4 w-4 text-green-500 dark:text-green-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </Can>
+                                        <Can permission="escola.turmas.visualizar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/classes/${classItem.id}`">
+                                                    <Eye
+                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </Can>
+                                        <Can permission="escola.turmas.editar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/classes/${classItem.id}/edit`">
+                                                    <Edit
+                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </Can>
                                     </div>
                                 </td>
                             </tr>
 
                             <tr v-if="props.classes.data.length === 0">
                                 <td
-                                    colspan="7"
+                                    colspan="6"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhuma turma encontrada.

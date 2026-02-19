@@ -11,8 +11,8 @@ import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
-import { School } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { Check, School } from 'lucide-vue-next';
+import { computed, nextTick, ref } from 'vue';
 
 defineProps<{
     status?: string;
@@ -25,7 +25,7 @@ const selectedTenantId = ref('');
 const tenants = ref<Array<{ id: string; name: string }>>([]);
 const isAdminGeral = ref(false);
 const isLoadingTenants = ref(false);
-const showTenantField = ref(false);
+const showTenantSelection = ref(false);
 
 function formatCPF(value: string): string {
     const numbers = value.replace(/\D/g, '');
@@ -53,7 +53,7 @@ function handleCPFInput(value: string) {
         // Limpar dados se CPF incompleto
         tenants.value = [];
         selectedTenantId.value = '';
-        showTenantField.value = false;
+        showTenantSelection.value = false;
         isAdminGeral.value = false;
     }
 }
@@ -77,38 +77,97 @@ async function fetchTenants(cpf: string) {
         tenants.value = data.tenants || [];
         isAdminGeral.value = data.is_admin_geral || false;
         
-        // Se for admin geral sem escolas, não mostrar o campo
+        // Se for admin geral sem escolas, não mostrar seleção
         if (isAdminGeral.value && tenants.value.length === 0) {
-            showTenantField.value = false;
+            showTenantSelection.value = false;
             selectedTenantId.value = '';
+            // Focar no campo de senha automaticamente
+            await nextTick();
+            setTimeout(() => {
+                // Tentar múltiplas formas de encontrar o input
+                let passwordInput = document.querySelector('#password[data-slot="input"]') as HTMLInputElement;
+                if (!passwordInput) {
+                    passwordInput = document.getElementById('password') as HTMLInputElement;
+                }
+                if (!passwordInput) {
+                    passwordInput = document.querySelector('input[name="password"]') as HTMLInputElement;
+                }
+                if (passwordInput) {
+                    passwordInput.focus();
+                }
+            }, 200);
         }
-        // Se tiver apenas uma escola, pré-selecionar
+        // Se tiver apenas uma escola, selecionar automaticamente e não mostrar
         else if (tenants.value.length === 1) {
-            showTenantField.value = true;
             selectedTenantId.value = tenants.value[0].id;
+            showTenantSelection.value = false;
+            // Focar no campo de senha automaticamente
+            await nextTick();
+            setTimeout(() => {
+                // Tentar múltiplas formas de encontrar o input
+                let passwordInput = document.querySelector('#password[data-slot="input"]') as HTMLInputElement;
+                if (!passwordInput) {
+                    passwordInput = document.getElementById('password') as HTMLInputElement;
+                }
+                if (!passwordInput) {
+                    passwordInput = document.querySelector('input[name="password"]') as HTMLInputElement;
+                }
+                if (passwordInput) {
+                    passwordInput.focus();
+                }
+            }, 200);
         }
-        // Se tiver múltiplas escolas, mostrar o campo
+        // Se tiver múltiplas escolas, mostrar seleção visual
         else if (tenants.value.length > 1) {
-            showTenantField.value = true;
+            showTenantSelection.value = true;
             selectedTenantId.value = '';
         }
         // Se não tiver escolas e não for admin geral, não mostrar
         else {
-            showTenantField.value = false;
+            showTenantSelection.value = false;
             selectedTenantId.value = '';
         }
     } catch (error) {
         tenants.value = [];
         selectedTenantId.value = '';
-        showTenantField.value = false;
+        showTenantSelection.value = false;
         isAdminGeral.value = false;
     } finally {
         isLoadingTenants.value = false;
     }
 }
 
+function selectTenant(tenantId: string) {
+    selectedTenantId.value = tenantId;
+    showTenantSelection.value = false;
+    // Focar no campo de senha após seleção
+    nextTick(() => {
+        setTimeout(() => {
+            // Tentar múltiplas formas de encontrar o input
+            let passwordInput = document.querySelector('#password[data-slot="input"]') as HTMLInputElement;
+            if (!passwordInput) {
+                passwordInput = document.getElementById('password') as HTMLInputElement;
+            }
+            if (!passwordInput) {
+                passwordInput = document.querySelector('input[name="password"]') as HTMLInputElement;
+            }
+            if (passwordInput) {
+                passwordInput.focus();
+            }
+        }, 200);
+    });
+}
+
 const isTenantRequired = computed(() => {
-    return showTenantField.value && tenants.value.length > 1;
+    return showTenantSelection.value && tenants.value.length > 1 && !selectedTenantId.value;
+});
+
+const selectedTenantName = computed(() => {
+    if (!selectedTenantId.value || tenants.value.length === 0) {
+        return '';
+    }
+    const tenant = tenants.value.find((t) => t.id === selectedTenantId.value);
+    return tenant?.name || '';
 });
 </script>
 
@@ -135,18 +194,27 @@ const isTenantRequired = computed(() => {
             <div class="grid gap-6">
                 <div class="grid gap-2">
                     <Label for="cpf">CPF</Label>
-                    <Input
-                        id="cpf"
-                        type="text"
-                        name="cpf"
-                        v-model="cpfInput"
-                        required
-                        autofocus
-                        :tabindex="1"
-                        autocomplete="username"
-                        placeholder="000.000.000-00"
-                        @update:model-value="handleCPFInput"
-                    />
+                    <div class="relative">
+                        <Input
+                            id="cpf"
+                            type="text"
+                            name="cpf"
+                            v-model="cpfInput"
+                            required
+                            autofocus
+                            :tabindex="1"
+                            autocomplete="username"
+                            placeholder="000.000.000-00"
+                            :disabled="isLoadingTenants"
+                            @update:model-value="handleCPFInput"
+                        />
+                        <div
+                            v-if="isLoadingTenants"
+                            class="absolute right-3 top-1/2 -translate-y-1/2"
+                        >
+                            <Spinner class="h-4 w-4" />
+                        </div>
+                    </div>
                     <InputError :message="errors.cpf" />
                     <input
                         type="hidden"
@@ -155,48 +223,90 @@ const isTenantRequired = computed(() => {
                     />
                 </div>
 
-                <div
-                    v-if="showTenantField"
-                    class="grid gap-2 transition-all"
+                <!-- Campo hidden para garantir que o tenant_id seja sempre enviado quando houver um selecionado -->
+                <input
+                    v-if="selectedTenantId"
+                    type="hidden"
+                    name="tenant_id"
+                    :value="selectedTenantId"
+                />
+
+                <!-- Seleção visual de escolas com cards -->
+                <Transition
+                    enter-active-class="transition ease-out duration-200"
+                    enter-from-class="opacity-0 translate-y-2"
+                    enter-to-class="opacity-100 translate-y-0"
+                    leave-active-class="transition ease-in duration-150"
+                    leave-from-class="opacity-100 translate-y-0"
+                    leave-to-class="opacity-0 translate-y-2"
                 >
-                    <Label for="tenant_id" class="flex items-center gap-2">
-                        <School class="h-4 w-4" />
-                        Escola
-                    </Label>
-                    <select
-                        id="tenant_id"
-                        name="tenant_id"
-                        v-model="selectedTenantId"
-                        :required="isTenantRequired"
-                        :tabindex="2"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    <div
+                        v-if="showTenantSelection && tenants.length > 1 && !isLoadingTenants"
+                        class="grid gap-3"
                     >
-                        <option value="" disabled>
-                            {{ isLoadingTenants ? 'Carregando...' : 'Selecione uma escola' }}
-                        </option>
-                        <option
-                            v-for="tenant in tenants"
-                            :key="tenant.id"
-                            :value="tenant.id"
-                        >
-                            {{ tenant.name }}
-                        </option>
-                    </select>
-                    <InputError :message="errors.tenant_id" />
-                    <p
-                        v-if="tenants.length === 1"
-                        class="text-xs text-muted-foreground"
+                        <Label class="flex items-center gap-2 text-sm font-medium">
+                            <School class="h-4 w-4" />
+                            Selecione sua escola
+                        </Label>
+                        <div class="grid gap-2">
+                            <button
+                                v-for="tenant in tenants"
+                                :key="tenant.id"
+                                type="button"
+                                @click="selectTenant(tenant.id)"
+                                :class="[
+                                    'relative flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all hover:border-primary hover:bg-accent/50',
+                                    selectedTenantId === tenant.id
+                                        ? 'border-primary bg-accent'
+                                        : 'border-input bg-background',
+                                ]"
+                            >
+                                <div class="flex flex-1 items-center gap-3">
+                                    <div
+                                        :class="[
+                                            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+                                            selectedTenantId === tenant.id
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted text-muted-foreground',
+                                        ]"
+                                    >
+                                        <School class="h-5 w-5" />
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="font-medium">{{ tenant.name }}</p>
+                                    </div>
+                                </div>
+                                <div
+                                    v-if="selectedTenantId === tenant.id"
+                                    class="flex shrink-0 items-center justify-center"
+                                >
+                                    <Check class="h-5 w-5 text-primary" />
+                                </div>
+                            </button>
+                        </div>
+                        <InputError :message="errors.tenant_id" />
+                    </div>
+                </Transition>
+
+                <!-- Indicador quando escola única foi selecionada automaticamente -->
+                <Transition
+                    enter-active-class="transition ease-out duration-200"
+                    enter-from-class="opacity-0 translate-y-2"
+                    enter-to-class="opacity-100 translate-y-0"
+                    leave-active-class="transition ease-in duration-150"
+                    leave-from-class="opacity-100 translate-y-0"
+                    leave-to-class="opacity-0 translate-y-2"
+                >
+                    <div
+                        v-if="selectedTenantId && !showTenantSelection && selectedTenantName && tenants.length > 0"
+                        class="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm"
                     >
-                        Escola pré-selecionada automaticamente
-                    </p>
-                    <!-- Campo hidden para garantir que o tenant_id seja enviado -->
-                    <input
-                        v-if="selectedTenantId"
-                        type="hidden"
-                        name="tenant_id"
-                        :value="selectedTenantId"
-                    />
-                </div>
+                        <School class="h-4 w-4 text-primary shrink-0" />
+                        <span class="text-muted-foreground">
+                            Escola: <span class="font-medium text-foreground">{{ selectedTenantName }}</span>
+                        </span>
+                    </div>
+                </Transition>
 
                 <div class="grid gap-2">
                     <div class="flex items-center justify-between">
@@ -205,7 +315,7 @@ const isTenantRequired = computed(() => {
                             v-if="canResetPassword"
                             :href="request()"
                             class="text-sm"
-                            :tabindex="5"
+                            :tabindex="showTenantSelection ? 5 : 3"
                         >
                             Esqueceu a senha?
                         </TextLink>
@@ -215,7 +325,7 @@ const isTenantRequired = computed(() => {
                         type="password"
                         name="password"
                         required
-                        :tabindex="showTenantField ? 3 : 2"
+                        :tabindex="showTenantSelection ? 3 : 2"
                         autocomplete="current-password"
                         placeholder="Sua senha"
                     />
@@ -224,7 +334,11 @@ const isTenantRequired = computed(() => {
 
                 <div class="flex items-center justify-between">
                     <Label for="remember" class="flex items-center space-x-3">
-                        <Checkbox id="remember" name="remember" :tabindex="showTenantField ? 4 : 3" />
+                        <Checkbox
+                            id="remember"
+                            name="remember"
+                            :tabindex="showTenantSelection ? 4 : 3"
+                        />
                         <span>Lembrar de mim</span>
                     </Label>
                 </div>
@@ -232,8 +346,8 @@ const isTenantRequired = computed(() => {
                 <Button
                     type="submit"
                     class="mt-4 w-full"
-                    :tabindex="showTenantField ? 5 : 4"
-                    :disabled="processing || (isTenantRequired && !selectedTenantId)"
+                    :tabindex="showTenantSelection ? 5 : 4"
+                    :disabled="processing || isTenantRequired"
                     data-test="login-button"
                 >
                     <Spinner v-if="processing" />

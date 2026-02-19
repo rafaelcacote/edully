@@ -18,12 +18,11 @@ return new class extends Migration
             Schema::connection('shared')->create('alunos', function ($table) {
                 $table->uuid('id')->primary();
                 $table->uuid('tenant_id');
-                $table->uuid('usuario_id');
-                $table->string('matricula', 50);
-                $table->string('serie', 50);
-                $table->string('turma', 10)->nullable();
+                $table->uuid('usuario_id')->nullable();
+                $table->string('nome');
+                $table->string('nome_social')->nullable();
+                $table->string('foto_url')->nullable();
                 $table->date('data_nascimento')->nullable();
-                $table->date('data_matricula')->nullable();
                 $table->text('informacoes_medicas')->nullable();
                 $table->boolean('ativo')->default(true);
                 $table->timestamps();
@@ -31,7 +30,6 @@ return new class extends Migration
 
                 $table->index('tenant_id');
                 $table->index('usuario_id');
-                $table->unique(['tenant_id', 'matricula']);
             });
 
             Schema::connection('shared')->create('responsaveis', function ($table) {
@@ -93,12 +91,11 @@ return new class extends Migration
             CREATE TABLE IF NOT EXISTS escola.alunos (
                 id UUID PRIMARY KEY,
                 tenant_id UUID NOT NULL,
-                usuario_id UUID NOT NULL,
-                matricula VARCHAR(50) NOT NULL,
-                serie VARCHAR(50) NOT NULL,
-                turma VARCHAR(10),
+                usuario_id UUID,
+                nome VARCHAR(255) NOT NULL,
+                nome_social VARCHAR(255),
+                foto_url TEXT,
                 data_nascimento DATE,
-                data_matricula DATE DEFAULT CURRENT_DATE,
                 informacoes_medicas TEXT,
                 ativo BOOLEAN DEFAULT true,
                 created_at TIMESTAMP,
@@ -107,7 +104,6 @@ return new class extends Migration
             )
         ');
 
-        DB::connection('shared')->statement('CREATE UNIQUE INDEX IF NOT EXISTS alunos_tenant_id_matricula_key ON escola.alunos(tenant_id, matricula)');
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_alunos_tenant_id ON escola.alunos(tenant_id)');
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_alunos_usuario_id ON escola.alunos(usuario_id)');
 

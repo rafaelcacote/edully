@@ -9,6 +9,7 @@ use App\Models\Responsavel;
 use App\Models\Student;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -60,6 +61,45 @@ class ParentStudentsController extends Controller
             ]);
     }
 
+    public function attach(Request $request, Responsavel $parent): RedirectResponse
+    {
+        $tenant = $this->getTenant();
+
+        if ($parent->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        $request->validate([
+            'student_id' => ['required', 'string'],
+        ]);
+
+        $student = Student::findOrFail($request->student_id);
+
+        if ($student->tenant_id !== $tenant->id) {
+            abort(404, 'Aluno não pertence a esta escola');
+        }
+
+        try {
+            $this->attachParentStudent($parent, $student, $tenant);
+
+            return redirect()
+                ->route('school.parents.show', $parent)
+                ->with('toast', [
+                    'type' => 'success',
+                    'title' => 'Aluno vinculado',
+                    'message' => 'O aluno foi vinculado ao responsável com sucesso.',
+                ]);
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('school.parents.show', $parent)
+                ->with('toast', [
+                    'type' => 'error',
+                    'title' => 'Erro ao vincular',
+                    'message' => $e->getMessage(),
+                ]);
+        }
+    }
+
     public function destroy(Responsavel $parent, Student $student): RedirectResponse
     {
         $tenant = $this->getTenant();
@@ -91,7 +131,7 @@ class ParentStudentsController extends Controller
             ->exists();
 
         if ($alreadyLinked) {
-            return;
+            throw new \Exception('Este aluno já está vinculado a este responsável.');
         }
 
         $connection->table($pivotTable)->insert([

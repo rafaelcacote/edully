@@ -453,4 +453,53 @@ class StudentsController extends Controller
                 ]);
         }
     }
+
+    /**
+     * Search students for autocomplete/select.
+     */
+    public function search(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tenant = $this->getTenant();
+        $search = $request->get('search', '');
+        $limit = min((int) $request->get('limit', 20), 50);
+
+        $connection = DB::connection('shared');
+        $driver = $connection->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+
+        $query = $connection
+            ->table($this->alunosTable().' as alunos')
+            ->where('alunos.tenant_id', $tenant->id)
+            ->whereNull('alunos.deleted_at')
+            ->when($search, function ($q) use ($search, $likeOperator) {
+                $search = trim($search);
+                $q->where(function ($query) use ($search, $likeOperator) {
+                    $query->where('alunos.nome', $likeOperator, "%{$search}%")
+                        ->orWhere('alunos.nome_social', $likeOperator, "%{$search}%");
+                });
+            })
+            ->orderBy('alunos.nome')
+            ->limit($limit)
+            ->select([
+                'alunos.id',
+                'alunos.nome',
+                'alunos.nome_social',
+                'alunos.foto_url',
+                'alunos.ativo',
+            ]);
+
+        $students = $query->get();
+
+        return response()->json([
+            'students' => $students->map(function ($student) {
+                return [
+                    'id' => $student->id,
+                    'nome' => $student->nome,
+                    'nome_social' => $student->nome_social,
+                    'foto_url' => $student->foto_url,
+                    'ativo' => (bool) $student->ativo,
+                ];
+            }),
+        ]);
+    }
 }

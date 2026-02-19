@@ -67,6 +67,25 @@ const hasAnyFilter = computed(
     () => !!search.value || active.value !== '',
 );
 
+function formatDate(dateString: string | null | undefined): string {
+    if (!dateString) return '—';
+    
+    try {
+        // Parse a data manualmente para evitar problemas de timezone
+        // Assume formato YYYY-MM-DD do banco de dados
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(date);
+    } catch {
+        return dateString;
+    }
+}
+
 function applyFilters() {
     router.get(
         '/school/students',
@@ -195,7 +214,7 @@ function clearFilters() {
                                     <span v-else>—</span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ student.data_nascimento ? new Date(student.data_nascimento).toLocaleDateString('pt-BR') : '—' }}
+                                    {{ formatDate(student.data_nascimento) }}
                                 </td>
                                 <td class="px-4 py-3">
                                     <Badge

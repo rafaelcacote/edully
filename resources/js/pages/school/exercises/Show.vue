@@ -28,6 +28,7 @@ interface Exercise {
     data_entrega: string;
     data_entrega_formatted: string;
     anexo_url?: string | null;
+    tipo_exercicio: string;
     turma?: Turma | null;
     professor?: Professor | null;
 }
@@ -37,6 +38,16 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const getTipoExercicioLabel = (tipo: string): string => {
+    const labels: Record<string, string> = {
+        exercicio_caderno: 'Exercício de Caderno',
+        exercicio_livro: 'Exercício de Livro',
+        trabalho: 'Trabalho',
+    };
+
+    return labels[tipo] || tipo;
+};
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -115,6 +126,10 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Data de Entrega</p>
                                 <p class="mt-1">{{ props.exercise.data_entrega_formatted }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-muted-foreground">Tipo de Exercício</p>
+                                <p class="mt-1">{{ getTipoExercicioLabel(props.exercise.tipo_exercicio) }}</p>
                             </div>
                             <div v-if="props.exercise.professor">
                                 <p class="text-sm font-medium text-muted-foreground">Professor</p>

@@ -5,10 +5,13 @@ namespace App\Http\Controllers\School;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreExerciseRequest;
 use App\Http\Requests\School\UpdateExerciseRequest;
+use App\Models\Disciplina;
 use App\Models\Exercise;
 use App\Models\Teacher;
+use App\Models\Turma;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,24 +33,19 @@ class ExercisesController extends Controller
     }
 
     /**
-     * Get the current teacher from the authenticated user.
+     * Get the current teacher from the authenticated user (if exists).
+     * Returns null if user is not a teacher (e.g., Administrador Escola).
      */
     protected function getCurrentTeacher()
     {
         $user = auth()->user();
         $tenant = $this->getTenant();
 
-        $teacher = Teacher::query()
+        return Teacher::query()
             ->where('tenant_id', $tenant->id)
             ->where('usuario_id', $user->id)
             ->where('ativo', true)
             ->first();
-
-        if (! $teacher) {
-            abort(403, 'Acesso negado. Você precisa ser um professor para acessar esta área.');
-        }
-
-        return $teacher;
     }
 
     /**
@@ -61,7 +59,10 @@ class ExercisesController extends Controller
 
         $exercises = Exercise::query()
             ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
+            ->when($teacher, function ($query) use ($teacher) {
+                // Se for professor, mostrar apenas exercícios que ele criou
+                $query->where('professor_id', $teacher->id);
+            })
             ->with([
                 'turma:id,nome,serie,turma_letra,ano_letivo',
                 'disciplinaRelation:id,nome,sigla',
@@ -96,6 +97,8 @@ class ExercisesController extends Controller
                         ? ($exercise->disciplinaRelation->nome.($exercise->disciplinaRelation->sigla ? ' ('.$exercise->disciplinaRelation->sigla.')' : ''))
                         : $exercise->disciplina,
                     'data_entrega' => $exercise->data_entrega->format('d/m/Y'),
+                    'tipo_exercicio' => $exercise->tipo_exercicio,
+                    'anexo_url' => $exercise->anexo_url,
                     'turma' => $exercise->turma
                         ? [
                             'id' => $exercise->turma->id,
@@ -108,29 +111,56 @@ class ExercisesController extends Controller
                 ];
             });
 
-        $turmas = \App\Models\Turma::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($turma) {
-                return [
-                    'id' => $turma->id,
-                    'nome' => $turma->nome,
-                ];
-            });
+        // Buscar turmas e disciplinas
+        // Se for professor, usar as turmas/disciplinas dele; se for admin escola, buscar todas
+        if ($teacher) {
+            $turmas = $teacher->turmas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                    ];
+                });
 
-        $disciplinas = $teacher->disciplinas()
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($disciplina) {
-                return [
-                    'id' => $disciplina->id,
-                    'nome' => $disciplina->nome.($disciplina->sigla ? ' ('.$disciplina->sigla.')' : ''),
-                ];
-            });
+            $disciplinas = $teacher->disciplinas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome.($disciplina->sigla ? ' ('.$disciplina->sigla.')' : ''),
+                    ];
+                });
+        } else {
+            // Administrador Escola: buscar todas as turmas e disciplinas do tenant
+            $turmas = Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                    ];
+                });
+
+            $disciplinas = Disciplina::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome.($disciplina->sigla ? ' ('.$disciplina->sigla.')' : ''),
+                    ];
+                });
+        }
 
         return Inertia::render('school/exercises/Index', [
             'exercises' => $exercises,
@@ -148,32 +178,61 @@ class ExercisesController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        $turmas = \App\Models\Turma::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($turma) {
-                return [
-                    'id' => $turma->id,
-                    'nome' => $turma->nome,
-                    'serie' => $turma->serie,
-                    'ano_letivo' => $turma->ano_letivo,
-                ];
-            });
+        // Buscar turmas e disciplinas
+        if ($teacher) {
+            $turmas = $teacher->turmas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ];
+                });
 
-        $disciplinas = $teacher->disciplinas()
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($disciplina) {
-                return [
-                    'id' => $disciplina->id,
-                    'nome' => $disciplina->nome,
-                    'sigla' => $disciplina->sigla,
-                ];
-            });
+            $disciplinas = $teacher->disciplinas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                });
+        } else {
+            // Administrador Escola: buscar todas as turmas e disciplinas do tenant
+            $turmas = Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ];
+                });
+
+            $disciplinas = Disciplina::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                });
+        }
 
         return Inertia::render('school/exercises/Create', [
             'turmas' => $turmas,
@@ -190,10 +249,38 @@ class ExercisesController extends Controller
         $teacher = $this->getCurrentTeacher();
         $validated = $request->validated();
 
+        $anexoUrl = null;
+        if ($request->hasFile('anexo')) {
+            $anexo = $request->file('anexo');
+            $anexoPath = $anexo->store('exercicios/anexos', 'public');
+            $anexoUrl = asset('storage/'.$anexoPath);
+        }
+
+        // Se for professor, usar o professor_id dele
+        // Se for Administrador Escola, precisa fornecer o professor_id no request
+        if ($teacher) {
+            $professorId = $teacher->id;
+        } else {
+            // Administrador Escola deve selecionar um professor
+            // Por enquanto, usar o primeiro professor ativo do tenant como fallback
+            // TODO: Adicionar campo professor_id no formulário para Administrador Escola
+            $professorId = $validated['professor_id'] ?? Teacher::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->first()?->id;
+
+            if (! $professorId) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['professor_id' => 'Nenhum professor ativo encontrado na escola.']);
+            }
+        }
+
         Exercise::create([
             ...$validated,
+            'anexo_url' => $anexoUrl,
             'tenant_id' => $tenant->id,
-            'professor_id' => $teacher->id,
+            'professor_id' => $professorId,
         ]);
 
         return redirect()
@@ -213,7 +300,13 @@ class ExercisesController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        if ($exercise->tenant_id !== $tenant->id || $exercise->professor_id !== $teacher->id) {
+        // Verificar se o exercício pertence ao tenant
+        if ($exercise->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se o exercício é dele
+        if ($teacher && $exercise->professor_id !== $teacher->id) {
             abort(404);
         }
 
@@ -234,6 +327,7 @@ class ExercisesController extends Controller
                 'data_entrega' => $exercise->data_entrega->format('Y-m-d'),
                 'data_entrega_formatted' => $exercise->data_entrega->format('d/m/Y'),
                 'anexo_url' => $exercise->anexo_url,
+                'tipo_exercicio' => $exercise->tipo_exercicio,
                 'turma' => $exercise->turma
                     ? [
                         'id' => $exercise->turma->id,
@@ -264,36 +358,71 @@ class ExercisesController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        if ($exercise->tenant_id !== $tenant->id || $exercise->professor_id !== $teacher->id) {
+        // Verificar se o exercício pertence ao tenant
+        if ($exercise->tenant_id !== $tenant->id) {
             abort(404);
         }
 
-        $turmas = \App\Models\Turma::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('professor_id', $teacher->id)
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($turma) {
-                return [
-                    'id' => $turma->id,
-                    'nome' => $turma->nome,
-                    'serie' => $turma->serie,
-                    'ano_letivo' => $turma->ano_letivo,
-                ];
-            });
+        // Se for professor, verificar se o exercício é dele
+        if ($teacher && $exercise->professor_id !== $teacher->id) {
+            abort(404);
+        }
 
-        $disciplinas = $teacher->disciplinas()
-            ->where('ativo', true)
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($disciplina) {
-                return [
-                    'id' => $disciplina->id,
-                    'nome' => $disciplina->nome,
-                    'sigla' => $disciplina->sigla,
-                ];
-            });
+        // Buscar turmas e disciplinas
+        if ($teacher) {
+            $turmas = $teacher->turmas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ];
+                });
+
+            $disciplinas = $teacher->disciplinas()
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                });
+        } else {
+            // Administrador Escola: buscar todas as turmas e disciplinas do tenant
+            $turmas = Turma::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($turma) {
+                    return [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ];
+                });
+
+            $disciplinas = Disciplina::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('ativo', true)
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($disciplina) {
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                });
+        }
 
         return Inertia::render('school/exercises/Edit', [
             'exercise' => [
@@ -304,6 +433,7 @@ class ExercisesController extends Controller
                 'data_entrega' => $exercise->data_entrega->format('Y-m-d'),
                 'anexo_url' => $exercise->anexo_url,
                 'turma_id' => $exercise->turma_id,
+                'tipo_exercicio' => $exercise->tipo_exercicio,
             ],
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
@@ -318,13 +448,40 @@ class ExercisesController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        if ($exercise->tenant_id !== $tenant->id || $exercise->professor_id !== $teacher->id) {
+        // Verificar se o exercício pertence ao tenant
+        if ($exercise->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se o exercício é dele
+        if ($teacher && $exercise->professor_id !== $teacher->id) {
             abort(404);
         }
 
         $validated = $request->validated();
 
-        $exercise->update($validated);
+        $anexoUrl = $exercise->anexo_url;
+        if ($request->hasFile('anexo')) {
+            // Deletar anexo antigo se existir e for do storage local
+            if ($exercise->anexo_url) {
+                $storageBaseUrl = asset('storage/');
+                if (str_starts_with($exercise->anexo_url, $storageBaseUrl)) {
+                    $oldAnexoPath = str_replace($storageBaseUrl, '', $exercise->anexo_url);
+                    if (Storage::disk('public')->exists($oldAnexoPath)) {
+                        Storage::disk('public')->delete($oldAnexoPath);
+                    }
+                }
+            }
+
+            $anexo = $request->file('anexo');
+            $anexoPath = $anexo->store('exercicios/anexos', 'public');
+            $anexoUrl = asset('storage/'.$anexoPath);
+        }
+
+        $exercise->update([
+            ...$validated,
+            'anexo_url' => $anexoUrl,
+        ]);
 
         return redirect()
             ->route('school.exercises.edit', $exercise)
@@ -343,7 +500,13 @@ class ExercisesController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        if ($exercise->tenant_id !== $tenant->id || $exercise->professor_id !== $teacher->id) {
+        // Verificar se o exercício pertence ao tenant
+        if ($exercise->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        // Se for professor, verificar se o exercício é dele
+        if ($teacher && $exercise->professor_id !== $teacher->id) {
             abort(404);
         }
 

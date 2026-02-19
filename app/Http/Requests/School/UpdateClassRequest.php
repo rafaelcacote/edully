@@ -35,7 +35,8 @@ class UpdateClassRequest extends FormRequest
             'turma_letra' => ['nullable', 'string', 'max:10'],
             'capacidade' => ['nullable', 'integer', 'min:1'],
             'ano_letivo' => ['required', 'integer', 'min:2000', 'max:2100'],
-            'professor_id' => ['nullable', 'uuid', Rule::exists(Teacher::class, 'id')],
+            'professor_ids' => ['nullable', 'array'],
+            'professor_ids.*' => ['uuid', Rule::exists(Teacher::class, 'id')],
             'ativo' => ['nullable', 'boolean'],
         ];
     }
@@ -50,14 +51,15 @@ class UpdateClassRequest extends FormRequest
             'ano_letivo.min' => 'O ano letivo deve ser maior ou igual a 2000.',
             'ano_letivo.max' => 'O ano letivo deve ser menor ou igual a 2100.',
             'capacidade.min' => 'A capacidade deve ser maior que zero.',
-            'professor_id.exists' => 'Professor não encontrado.',
+            'professor_ids.array' => 'Os professores devem ser enviados como uma lista.',
+            'professor_ids.*.exists' => 'Um ou mais professores não foram encontrados.',
         ];
     }
 
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'professor_id' => $this->professor_id === '' ? null : $this->professor_id,
+            'professor_ids' => $this->professor_ids ?? [],
             'turma_letra' => $this->turma_letra === '' ? null : $this->turma_letra,
         ]);
     }

@@ -13,6 +13,7 @@ interface ExerciseData {
     data_entrega?: string;
     anexo_url?: string | null;
     turma_id?: string;
+    tipo_exercicio?: string;
 }
 
 interface Turma {
@@ -41,8 +42,10 @@ const disciplinaId = ref(props.exerciseData?.disciplina_id || '');
 const titulo = ref(props.exerciseData?.titulo || '');
 const descricao = ref(props.exerciseData?.descricao || '');
 const dataEntrega = ref(props.exerciseData?.data_entrega || '');
+const anexoFile = ref<File | null>(null);
 const anexoUrl = ref(props.exerciseData?.anexo_url || '');
 const turmaId = ref(props.exerciseData?.turma_id || '');
+const tipoExercicio = ref(props.exerciseData?.tipo_exercicio || 'exercicio_caderno');
 
 const isEdit = computed(() => !!props.exerciseData?.id);
 
@@ -54,8 +57,27 @@ watch(() => props.exerciseData, (newData) => {
         dataEntrega.value = newData.data_entrega || '';
         anexoUrl.value = newData.anexo_url || '';
         turmaId.value = newData.turma_id || '';
+        tipoExercicio.value = newData.tipo_exercicio || 'exercicio_caderno';
+        anexoFile.value = null;
     }
 }, { immediate: true, deep: true });
+
+const handleFileChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+        anexoFile.value = target.files[0];
+        anexoUrl.value = '';
+    }
+};
+
+const removeFile = () => {
+    anexoFile.value = null;
+    anexoUrl.value = '';
+    const fileInput = document.getElementById('anexo') as HTMLInputElement;
+    if (fileInput) {
+        fileInput.value = '';
+    }
+};
 </script>
 
 <template>
@@ -108,6 +130,22 @@ watch(() => props.exerciseData, (newData) => {
         </div>
 
         <div class="grid gap-2">
+            <Label for="tipo_exercicio">Tipo de Exercício</Label>
+            <select
+                id="tipo_exercicio"
+                name="tipo_exercicio"
+                v-model="tipoExercicio"
+                required
+                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                <option value="exercicio_caderno">Exercício de Caderno</option>
+                <option value="exercicio_livro">Exercício de Livro</option>
+                <option value="trabalho">Trabalho</option>
+            </select>
+            <InputError :message="errors.tipo_exercicio" />
+        </div>
+
+        <div class="grid gap-2">
             <Label for="titulo">Título</Label>
             <input
                 id="titulo"
@@ -151,17 +189,42 @@ watch(() => props.exerciseData, (newData) => {
             </div>
 
             <div class="grid gap-2">
-                <Label for="anexo_url">URL do Anexo (opcional)</Label>
-                <input
-                    id="anexo_url"
-                    name="anexo_url"
-                    v-model="anexoUrl"
-                    type="url"
-                    placeholder="https://..."
-                    maxlength="2048"
-                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
-                />
-                <InputError :message="errors.anexo_url" />
+                <Label for="anexo">Anexo (opcional)</Label>
+                <div class="space-y-2">
+                    <input
+                        id="anexo"
+                        name="anexo"
+                        type="file"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.rtf,.odt,.ods"
+                        @change="handleFileChange"
+                        class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        Formatos aceitos: PDF, Word (.doc, .docx), Excel (.xls, .xlsx), Texto (.txt, .rtf), OpenDocument (.odt, .ods). Tamanho máximo: 10MB.
+                    </p>
+                    <div v-if="anexoFile" class="flex items-center gap-2 rounded-md bg-muted/50 p-2">
+                        <span class="text-sm">{{ anexoFile.name }}</span>
+                        <button
+                            type="button"
+                            @click="removeFile"
+                            class="ml-auto text-sm text-destructive hover:underline"
+                        >
+                            Remover
+                        </button>
+                    </div>
+                    <div v-else-if="anexoUrl" class="flex items-center gap-2 rounded-md bg-muted/50 p-2">
+                        <span class="text-sm">Arquivo anexado anteriormente</span>
+                        <a
+                            :href="anexoUrl"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="ml-auto text-sm text-primary hover:underline"
+                        >
+                            Ver arquivo
+                        </a>
+                    </div>
+                </div>
+                <InputError :message="errors.anexo" />
             </div>
         </div>
 

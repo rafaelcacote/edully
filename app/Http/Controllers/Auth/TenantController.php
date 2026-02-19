@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +26,7 @@ class TenantController extends Controller
 
         $user = User::where('cpf', $cpf)->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['tenants' => []]);
         }
 
@@ -43,4 +42,3 @@ class TenantController extends Controller
         ]);
     }
 }
-

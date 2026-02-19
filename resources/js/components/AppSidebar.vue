@@ -21,7 +21,7 @@ import { index as tenantsIndex } from '@/routes/tenants';
 import { index as usersIndex } from '@/routes/users';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, CreditCard, FileSearch, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck, BookText, MessageSquare, Bell } from 'lucide-vue-next';
+import { BookOpen, CreditCard, FileSearch, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck, BookText, MessageSquare, Bell, ClipboardList } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -39,16 +39,17 @@ const hasTenant = computed(() => tenants.value.length > 0);
 const isAdminEscola = computed(() => roles.value.includes('Administrador Escola') && hasTenant.value);
 const isProfessor = computed(() => roles.value.includes('Professor') && hasTenant.value);
 
-const canViewSchoolProfile = computed(() => isAdminEscola.value || hasPermission('escola.perfil.visualizar'));
-const canViewStudents = computed(() => isAdminEscola.value || hasPermission('escola.alunos.visualizar'));
-const canViewParents = computed(() => isAdminEscola.value || hasPermission('escola.responsaveis.visualizar'));
-const canViewTeachers = computed(() => isAdminEscola.value || hasPermission('escola.professores.visualizar'));
-const canViewClasses = computed(() => isAdminEscola.value || hasPermission('escola.turmas.visualizar'));
-const canViewDisciplinas = computed(() => isAdminEscola.value || hasPermission('escola.disciplinas.visualizar'));
-const canViewExercises = computed(() => isAdminEscola.value || hasPermission('escola.exercicios.visualizar'));
-const canViewTests = computed(() => isAdminEscola.value || hasPermission('escola.provas.visualizar'));
-const canViewMessages = computed(() => isAdminEscola.value || hasPermission('escola.mensagens.visualizar'));
-const canViewAvisos = computed(() => isAdminEscola.value || hasPermission('escola.avisos.visualizar'));
+const canViewSchoolProfile = computed(() => hasPermission('escola.perfil.visualizar'));
+const canViewStudents = computed(() => hasPermission('escola.alunos.visualizar'));
+const canViewParents = computed(() => hasPermission('escola.responsaveis.visualizar'));
+const canViewTeachers = computed(() => hasPermission('escola.professores.visualizar'));
+const canViewClasses = computed(() => hasPermission('escola.turmas.visualizar'));
+const canViewDisciplinas = computed(() => hasPermission('escola.disciplinas.visualizar'));
+const canViewExercises = computed(() => hasPermission('escola.exercicios.visualizar'));
+const canViewTests = computed(() => hasPermission('escola.provas.visualizar'));
+const canViewMessages = computed(() => hasPermission('escola.mensagens.visualizar'));
+const canViewAvisos = computed(() => hasPermission('escola.avisos.visualizar'));
+const canViewNotas = computed(() => hasPermission('escola.notas.visualizar'));
 
 const hasAnySchoolPermission = computed(
     () =>
@@ -61,7 +62,8 @@ const hasAnySchoolPermission = computed(
         canViewExercises.value ||
         canViewTests.value ||
         canViewMessages.value ||
-        canViewAvisos.value
+        canViewAvisos.value ||
+        canViewNotas.value
 );
 
 const generalNavItems = computed<NavItem[]>(() => {
@@ -218,6 +220,14 @@ const schoolNavItems = computed<NavItem[]>(() => {
             title: 'Avisos',
             href: '/school/avisos',
             icon: Bell,
+        });
+    }
+
+    if (canViewNotas.value) {
+        items.push({
+            title: 'Notas',
+            href: '/school/notas',
+            icon: ClipboardList,
         });
     }
 

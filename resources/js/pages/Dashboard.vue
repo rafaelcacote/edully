@@ -310,9 +310,9 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                 </div>
                             </div>
                             <div
-                                class="flex size-12 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30"
+                                class="flex size-12 items-center justify-center rounded-xl bg-brand-100"
                             >
-                                <School class="size-6 text-blue-600 dark:text-blue-400" />
+                                <School class="size-6 text-brand-600" />
                             </div>
                         </div>
                         <div class="mt-4">
@@ -468,7 +468,7 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div class="rounded-xl border border-border/70 p-4">
                                 <div class="flex items-center gap-2 mb-2">
-                                    <School class="size-4 text-blue-600 dark:text-blue-400" />
+                                    <School class="size-4 text-brand-600" />
                                     <p class="text-xs font-medium text-muted-foreground">
                                         Escolas Ativas
                                     </p>
@@ -586,9 +586,9 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                 </div>
                             </div>
                             <div
-                                class="flex size-12 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30"
+                                class="flex size-12 items-center justify-center rounded-xl bg-brand-100"
                             >
-                                <UserCheck class="size-6 text-blue-600 dark:text-blue-400" />
+                                <UserCheck class="size-6 text-brand-600" />
                             </div>
                         </div>
                         <div class="mt-4">
@@ -744,7 +744,7 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div class="rounded-xl border border-border/70 p-4">
                                 <div class="flex items-center gap-2 mb-2">
-                                    <UserCheck class="size-4 text-blue-600 dark:text-blue-400" />
+                                    <UserCheck class="size-4 text-brand-600" />
                                     <p class="text-xs font-medium text-muted-foreground">
                                         Professores Ativos
                                     </p>
@@ -890,9 +890,9 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                 </p>
                             </div>
                             <div
-                                class="flex size-12 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30"
+                                class="flex size-12 items-center justify-center rounded-xl bg-brand-100"
                             >
-                                <BookOpen class="size-6 text-blue-600 dark:text-blue-400" />
+                                <BookOpen class="size-6 text-brand-600" />
                             </div>
                         </div>
                         <div class="mt-4">
@@ -997,7 +997,7 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                 />
                                 <span
                                     v-if="day.events.exercicios.length > 0"
-                                    class="w-1.5 h-1.5 rounded-full bg-blue-500"
+                                    class="w-1.5 h-1.5 rounded-full bg-brand-500"
                                     title="Exercício"
                                 />
                             </div>
@@ -1011,7 +1011,7 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                             <span>Prova</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-blue-500" />
+                            <span class="w-2 h-2 rounded-full bg-brand-500" />
                             <span>Exercício</span>
                         </div>
                     </div>
@@ -1069,9 +1069,9 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                             <div
                                 v-for="exercicio in selectedDay.exercicios"
                                 :key="`exercicio-${exercicio.id}`"
-                                class="flex items-start gap-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 p-3"
+                                class="flex items-start gap-3 rounded-lg bg-brand-50 p-3"
                             >
-                                <BookOpen class="mt-0.5 size-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                <BookOpen class="mt-0.5 size-4 text-brand-600 shrink-0" />
                                 <div class="min-w-0 flex-1">
                                     <p class="text-sm font-medium">
                                         {{ exercicio.titulo }}
@@ -1085,7 +1085,7 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                         </span>
                                     </div>
                                 </div>
-                                <Badge variant="secondary" class="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 shrink-0">
+                                <Badge variant="secondary" class="bg-brand-100 text-brand-700 shrink-0">
                                     Exercício
                                 </Badge>
                             </div>

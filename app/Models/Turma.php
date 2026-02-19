@@ -93,11 +93,38 @@ class Turma extends Model
     }
 
     /**
-     * Get the teacher responsible for the class.
+     * Get the teacher responsible for the class (legacy - single teacher).
      */
     public function professor(): BelongsTo
     {
         return $this->belongsTo(Teacher::class, 'professor_id');
+    }
+
+    /**
+     * Get the pivot table name for the professor_turma relationship.
+     */
+    protected function professorTurmaPivotTable(): string
+    {
+        return $this->getConnection()->getDriverName() === 'sqlite'
+            ? 'professor_turma'
+            : 'escola.professor_turma';
+    }
+
+    /**
+     * Get the teachers (professores) for the class.
+     */
+    public function professores(): BelongsToMany
+    {
+        $pivotTable = $this->professorTurmaPivotTable();
+
+        return $this->belongsToMany(
+            Teacher::class,
+            $pivotTable,
+            'turma_id',
+            'professor_id'
+        )
+            ->withPivot(['tenant_id', 'created_at'])
+            ->wherePivot('tenant_id', $this->tenant_id);
     }
 
     protected function matriculasTurmaPivotTable(): string

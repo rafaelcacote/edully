@@ -15,6 +15,7 @@ interface Class {
     capacidade?: number | null;
     ano_letivo?: number | null;
     professor_id?: string | null;
+    professor_ids?: string[];
     ativo: boolean;
 }
 

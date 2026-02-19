@@ -4,6 +4,7 @@ namespace App\Http\Requests\School;
 
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Models\Turma;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -25,7 +26,8 @@ class StoreMessageRequest extends FormRequest
             ->where('ativo', true)
             ->first() : null;
 
-        // Get students from teacher's turmas
+        // Get turmas from teacher
+        $turmaIds = [];
         $alunoIds = [];
         if ($teacher) {
             $driver = DB::connection('shared')->getDriverName();
@@ -56,20 +58,40 @@ class StoreMessageRequest extends FormRequest
 
         return [
             'aluno_id' => [
-                'required',
+                'nullable',
+                'required_without:turma_id',
                 'uuid',
                 Rule::exists(Student::class, 'id')
                     ->where('tenant_id', $tenantId)
                     ->whereNull('deleted_at'),
                 function ($attribute, $value, $fail) use ($alunoIds) {
-                    if (empty($alunoIds)) {
+                    if ($value && empty($alunoIds)) {
                         $fail('Você não tem alunos vinculados às suas turmas.');
 
                         return;
                     }
 
-                    if (! in_array($value, $alunoIds)) {
+                    if ($value && ! in_array($value, $alunoIds)) {
                         $fail('Você não tem acesso a este aluno.');
+                    }
+                },
+            ],
+            'turma_id' => [
+                'nullable',
+                'required_without:aluno_id',
+                'uuid',
+                Rule::exists(Turma::class, 'id')
+                    ->where('tenant_id', $tenantId)
+                    ->whereNull('deleted_at'),
+                function ($attribute, $value, $fail) use ($turmaIds) {
+                    if ($value && empty($turmaIds)) {
+                        $fail('Você não tem turmas vinculadas.');
+
+                        return;
+                    }
+
+                    if ($value && ! in_array($value, $turmaIds)) {
+                        $fail('Você não tem acesso a esta turma.');
                     }
                 },
             ],
@@ -84,8 +106,10 @@ class StoreMessageRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'aluno_id.required' => 'Selecione um aluno.',
+            'aluno_id.required_without' => 'Selecione um aluno ou uma turma.',
             'aluno_id.exists' => 'Aluno não encontrado.',
+            'turma_id.required_without' => 'Selecione um aluno ou uma turma.',
+            'turma_id.exists' => 'Turma não encontrada.',
             'titulo.required' => 'Informe o título da mensagem.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'conteudo.required' => 'Informe o conteúdo da mensagem.',

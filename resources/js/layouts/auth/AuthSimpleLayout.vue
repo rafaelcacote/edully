@@ -20,12 +20,12 @@ defineProps<{
                         class="flex flex-col items-center gap-2 font-medium"
                     >
                         <div
-                            class="mb-1 flex h-12 w-12 items-center justify-center rounded-xl bg-white/90 shadow-lg ring-1 ring-white/60 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10"
+                            class="mb-1 flex items-center justify-center"
                         >
                             <img
-                                src="/images/logo.png"
+                                src="/images/logo.svg"
                                 :alt="title ?? 'Logo'"
-                                class="h-9 w-9 object-contain drop-shadow-[0_6px_10px_rgba(15,23,42,0.25)]"
+                                class="h-auto w-full max-w-48 object-contain"
                             />
                         </div>
                         <span class="sr-only">{{ title }}</span>

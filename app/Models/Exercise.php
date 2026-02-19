@@ -65,6 +65,7 @@ class Exercise extends Model
         'descricao',
         'data_entrega',
         'anexo_url',
+        'tipo_exercicio',
     ];
 
     /**

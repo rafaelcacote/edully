@@ -47,9 +47,14 @@ interface Props {
         id: string;
         nome: string;
     }>;
+    turmas: Array<{
+        id: string;
+        nome: string;
+    }>;
     filters: {
         search?: string | null;
         aluno_id?: string | null;
+        turma_id?: string | null;
     };
 }
 
@@ -64,9 +69,10 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 const search = ref(props.filters.search ?? '');
 const alunoId = ref(props.filters.aluno_id ?? '');
+const turmaId = ref(props.filters.turma_id ?? '');
 
 const hasAnyFilter = computed(
-    () => !!search.value || alunoId.value !== '',
+    () => !!search.value || alunoId.value !== '' || turmaId.value !== '',
 );
 
 function applyFilters() {
@@ -75,6 +81,7 @@ function applyFilters() {
         {
             search: search.value || undefined,
             aluno_id: alunoId.value || undefined,
+            turma_id: turmaId.value || undefined,
         },
         {
             preserveState: true,
@@ -87,6 +94,7 @@ function applyFilters() {
 function clearFilters() {
     search.value = '';
     alunoId.value = '';
+    turmaId.value = '';
     applyFilters();
 }
 
@@ -153,6 +161,21 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                                 @keyup.enter="applyFilters"
                             />
                         </div>
+
+                        <select
+                            v-model="turmaId"
+                            class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-48"
+                            @change="applyFilters"
+                        >
+                            <option value="">Todas as turmas</option>
+                            <option
+                                v-for="turma in turmas"
+                                :key="turma.id"
+                                :value="turma.id"
+                            >
+                                {{ turma.nome }}
+                            </option>
+                        </select>
 
                         <select
                             v-model="alunoId"

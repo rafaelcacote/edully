@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { BookOpen, Edit, Eye, Plus } from 'lucide-vue-next';
+import { BookOpen, Edit, Eye, ExternalLink, Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface PaginationLink {
@@ -29,6 +29,8 @@ interface Exercise {
     titulo: string;
     disciplina: string;
     data_entrega: string;
+    tipo_exercicio: string;
+    anexo_url?: string | null;
     turma?: Turma | null;
 }
 
@@ -58,6 +60,16 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const getTipoExercicioLabel = (tipo: string): string => {
+    const labels: Record<string, string> = {
+        exercicio_caderno: 'Exercício de Caderno',
+        exercicio_livro: 'Exercício de Livro',
+        trabalho: 'Trabalho',
+    };
+
+    return labels[tipo] || tipo;
+};
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -191,7 +203,9 @@ function clearFilters() {
                                 <th class="px-4 py-3">Título</th>
                                 <th class="px-4 py-3">Disciplina</th>
                                 <th class="px-4 py-3">Turma</th>
+                                <th class="px-4 py-3">Tipo</th>
                                 <th class="px-4 py-3">Data de Entrega</th>
+                                <th class="px-4 py-3 text-center">Anexo</th>
                                 <th class="px-4 py-3 text-center">Ações</th>
                             </tr>
                         </thead>
@@ -216,7 +230,32 @@ function clearFilters() {
                                         —
                                     </template>
                                 </td>
+                                <td class="px-4 py-3">
+                                    <span class="text-xs">{{ getTipoExercicioLabel(exercise.tipo_exercicio) }}</span>
+                                </td>
                                 <td class="px-4 py-3">{{ exercise.data_entrega }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center justify-center">
+                                        <Button
+                                            v-if="exercise.anexo_url"
+                                            as-child
+                                            size="sm"
+                                            variant="ghost"
+                                            class="hover:bg-transparent"
+                                        >
+                                            <a
+                                                :href="exercise.anexo_url"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <ExternalLink
+                                                    class="h-4 w-4 text-green-500 dark:text-green-400"
+                                                />
+                                            </a>
+                                        </Button>
+                                        <span v-else class="text-muted-foreground">—</span>
+                                    </div>
+                                </td>
                                 <td class="px-4 py-3">
                                     <div
                                         class="flex items-center justify-center gap-2"
@@ -252,7 +291,7 @@ function clearFilters() {
 
                             <tr v-if="props.exercises.data.length === 0">
                                 <td
-                                    colspan="5"
+                                    colspan="7"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhum exercício encontrado.
