@@ -191,3 +191,27 @@ it('can load teacher with disciplinas relationship', function () {
     expect($disciplinaIds)->toContain($this->disciplina1->id);
     expect($disciplinaIds)->toContain($this->disciplina2->id);
 });
+
+it('cannot store a teacher when tenant has no disciplinas', function () {
+    $tenantWithNoDisciplinas = Tenant::factory()->create();
+    $userWithNoDisciplinas = User::factory()->create(['nome_completo' => 'Admin Sem Disciplinas']);
+    $userWithNoDisciplinas->tenants()->attach($tenantWithNoDisciplinas->id);
+    $userWithNoDisciplinas->assignRole('Admin');
+
+    // Ensure this tenant has no disciplinas (use a fresh tenant, so no disciplinas from beforeEach)
+    expect(Disciplina::query()->where('tenant_id', $tenantWithNoDisciplinas->id)->count())->toBe(0);
+
+    $response = $this->actingAs($userWithNoDisciplinas)->post(route('school.teachers.store'), [
+        'nome_completo' => 'Professor Teste',
+        'cpf' => '98765432100',
+        'email' => 'prof2@test.com',
+        'telefone' => '11988887777',
+        'matricula' => 'PROF999',
+        'especializacao' => 'Educação',
+        'disciplinas' => json_encode([]),
+        'ativo' => true,
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHasErrors(['disciplinas']);
+});

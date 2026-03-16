@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AvisosController;
 use App\Http\Controllers\Api\ExercisesController;
 use App\Http\Controllers\Api\MessagesController;
 use App\Http\Controllers\Api\StudentsController;
@@ -18,6 +19,10 @@ Route::prefix('mobile')->name('mobile.')->group(function () {
         // Students endpoints (only for responsaveis)
         Route::get('students', [StudentsController::class, 'index'])->name('students.index');
         Route::get('students/{id}', [StudentsController::class, 'show'])->name('students.show');
+
+        // Avisos endpoints (school notices for students / responsaveis)
+        Route::get('avisos', [AvisosController::class, 'index'])->name('avisos.index');
+        Route::get('avisos/{id}', [AvisosController::class, 'show'])->name('avisos.show');
 
         // Messages endpoints
         Route::get('messages', [MessagesController::class, 'index'])->name('messages.index');

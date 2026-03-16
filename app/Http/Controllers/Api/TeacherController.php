@@ -32,11 +32,12 @@ class TeacherController extends Controller
             ], 403);
         }
 
+        $turmasTable = (new Turma)->getTable();
         $turmas = $teacher->turmas()
-            ->where('ativo', true)
-            ->orderBy('ano_letivo', 'desc')
-            ->orderBy('serie')
-            ->orderBy('turma_letra')
+            ->where($turmasTable.'.ativo', true)
+            ->orderBy($turmasTable.'.ano_letivo', 'desc')
+            ->orderBy($turmasTable.'.serie')
+            ->orderBy($turmasTable.'.turma_letra')
             ->get();
 
         return response()->json([
@@ -117,9 +118,10 @@ class TeacherController extends Controller
             ], 403);
         }
 
-        // Buscar turmas do professor
+        // Buscar turmas do professor (colunas qualificadas para evitar ambiguidade com professor_turma)
+        $turmasTable = (new Turma)->getTable();
         $turmas = $teacher->turmas()
-            ->where('ativo', true)
+            ->where($turmasTable.'.ativo', true)
             ->get();
 
         if ($turmas->isEmpty()) {

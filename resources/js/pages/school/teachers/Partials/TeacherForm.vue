@@ -32,10 +32,13 @@ interface Props {
     processing: boolean;
     errors: Record<string, string>;
     disciplinas?: Disciplina[];
+    /** When true, submit button is disabled (e.g. when there are no disciplinas on create). */
+    submitDisabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     disciplinas: () => [],
+    submitDisabled: false,
 });
 
 const phoneDisplay = ref('');
@@ -494,9 +497,9 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center justify-end gap-2 border-t pt-6">
-            <Button 
-                type="submit" 
-                :disabled="processing" 
+            <Button
+                type="submit"
+                :disabled="processing || props.submitDisabled"
                 class="flex items-center gap-2"
             >
                 <Save class="h-4 w-4" />

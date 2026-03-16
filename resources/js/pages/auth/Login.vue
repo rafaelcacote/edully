@@ -2,12 +2,10 @@
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthBase from '@/layouts/AuthLayout.vue';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
@@ -311,6 +309,7 @@ const selectedTenantName = computed(() => {
                 <div class="grid gap-2">
                     <div class="flex items-center justify-between">
                         <Label for="password">Senha</Label>
+                        <!--
                         <TextLink
                             v-if="canResetPassword"
                             :href="request()"
@@ -319,6 +318,7 @@ const selectedTenantName = computed(() => {
                         >
                             Esqueceu a senha?
                         </TextLink>
+                        -->
                     </div>
                     <Input
                         id="password"
@@ -330,17 +330,6 @@ const selectedTenantName = computed(() => {
                         placeholder="Sua senha"
                     />
                     <InputError :message="errors.password" />
-                </div>
-
-                <div class="flex items-center justify-between">
-                    <Label for="remember" class="flex items-center space-x-3">
-                        <Checkbox
-                            id="remember"
-                            name="remember"
-                            :tabindex="showTenantSelection ? 4 : 3"
-                        />
-                        <span>Lembrar de mim</span>
-                    </Label>
                 </div>
 
                 <Button
@@ -355,13 +344,6 @@ const selectedTenantName = computed(() => {
                 </Button>
             </div>
 
-            <div
-                class="text-center text-sm text-muted-foreground"
-                v-if="canRegister"
-            >
-                Não tem uma conta?
-                <TextLink :href="register()" :tabindex="5">Criar conta</TextLink>
-            </div>
         </Form>
     </AuthBase>
 </template>

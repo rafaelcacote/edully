@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api;
 
 use App\Models\Student;
+use App\Models\Teacher;
 use App\Models\Turma;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
@@ -29,29 +30,30 @@ class StoreMessageRequest extends FormRequest
     public function rules(): array
     {
         $user = $this->user();
-        $teacher = $user?->teacher()->where('ativo', true)->first();
+        $teacher = $user ? Teacher::query()
+            ->where('usuario_id', $user->id)
+            ->where('ativo', true)
+            ->first() : null;
 
-        // Buscar tenant_id do professor
         $tenantId = $teacher?->tenant_id;
 
-        // Buscar turmas do professor
+        // Turmas do professor via pivot professor_turma (evita usar turmas.professor_id)
         $turmaIds = [];
         $alunoIds = [];
         if ($teacher && $tenantId) {
-            $driver = DB::connection('shared')->getDriverName();
-            $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
-            $alunosTable = $driver === 'sqlite' ? 'alunos' : 'escola.alunos';
-            $turmasTable = $driver === 'sqlite' ? 'turmas' : 'escola.turmas';
+            $turmasTable = (new Turma)->getTable();
 
-            $turmaIds = DB::connection('shared')
-                ->table($turmasTable)
-                ->where('tenant_id', $tenantId)
-                ->where('professor_id', $teacher->id)
-                ->where('ativo', true)
-                ->pluck('id')
+            $turmaIds = $teacher->turmas()
+                ->where($turmasTable.'.tenant_id', $tenantId)
+                ->where($turmasTable.'.ativo', true)
+                ->pluck($turmasTable.'.id')
                 ->toArray();
 
             if (! empty($turmaIds)) {
+                $driver = DB::connection('shared')->getDriverName();
+                $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
+                $alunosTable = $driver === 'sqlite' ? 'alunos' : 'escola.alunos';
+
                 $alunoIds = DB::connection('shared')
                     ->table($pivotTable.' as matriculas')
                     ->join($alunosTable.' as alunos', 'alunos.id', '=', 'matriculas.aluno_id')

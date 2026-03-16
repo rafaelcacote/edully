@@ -192,15 +192,22 @@ class TeachersController extends Controller
     public function store(StoreTeacherRequest $request): RedirectResponse
     {
         $tenant = $this->getTenant();
+
+        $hasDisciplinas = Disciplina::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('ativo', true)
+            ->exists();
+
+        if (! $hasDisciplinas) {
+            return redirect()
+                ->back()
+                ->withErrors(['disciplinas' => 'Cadastre ao menos uma disciplina antes de cadastrar professores.'])
+                ->withInput();
+        }
+
         $validated = $request->validated();
 
         DB::transaction(function () use ($tenant, $validated) {
-            // Process disciplinas if it's a JSON string
-            \Log::info('Store Teacher - Dados recebidos:', [
-                'disciplinas_raw' => $validated['disciplinas'] ?? 'não enviado',
-                'disciplinas_type' => gettype($validated['disciplinas'] ?? null),
-            ]);
-
             if (isset($validated['disciplinas'])) {
                 if (is_string($validated['disciplinas'])) {
                     $disciplinasJson = json_decode($validated['disciplinas'], true);
@@ -209,10 +216,6 @@ class TeachersController extends Controller
                     $validated['disciplinas'] = [];
                 }
             }
-
-            \Log::info('Store Teacher - Disciplinas processadas:', [
-                'disciplinas' => $validated['disciplinas'] ?? [],
-            ]);
             // Remove CPF formatting
             if (! empty($validated['cpf'])) {
                 $validated['cpf'] = preg_replace('/[^0-9]/', '', $validated['cpf']);

@@ -30,20 +30,20 @@ class StoreMessageRequest extends FormRequest
         $turmaIds = [];
         $alunoIds = [];
         if ($teacher) {
-            $driver = DB::connection('shared')->getDriverName();
-            $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
-            $alunosTable = $driver === 'sqlite' ? 'alunos' : 'escola.alunos';
-            $turmasTable = $driver === 'sqlite' ? 'turmas' : 'escola.turmas';
+            // Turmas vinculadas ao professor via tabela pivot professor_turma
+            $turmasTable = (new Turma)->getTable();
 
-            $turmaIds = DB::connection('shared')
-                ->table($turmasTable)
-                ->where('tenant_id', $tenantId)
-                ->where('professor_id', $teacher->id)
-                ->where('ativo', true)
-                ->pluck('id')
+            $turmaIds = $teacher->turmas()
+                ->where($turmasTable.'.tenant_id', $tenantId)
+                ->where($turmasTable.'.ativo', true)
+                ->pluck($turmasTable.'.id')
                 ->toArray();
 
             if (! empty($turmaIds)) {
+                $driver = DB::connection('shared')->getDriverName();
+                $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
+                $alunosTable = $driver === 'sqlite' ? 'alunos' : 'escola.alunos';
+
                 $alunoIds = DB::connection('shared')
                     ->table($pivotTable.' as matriculas')
                     ->join($alunosTable.' as alunos', 'alunos.id', '=', 'matriculas.aluno_id')

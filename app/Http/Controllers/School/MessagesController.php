@@ -105,12 +105,13 @@ class MessagesController extends Controller
                 ];
             });
 
-        // Get turmas
+        // Get turmas (qualify columns to avoid ambiguity with professor_turma pivot)
+        $turmasTable = (new Turma)->getTable();
         if ($teacher) {
             // Se for professor, usar as turmas dele
             $turmas = $teacher->turmas()
-                ->where('ativo', true)
-                ->orderBy('nome')
+                ->where($turmasTable.'.ativo', true)
+                ->orderBy($turmasTable.'.nome')
                 ->get()
                 ->map(function ($turma) {
                     return [
@@ -185,12 +186,13 @@ class MessagesController extends Controller
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
 
-        // Get turmas
+        // Get turmas (qualify columns to avoid ambiguity with professor_turma pivot)
+        $turmasTable = (new Turma)->getTable();
         if ($teacher) {
             // Se for professor, usar as turmas dele
             $turmas = $teacher->turmas()
-                ->where('ativo', true)
-                ->orderBy('nome')
+                ->where($turmasTable.'.ativo', true)
+                ->orderBy($turmasTable.'.nome')
                 ->get()
                 ->map(function ($turma) {
                     return [
@@ -383,11 +385,12 @@ class MessagesController extends Controller
             abort(404);
         }
 
-        // Get turmas
+        // Get turmas (qualify columns to avoid ambiguity with professor_turma pivot)
+        $turmasTable = (new Turma)->getTable();
         if ($teacher) {
             $turmaIds = $teacher->turmas()
-                ->where('ativo', true)
-                ->pluck('id')
+                ->where($turmasTable.'.ativo', true)
+                ->pluck($turmasTable.'.id')
                 ->toArray();
         } else {
             // Administrador Escola: buscar todas as turmas do tenant
