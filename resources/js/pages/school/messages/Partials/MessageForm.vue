@@ -391,7 +391,7 @@ watch(turmaId, () => {
                     <option value="outro">Outro</option>
                     <option value="informativo">Informativo</option>
                     <option value="atencao">Atenção</option>
-                    <option value="aviso">Aviso</option>
+                    <option value="aviso">Urgente</option>
                     <option value="lembrete">Lembrete</option>
                 </select>
                 <InputError :message="errors.tipo" />
@@ -420,7 +420,7 @@ watch(turmaId, () => {
                 name="conteudo"
                 v-model="conteudo"
                 rows="6"
-                placeholder="Digite o conteúdo da mensagem..."
+                placeholder="Digite o conteúdo do recado..."
                 required
                 class="flex min-h-[120px] w-full rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
             />

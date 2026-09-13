@@ -110,9 +110,9 @@ class StoreMessageRequest extends FormRequest
             'aluno_id.exists' => 'Aluno não encontrado.',
             'turma_id.required_without' => 'Selecione um aluno ou uma turma.',
             'turma_id.exists' => 'Turma não encontrada.',
-            'titulo.required' => 'Informe o título da mensagem.',
+            'titulo.required' => 'Informe o título do recado.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
-            'conteudo.required' => 'Informe o conteúdo da mensagem.',
+            'conteudo.required' => 'Informe o conteúdo do recado.',
             'anexo_url.url' => 'A URL do anexo deve ser válida.',
             'anexo_url.max' => 'A URL do anexo não pode ter mais de 2048 caracteres.',
         ];

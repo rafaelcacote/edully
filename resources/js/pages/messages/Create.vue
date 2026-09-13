@@ -24,11 +24,11 @@ const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Mensagens',
+        title: 'Recados',
         href: index().url,
     },
     {
-        title: 'Nova mensagem',
+        title: 'Novo recado',
         href: '#',
     },
 ];
@@ -36,14 +36,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Nova mensagem" />
+        <Head title="Novo recado" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
                     <Heading
-                        title="Nova mensagem"
-                        description="Envie uma nova mensagem"
+                        title="Novo recado"
+                        description="Envie um novo recado"
                         :icon="Mail"
                     />
                 </div>
@@ -70,7 +70,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 >
                     <MessageForm
                         :users="props.users"
-                        submit-label="Enviar mensagem"
+                        submit-label="Enviar recado"
                         :processing="processing"
                         :errors="errors"
                     />

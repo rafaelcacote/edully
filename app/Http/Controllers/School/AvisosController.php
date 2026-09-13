@@ -126,8 +126,8 @@ class AvisosController extends Controller
             ->route('school.avisos.index')
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Aviso criado',
-                'message' => 'O aviso foi cadastrado com sucesso.',
+                'title' => 'Comunicado criado',
+                'message' => 'O comunicado foi cadastrado com sucesso.',
             ]);
     }
 
@@ -231,7 +231,7 @@ class AvisosController extends Controller
             ->route('school.avisos.edit', $aviso)
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Aviso atualizado',
+                'title' => 'Comunicado atualizado',
                 'message' => 'As alterações foram salvas com sucesso.',
             ]);
     }
@@ -253,8 +253,8 @@ class AvisosController extends Controller
             ->route('school.avisos.index')
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Aviso excluído',
-                'message' => 'O aviso foi excluído com sucesso.',
+                'title' => 'Comunicado excluído',
+                'message' => 'O comunicado foi excluído com sucesso.',
             ]);
     }
 }

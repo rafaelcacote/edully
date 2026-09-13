@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\School;
 
+use App\Actions\School\SyncTurmaDisciplinasAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreClassRequest;
+use App\Http\Requests\School\SyncTurmaDisciplinasRequest;
 use App\Http\Requests\School\UpdateClassRequest;
+use App\Models\Disciplina;
+use App\Models\Teacher;
 use App\Models\Turma;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -183,6 +187,19 @@ class ClassesController extends Controller
             ];
         })->values()->toArray();
 
+        $disciplinasArray = $class->disciplinas()
+            ->orderBy('nome')
+            ->get()
+            ->map(function (Disciplina $disciplina) {
+                return [
+                    'id' => $disciplina->id,
+                    'nome' => $disciplina->nome,
+                    'sigla' => $disciplina->sigla,
+                ];
+            })
+            ->values()
+            ->all();
+
         return Inertia::render('school/classes/Show', [
             'turma' => [
                 'id' => $class->id,
@@ -203,6 +220,7 @@ class ClassesController extends Controller
                     ]
                     : null,
                 'professores' => $professoresArray,
+                'disciplinas' => $disciplinasArray,
             ],
         ]);
     }
@@ -382,5 +400,81 @@ class ClassesController extends Controller
             ],
             'students' => $students,
         ]);
+    }
+
+    /**
+     * Display the disciplines curriculum for the specified class.
+     */
+    public function disciplinas(Turma $class): Response
+    {
+        $tenant = $this->getTenant();
+
+        if ($class->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        $vinculadas = $class->disciplinas()
+            ->orderBy('nome')
+            ->get()
+            ->map(fn (Disciplina $disciplina) => [
+                'disciplina_id' => $disciplina->id,
+                'professor_id' => $disciplina->pivot->professor_id,
+            ])
+            ->values()
+            ->all();
+
+        $disciplinas = Disciplina::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'sigla']);
+
+        $professores = Teacher::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('ativo', true)
+            ->with('usuario:id,nome_completo')
+            ->get()
+            ->map(fn (Teacher $professor) => [
+                'id' => $professor->id,
+                'nome_completo' => $professor->usuario->nome_completo ?? 'Sem nome',
+            ]);
+
+        return Inertia::render('school/classes/Disciplinas', [
+            'turma' => [
+                'id' => $class->id,
+                'nome' => $class->nome,
+                'serie' => $class->serie,
+                'turma_letra' => $class->turma_letra,
+                'ano_letivo' => $class->ano_letivo,
+            ],
+            'disciplinas' => $disciplinas,
+            'professores' => $professores,
+            'vinculadas' => $vinculadas,
+        ]);
+    }
+
+    /**
+     * Sync the disciplines curriculum for the specified class.
+     */
+    public function syncDisciplinas(
+        SyncTurmaDisciplinasRequest $request,
+        Turma $class,
+        SyncTurmaDisciplinasAction $action,
+    ): RedirectResponse {
+        $tenant = $this->getTenant();
+
+        if ($class->tenant_id !== $tenant->id) {
+            abort(404);
+        }
+
+        $action->execute($class, $tenant, $request->validated('disciplinas') ?? []);
+
+        return redirect()
+            ->route('school.classes.disciplinas', $class)
+            ->with('toast', [
+                'type' => 'success',
+                'title' => 'Grade atualizada',
+                'message' => 'As disciplinas da turma foram salvas com sucesso.',
+            ]);
     }
 }

@@ -50,7 +50,7 @@ const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Avisos',
+        title: 'Comunicados',
         href: '/school/avisos',
     },
 ];
@@ -115,7 +115,7 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
 }
 
 function deleteAviso(avisoId: string) {
-    if (confirm('Tem certeza que deseja excluir este aviso?')) {
+    if (confirm('Tem certeza que deseja excluir este comunicado?')) {
         router.delete(`/school/avisos/${avisoId}`, {
             preserveScroll: true,
         });
@@ -125,14 +125,14 @@ function deleteAviso(avisoId: string) {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Avisos" />
+        <Head title="Comunicados" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
                     <Heading
-                        title="Avisos"
-                        description="Gerencie os avisos da escola"
+                        title="Comunicados"
+                        description="Comunicados publicados para toda a escola"
                         :icon="Bell"
                     />
                 </div>
@@ -141,7 +141,7 @@ function deleteAviso(avisoId: string) {
                     <Button as-child>
                         <Link href="/school/avisos/create" class="flex items-center gap-2">
                             <Plus class="h-4 w-4" />
-                            Novo aviso
+                            Novo comunicado
                         </Link>
                     </Button>
                 </div>
@@ -307,7 +307,7 @@ function deleteAviso(avisoId: string) {
                                     colspan="7"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
-                                    Nenhum aviso encontrado.
+                                    Nenhum comunicado encontrado.
                                 </td>
                             </tr>
                         </tbody>

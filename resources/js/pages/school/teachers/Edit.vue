@@ -23,6 +23,7 @@ interface Teacher {
     cpf?: string | null;
     email?: string | null;
     telefone?: string | null;
+    foto_url?: string | null;
 }
 
 interface Props {
@@ -73,10 +74,12 @@ const breadcrumbItems: BreadcrumbItem[] = [
             <div class="rounded-xl border bg-card p-6 shadow-sm">
                 <Form
                     :action="`/school/teachers/${props.teacher.id}`"
-                    method="patch"
+                    method="post"
+                    enctype="multipart/form-data"
                     class="space-y-6"
                     v-slot="{ errors, processing }"
                 >
+                    <input type="hidden" name="_method" value="patch" />
                     <TeacherForm
                         :teacher="props.teacher"
                         submit-label="Salvar alterações"

@@ -48,6 +48,8 @@ class ExerciseResource extends JsonResource
                     'usuario' => $this->professor->usuario ? [
                         'id' => $this->professor->usuario->id,
                         'nome_completo' => $this->professor->usuario->nome_completo,
+                        'avatar_url' => $this->professor->usuario->avatar_url,
+                        'foto_url' => $this->professor->usuario->avatar_url,
                     ] : null,
                 ];
             }),

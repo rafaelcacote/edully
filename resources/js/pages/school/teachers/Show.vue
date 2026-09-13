@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, UserCheck } from 'lucide-vue-next';
+import { ArrowLeft, User, UserCheck } from 'lucide-vue-next';
 
 interface Teacher {
     id: string;
@@ -16,6 +16,7 @@ interface Teacher {
     cpf?: string | null;
     email?: string | null;
     telefone?: string | null;
+    foto_url?: string | null;
 }
 
 interface Props {
@@ -63,7 +64,18 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
-                <div class="mt-2">
+                <div class="mt-2 flex items-start gap-4">
+                    <div
+                        class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-input bg-muted"
+                    >
+                        <img
+                            v-if="props.teacher.foto_url"
+                            :src="props.teacher.foto_url"
+                            :alt="`Foto de ${props.teacher.nome_completo || props.teacher.matricula}`"
+                            class="h-full w-full object-cover"
+                        />
+                        <User v-else class="h-8 w-8 text-muted-foreground" />
+                    </div>
                     <div class="mb-8 space-y-0.5">
                         <h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight">
                             <UserCheck class="h-5 w-5" />
@@ -92,6 +104,18 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     <div>
                         <h3 class="mb-4 text-lg font-semibold">Dados Pessoais</h3>
                         <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                                <p class="text-sm font-medium text-muted-foreground">Foto</p>
+                                <div class="mt-2">
+                                    <img
+                                        v-if="props.teacher.foto_url"
+                                        :src="props.teacher.foto_url"
+                                        :alt="`Foto de ${props.teacher.nome_completo || props.teacher.matricula}`"
+                                        class="h-40 w-40 rounded-lg border border-input object-cover"
+                                    />
+                                    <span v-else class="text-sm text-muted-foreground">Sem foto cadastrada</span>
+                                </div>
+                            </div>
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Nome completo</p>
                                 <p class="mt-1">{{ props.teacher.nome_completo || '—' }}</p>

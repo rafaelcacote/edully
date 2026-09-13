@@ -34,7 +34,7 @@ const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Avisos',
+        title: 'Comunicados',
         href: '/school/avisos',
     },
     {
@@ -74,7 +74,7 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head :title="`Aviso: ${props.aviso.titulo}`" />
+        <Head :title="`Comunicado: ${props.aviso.titulo}`" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
@@ -85,7 +85,7 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
                             {{ props.aviso.titulo }}
                         </h2>
                         <p class="text-sm text-muted-foreground">
-                            Detalhes do aviso
+                            Detalhes do comunicado
                         </p>
                     </div>
                 </div>

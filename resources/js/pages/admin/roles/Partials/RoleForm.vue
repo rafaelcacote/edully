@@ -72,7 +72,8 @@ const getSubgroupLabel = (subgroupName: string): string => {
         turmas: 'Turmas',
         exercicios: 'Exercícios',
         provas: 'Provas',
-        mensagens: 'Mensagens',
+        mensagens: 'Recados',
+        avisos: 'Comunicados',
         disciplinas: 'Disciplinas',
     };
     return labels[subgroupName] || subgroupName.charAt(0).toUpperCase() + subgroupName.slice(1);

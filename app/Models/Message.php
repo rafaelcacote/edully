@@ -58,8 +58,11 @@ class Message extends Model
     protected $fillable = [
         'tenant_id',
         'remetente_id',
+        'destinatario_id',
         'aluno_id',
         'turma_id',
+        'conversa_id',
+        'mensagem_pai_id',
         'titulo',
         'conteudo',
         'tipo',
@@ -102,7 +105,15 @@ class Message extends Model
     }
 
     /**
-     * Get the student (aluno) that received the message.
+     * Get the recipient user (destinatário) of the message.
+     */
+    public function destinatario(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'destinatario_id');
+    }
+
+    /**
+     * Get the student (aluno) related to the message.
      */
     public function aluno(): BelongsTo
     {
@@ -115,5 +126,13 @@ class Message extends Model
     public function turma(): BelongsTo
     {
         return $this->belongsTo(Turma::class, 'turma_id');
+    }
+
+    /**
+     * Get the parent message this reply references.
+     */
+    public function mensagemPai(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'mensagem_pai_id');
     }
 }

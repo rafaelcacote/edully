@@ -7,7 +7,9 @@ use App\Http\Requests\Api\LoginRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -70,6 +72,7 @@ class AuthController extends Controller
                 'cpf' => $user->cpf,
                 'telefone' => $user->telefone,
                 'avatar_url' => $user->avatar_url,
+                'foto_url' => $user->avatar_url,
                 'type' => $userType,
             ],
         ]);
@@ -121,9 +124,56 @@ class AuthController extends Controller
                 'cpf' => $user->cpf,
                 'telefone' => $user->telefone,
                 'avatar_url' => $user->avatar_url,
+                'foto_url' => $user->avatar_url,
                 'type' => $userType,
             ],
             'schools' => $schools,
+        ]);
+    }
+
+    /**
+     * Update the authenticated teacher's profile photo.
+     */
+    public function updateFoto(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $teacher = $user->teacher()->where('ativo', true)->first();
+
+        if (! $teacher) {
+            return response()->json([
+                'message' => 'Acesso negado. Apenas professores podem atualizar a foto pelo aplicativo.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'foto' => ['required', 'image', 'max:2048', 'mimes:jpeg,jpg,png,gif,webp'],
+        ], [
+            'foto.required' => 'Selecione uma foto.',
+            'foto.image' => 'O arquivo deve ser uma imagem.',
+            'foto.max' => 'A imagem não pode ter mais de 2MB.',
+            'foto.mimes' => 'A imagem deve ser do tipo: jpeg, jpg, png, gif ou webp.',
+        ]);
+
+        /** @var UploadedFile $foto */
+        $foto = $validated['foto'];
+
+        $this->deleteStoredTeacherPhoto($user->avatar_url);
+        $avatarUrl = $this->storeTeacherPhoto($foto);
+
+        $user->update(['avatar_url' => $avatarUrl]);
+
+        return response()->json([
+            'message' => 'Foto atualizada com sucesso.',
+            'user' => [
+                'id' => $user->id,
+                'nome_completo' => $user->nome_completo,
+                'email' => $user->email,
+                'cpf' => $user->cpf,
+                'telefone' => $user->telefone,
+                'avatar_url' => $user->avatar_url,
+                'foto_url' => $user->avatar_url,
+                'type' => 'teacher',
+            ],
         ]);
     }
 
@@ -137,5 +187,29 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logout realizado com sucesso.',
         ]);
+    }
+
+    protected function storeTeacherPhoto(UploadedFile $foto): string
+    {
+        $fotoPath = $foto->store('teachers/photos', 'public');
+
+        return asset('storage/'.$fotoPath);
+    }
+
+    protected function deleteStoredTeacherPhoto(?string $avatarUrl): void
+    {
+        if (! $avatarUrl) {
+            return;
+        }
+
+        $storageBaseUrl = asset('storage/');
+        if (! str_starts_with($avatarUrl, $storageBaseUrl)) {
+            return;
+        }
+
+        $oldFotoPath = str_replace($storageBaseUrl, '', $avatarUrl);
+        if (Storage::disk('public')->exists($oldFotoPath)) {
+            Storage::disk('public')->delete($oldFotoPath);
+        }
     }
 }

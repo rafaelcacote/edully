@@ -55,7 +55,24 @@ return new class extends Migration
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_matriculas_turma_tenant_id ON escola.matriculas_turma(tenant_id)');
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_matriculas_turma_aluno_id ON escola.matriculas_turma(aluno_id)');
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_matriculas_turma_turma_id ON escola.matriculas_turma(turma_id)');
-        DB::connection('shared')->statement('CREATE UNIQUE INDEX IF NOT EXISTS matriculas_turma_tenant_id_matricula_key ON escola.matriculas_turma(tenant_id, matricula) WHERE deleted_at IS NULL');
+
+        // Bancos legados podem não ter matricula/deleted_at (usam status/numero_matricula).
+        DB::connection('shared')->statement("
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'escola' AND table_name = 'matriculas_turma' AND column_name = 'matricula'
+                ) AND EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'escola' AND table_name = 'matriculas_turma' AND column_name = 'deleted_at'
+                ) THEN
+                    CREATE UNIQUE INDEX IF NOT EXISTS matriculas_turma_tenant_id_matricula_key
+                        ON escola.matriculas_turma(tenant_id, matricula)
+                        WHERE deleted_at IS NULL;
+                END IF;
+            END $$;
+        ");
     }
 
     /**

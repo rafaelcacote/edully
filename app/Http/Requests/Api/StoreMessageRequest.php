@@ -2,6 +2,9 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Actions\Api\ListStudentTeachersAction;
+use App\Models\Message;
+use App\Models\Responsavel;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\Turma;
@@ -11,23 +14,63 @@ use Illuminate\Validation\Rule;
 
 class StoreMessageRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         $user = $this->user();
 
-        // Apenas professores podem criar mensagens
-        return $user && $user->isTeacher();
+        return $user && ($user->isTeacher() || $user->isResponsavel());
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
+    {
+        if ($this->isReply()) {
+            return $this->replyRules();
+        }
+
+        if ($this->user()?->isResponsavel()) {
+            return $this->responsavelRules();
+        }
+
+        return $this->teacherRules();
+    }
+
+    public function isReply(): bool
+    {
+        return filled($this->input('mensagem_pai_id')) || filled($this->input('conversa_id'));
+    }
+
+    /**
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    protected function replyRules(): array
+    {
+        return [
+            'mensagem_pai_id' => [
+                'nullable',
+                'required_without:conversa_id',
+                'uuid',
+                Rule::exists(Message::class, 'id'),
+            ],
+            'conversa_id' => [
+                'nullable',
+                'required_without:mensagem_pai_id',
+                'uuid',
+            ],
+            'titulo' => ['nullable', 'string', 'max:255'],
+            'conteudo' => ['required', 'string'],
+            'tipo' => ['nullable', 'string', Rule::in(['outro', 'informativo', 'atencao', 'aviso', 'lembrete'])],
+            'prioridade' => ['nullable', 'string', Rule::in(['normal', 'alta', 'media'])],
+            'anexo_url' => ['nullable', 'url', 'max:2048'],
+        ];
+    }
+
+    /**
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    protected function teacherRules(): array
     {
         $user = $this->user();
         $teacher = $user ? Teacher::query()
@@ -37,7 +80,6 @@ class StoreMessageRequest extends FormRequest
 
         $tenantId = $teacher?->tenant_id;
 
-        // Turmas do professor via pivot professor_turma (evita usar turmas.professor_id)
         $turmaIds = [];
         $alunoIds = [];
         if ($teacher && $tenantId) {
@@ -75,7 +117,7 @@ class StoreMessageRequest extends FormRequest
                     ->where('tenant_id', $tenantId)
                     ->whereNull('deleted_at'),
                 function ($attribute, $value, $fail) use ($alunoIds) {
-                    if ($value && ! empty($alunoIds) && ! in_array($value, $alunoIds)) {
+                    if ($value && ! in_array($value, $alunoIds, true)) {
                         $fail('Você não tem acesso a este aluno.');
                     }
                 },
@@ -88,12 +130,91 @@ class StoreMessageRequest extends FormRequest
                     ->where('tenant_id', $tenantId)
                     ->whereNull('deleted_at'),
                 function ($attribute, $value, $fail) use ($turmaIds) {
-                    if ($value && ! empty($turmaIds) && ! in_array($value, $turmaIds)) {
+                    if ($value && ! in_array($value, $turmaIds, true)) {
                         $fail('Você não tem acesso a esta turma.');
                     }
                 },
             ],
-            'titulo' => ['required', 'string', 'max:255'],
+            ...$this->commonContentRules(requiredTitulo: true),
+        ];
+    }
+
+    /**
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    protected function responsavelRules(): array
+    {
+        $user = $this->user();
+        $responsavelIds = Responsavel::query()
+            ->where('usuario_id', $user?->id)
+            ->pluck('id')
+            ->all();
+
+        $driver = DB::connection('shared')->getDriverName();
+        $pivotTable = $driver === 'sqlite' ? 'aluno_responsavel' : 'escola.aluno_responsavel';
+
+        $alunoIds = [];
+        if ($responsavelIds !== []) {
+            $alunoIds = DB::connection('shared')
+                ->table($pivotTable)
+                ->whereIn('responsavel_id', $responsavelIds)
+                ->pluck('aluno_id')
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        return [
+            'aluno_id' => [
+                'required',
+                'uuid',
+                Rule::exists(Student::class, 'id')
+                    ->where('ativo', true)
+                    ->whereNull('deleted_at'),
+                function ($attribute, $value, $fail) use ($alunoIds) {
+                    if ($value && ! in_array($value, $alunoIds, true)) {
+                        $fail('Você não tem acesso a este aluno.');
+                    }
+                },
+            ],
+            'professor_id' => [
+                'required',
+                'uuid',
+                Rule::exists(Teacher::class, 'id')
+                    ->where('ativo', true)
+                    ->whereNull('deleted_at'),
+                function ($attribute, $value, $fail) {
+                    $alunoId = $this->input('aluno_id');
+                    if (! $value || ! $alunoId) {
+                        return;
+                    }
+
+                    $aluno = Student::query()
+                        ->where('id', $alunoId)
+                        ->where('ativo', true)
+                        ->first();
+
+                    if (! $aluno) {
+                        return;
+                    }
+
+                    $teachers = app(ListStudentTeachersAction::class)->execute($aluno);
+                    if (! $teachers->contains(fn (Teacher $teacher) => $teacher->id === $value)) {
+                        $fail('Este professor não está vinculado às turmas deste aluno.');
+                    }
+                },
+            ],
+            ...$this->commonContentRules(requiredTitulo: true),
+        ];
+    }
+
+    /**
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    protected function commonContentRules(bool $requiredTitulo = true): array
+    {
+        return [
+            'titulo' => [$requiredTitulo ? 'required' : 'nullable', 'string', 'max:255'],
             'conteudo' => ['required', 'string'],
             'tipo' => ['nullable', 'string', Rule::in(['outro', 'informativo', 'atencao', 'aviso', 'lembrete'])],
             'prioridade' => ['nullable', 'string', Rule::in(['normal', 'alta', 'media'])],
@@ -102,21 +223,25 @@ class StoreMessageRequest extends FormRequest
     }
 
     /**
-     * Get custom messages for validator errors.
-     *
      * @return array<string, string>
      */
     public function messages(): array
     {
         return [
+            'aluno_id.required' => 'Selecione um aluno.',
             'aluno_id.required_without' => 'Selecione um aluno ou uma turma.',
             'aluno_id.exists' => 'Aluno não encontrado.',
             'turma_id.required_without' => 'Selecione um aluno ou uma turma.',
             'turma_id.exists' => 'Turma não encontrada.',
+            'professor_id.required' => 'Selecione um professor.',
+            'professor_id.exists' => 'Professor não encontrado.',
+            'mensagem_pai_id.required_without' => 'Informe a mensagem ou a conversa para responder.',
+            'conversa_id.required_without' => 'Informe a mensagem ou a conversa para responder.',
+            'mensagem_pai_id.exists' => 'Mensagem não encontrada.',
             'titulo.required' => 'O título é obrigatório.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'conteudo.required' => 'O conteúdo é obrigatório.',
-            'tipo.in' => 'O tipo de mensagem deve ser: outro, informativo, atencao, aviso ou lembrete.',
+            'tipo.in' => 'O tipo de recado deve ser: outro, informativo, atencao, aviso ou lembrete.',
             'prioridade.in' => 'A prioridade deve ser: normal, alta ou media.',
             'anexo_url.url' => 'A URL do anexo deve ser válida.',
             'anexo_url.max' => 'A URL do anexo não pode ter mais de 2048 caracteres.',
@@ -129,6 +254,8 @@ class StoreMessageRequest extends FormRequest
             'anexo_url' => $this->anexo_url === '' ? null : $this->anexo_url,
             'tipo' => $this->tipo === '' ? null : $this->tipo,
             'prioridade' => $this->prioridade === '' ? null : $this->prioridade,
+            'mensagem_pai_id' => $this->mensagem_pai_id === '' ? null : $this->mensagem_pai_id,
+            'conversa_id' => $this->conversa_id === '' ? null : $this->conversa_id,
         ]);
     }
 }

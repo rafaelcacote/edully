@@ -62,9 +62,8 @@ class Nota extends Model
         'turma_id',
         'disciplina',
         'disciplina_id',
-        'trimestre',
+        'bimestre',
         'nota',
-        'frequencia',
         'comportamento',
         'observacoes',
         'ano_letivo',
@@ -78,9 +77,8 @@ class Nota extends Model
     protected function casts(): array
     {
         return [
-            'trimestre' => 'integer',
+            'bimestre' => 'integer',
             'nota' => 'decimal:1',
-            'frequencia' => 'integer',
             'ano_letivo' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
@@ -88,42 +86,30 @@ class Nota extends Model
         ];
     }
 
-    /**
-     * Get the tenant that owns the nota.
-     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
     }
 
-    /**
-     * Get the student (aluno) that owns the nota.
-     */
     public function aluno(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'aluno_id');
     }
 
-    /**
-     * Get the teacher (professor) that owns the nota.
-     */
     public function professor(): BelongsTo
     {
         return $this->belongsTo(Teacher::class, 'professor_id');
     }
 
-    /**
-     * Get the class (turma) that owns the nota.
-     */
     public function turma(): BelongsTo
     {
         return $this->belongsTo(Turma::class, 'turma_id');
     }
 
     /**
-     * Get the discipline (disciplina) that owns the nota.
+     * Named to avoid clashing with the legacy string attribute `disciplina`.
      */
-    public function disciplina(): BelongsTo
+    public function disciplinaRelation(): BelongsTo
     {
         return $this->belongsTo(Disciplina::class, 'disciplina_id');
     }

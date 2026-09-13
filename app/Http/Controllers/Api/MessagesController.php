@@ -2,150 +2,106 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Api\ListConversationsAction;
+use App\Actions\Api\NotifyMessagePushRecipients;
+use App\Actions\Api\ResolveMessageThreadAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreMessageRequest;
+use App\Http\Resources\Api\ConversaResource;
 use App\Http\Resources\Api\MessageResource;
 use App\Models\Message;
-use App\Models\Responsavel;
+use App\Models\Student;
+use App\Models\Teacher;
 use App\Models\Turma;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class MessagesController extends Controller
 {
     /**
-     * Get messages for the authenticated user.
-     * For responsaveis: returns messages for their students.
-     * For teachers: returns messages they sent.
+     * List conversations for the authenticated user.
+     * Also returns `messages` as the last message of each conversation for Expo compatibility.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, ListConversationsAction $listConversations): JsonResponse
     {
         $user = $request->user();
+        $alunoId = $request->input('aluno_id');
+        $lida = $request->has('lida')
+            ? filter_var($request->input('lida'), FILTER_VALIDATE_BOOLEAN)
+            : null;
 
-        $query = Message::query();
+        $paginator = $listConversations->execute($user, $alunoId, $lida);
 
-        // Se for responsável, buscar mensagens dos alunos vinculados
-        if ($user->isResponsavel()) {
-            $responsaveis = Responsavel::where('usuario_id', $user->id)->get();
-            $responsavelIds = $responsaveis->pluck('id')->toArray();
+        $conversas = ConversaResource::collection($paginator->items());
 
-            if (empty($responsavelIds)) {
-                return response()->json([
-                    'messages' => [],
-                    'meta' => [
-                        'current_page' => 1,
-                        'last_page' => 1,
-                        'per_page' => 15,
-                        'total' => 0,
-                    ],
-                ]);
-            }
+        return response()->json([
+            'conversas' => $conversas,
+            // Compatibilidade: app antigo lê `messages` como lista plana.
+            'messages' => $conversas,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
+    }
 
-            // Buscar alunos vinculados ao responsável
-            $driver = DB::connection('shared')->getDriverName();
-            $pivotTable = $driver === 'sqlite' ? 'aluno_responsavel' : 'escola.aluno_responsavel';
+    /**
+     * Get ordered history for a conversation thread.
+     */
+    public function showConversa(
+        Request $request,
+        string $conversaId,
+        ListConversationsAction $listConversations,
+    ): JsonResponse {
+        $user = $request->user();
 
-            $alunoIds = DB::connection('shared')
-                ->table($pivotTable)
-                ->whereIn('responsavel_id', $responsavelIds)
-                ->pluck('aluno_id')
-                ->unique()
-                ->toArray();
-
-            if (empty($alunoIds)) {
-                return response()->json([
-                    'messages' => [],
-                    'meta' => [
-                        'current_page' => 1,
-                        'last_page' => 1,
-                        'per_page' => 15,
-                        'total' => 0,
-                    ],
-                ]);
-            }
-
-            $query->whereIn('aluno_id', $alunoIds);
-
-            // Filtrar por aluno_id se fornecido
-            if ($request->has('aluno_id')) {
-                $alunoId = $request->input('aluno_id');
-                if (in_array($alunoId, $alunoIds)) {
-                    $query->where('aluno_id', $alunoId);
-                } else {
-                    return response()->json([
-                        'message' => 'Aluno não encontrado ou você não tem permissão para acessar este aluno.',
-                    ], 403);
-                }
-            }
-        } elseif ($user->isTeacher()) {
-            // Se for professor, buscar apenas mensagens que ele enviou
-            $query->where('remetente_id', $user->id);
-        } else {
+        if (! $listConversations->userCanAccessConversa($user, $conversaId)) {
             return response()->json([
-                'message' => 'Acesso negado. Apenas responsáveis e professores podem acessar esta funcionalidade.',
+                'message' => 'Conversa não encontrada ou você não tem permissão para acessá-la.',
             ], 403);
         }
 
-        // Filtrar por lida/não lida
-        if ($request->has('lida')) {
-            $query->where('lida', filter_var($request->input('lida'), FILTER_VALIDATE_BOOLEAN));
+        $messages = Message::query()
+            ->where(function ($query) use ($conversaId): void {
+                $query->where('conversa_id', $conversaId)
+                    ->orWhere('id', $conversaId);
+            })
+            ->with($this->messageRelations())
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        if ($messages->isEmpty()) {
+            return response()->json([
+                'message' => 'Conversa não encontrada.',
+            ], 404);
         }
 
-        // Ordenar por mais recente
-        $messages = $query
-            ->with(['aluno:id,nome,nome_social', 'remetente:id,nome_completo', 'turma:id,nome'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        $resolvedConversaId = $messages->firstWhere('conversa_id', '!=', null)?->conversa_id
+            ?? $messages->first()->conversa_id
+            ?? $conversaId;
 
         return response()->json([
-            'messages' => MessageResource::collection($messages->items()),
-            'meta' => [
-                'current_page' => $messages->currentPage(),
-                'last_page' => $messages->lastPage(),
-                'per_page' => $messages->perPage(),
-                'total' => $messages->total(),
-            ],
+            'conversa_id' => $resolvedConversaId,
+            'messages' => MessageResource::collection($messages),
         ]);
     }
 
     /**
      * Get a specific message.
      */
-    public function show(Request $request, string $id): JsonResponse
+    public function show(Request $request, string $id, ListConversationsAction $listConversations): JsonResponse
     {
         $user = $request->user();
-        $message = Message::with(['aluno:id,nome,nome_social', 'remetente:id,nome_completo', 'turma:id,nome'])
-            ->findOrFail($id);
+        $message = Message::with($this->messageRelations())->findOrFail($id);
 
-        // Verificar permissão
-        if ($user->isResponsavel()) {
-            $responsaveis = Responsavel::where('usuario_id', $user->id)->get();
-            $responsavelIds = $responsaveis->pluck('id')->toArray();
-
-            $driver = DB::connection('shared')->getDriverName();
-            $pivotTable = $driver === 'sqlite' ? 'aluno_responsavel' : 'escola.aluno_responsavel';
-
-            $hasAccess = DB::connection('shared')
-                ->table($pivotTable)
-                ->whereIn('responsavel_id', $responsavelIds)
-                ->where('aluno_id', $message->aluno_id)
-                ->exists();
-
-            if (! $hasAccess) {
-                return response()->json([
-                    'message' => 'Mensagem não encontrada ou você não tem permissão para acessá-la.',
-                ], 403);
-            }
-        } elseif ($user->isTeacher()) {
-            if ($message->remetente_id !== $user->id) {
-                return response()->json([
-                    'message' => 'Mensagem não encontrada ou você não tem permissão para acessá-la.',
-                ], 403);
-            }
-        } else {
+        if (! $listConversations->userCanAccessMessage($user, $message)) {
             return response()->json([
-                'message' => 'Acesso negado. Apenas responsáveis e professores podem acessar esta funcionalidade.',
+                'message' => 'Recado não encontrado ou você não tem permissão para acessá-lo.',
             ], 403);
         }
 
@@ -155,30 +111,229 @@ class MessagesController extends Controller
     }
 
     /**
-     * Create a new message (only for teachers).
+     * Create a new message or reply into an existing conversation.
      */
-    public function store(StoreMessageRequest $request): JsonResponse
-    {
+    public function store(
+        StoreMessageRequest $request,
+        ResolveMessageThreadAction $resolveMessageThread,
+    ): JsonResponse {
         $user = $request->user();
         $validated = $request->validated();
 
-        // Buscar tenant do professor
+        if ($request->isReply()) {
+            return $this->storeReply($user, $validated, $resolveMessageThread);
+        }
+
+        if ($user->isResponsavel()) {
+            return $this->storeFromResponsavel($user, $validated);
+        }
+
+        return $this->storeFromTeacher($user, $validated);
+    }
+
+    /**
+     * Mark a message as read.
+     */
+    public function markAsRead(Request $request, string $id, ListConversationsAction $listConversations): JsonResponse
+    {
+        $user = $request->user();
+        $message = Message::findOrFail($id);
+
+        if (! $this->userCanMarkAsRead($user, $message, $listConversations)) {
+            return response()->json([
+                'message' => 'Recado não encontrado ou você não tem permissão para marcá-lo como lido.',
+            ], 403);
+        }
+
+        if (! $message->lida) {
+            $message->update([
+                'lida' => true,
+                'lida_em' => now(),
+            ]);
+        }
+
+        $message->load($this->messageRelations());
+
+        return response()->json([
+            'message' => new MessageResource($message),
+        ]);
+    }
+
+    /**
+     * Mark all unread messages in a conversation as read for the current user.
+     */
+    public function markConversaAsRead(
+        Request $request,
+        string $conversaId,
+        ListConversationsAction $listConversations,
+    ): JsonResponse {
+        $user = $request->user();
+
+        if (! $listConversations->userCanAccessConversa($user, $conversaId)) {
+            return response()->json([
+                'message' => 'Conversa não encontrada ou você não tem permissão para acessá-la.',
+            ], 403);
+        }
+
+        $messages = Message::query()
+            ->where(function ($query) use ($conversaId): void {
+                $query->where('conversa_id', $conversaId)
+                    ->orWhere('id', $conversaId);
+            })
+            ->get();
+
+        $updated = 0;
+        foreach ($messages as $message) {
+            if ($listConversations->isUnreadForUser($user, $message)) {
+                $message->update([
+                    'lida' => true,
+                    'lida_em' => now(),
+                ]);
+                $updated++;
+            }
+        }
+
+        return response()->json([
+            'message' => 'Conversa marcada como lida.',
+            'updated' => $updated,
+        ]);
+    }
+
+    /**
+     * Remove the specified message.
+     */
+    public function destroy(Request $request, string $id, ListConversationsAction $listConversations): JsonResponse
+    {
+        $user = $request->user();
+        $message = Message::findOrFail($id);
+
+        if (! $listConversations->userCanAccessMessage($user, $message)) {
+            return response()->json([
+                'message' => 'Recado não encontrado ou você não tem permissão para removê-lo.',
+            ], 403);
+        }
+
+        $message->delete();
+
+        return response()->json([
+            'message' => 'Recado removido com sucesso.',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    protected function storeReply(
+        User $user,
+        array $validated,
+        ResolveMessageThreadAction $resolveMessageThread,
+    ): JsonResponse {
+        $thread = $resolveMessageThread->execute(
+            $user,
+            $validated['mensagem_pai_id'] ?? null,
+            $validated['conversa_id'] ?? null,
+        );
+
+        if (! $thread['destinatario_id']) {
+            return response()->json([
+                'message' => 'Não foi possível determinar o destinatário da resposta.',
+            ], 422);
+        }
+
+        $titulo = $validated['titulo'] ?? null;
+        if (! $titulo) {
+            $baseTitle = $thread['titulo'] ?? 'Mensagem';
+            $titulo = str_starts_with(mb_strtolower($baseTitle), 're:')
+                ? $baseTitle
+                : 'Re: '.$baseTitle;
+        }
+
+        $message = Message::create([
+            'tenant_id' => $thread['tenant_id'],
+            'remetente_id' => $user->id,
+            'destinatario_id' => $thread['destinatario_id'],
+            'aluno_id' => $thread['aluno_id'],
+            'conversa_id' => $thread['conversa_id'],
+            'mensagem_pai_id' => $thread['mensagem_pai_id'],
+            'titulo' => $titulo,
+            'conteudo' => $validated['conteudo'],
+            'tipo' => $validated['tipo'] ?? 'outro',
+            'prioridade' => $validated['prioridade'] ?? 'normal',
+            'anexo_url' => $validated['anexo_url'] ?? null,
+            'lida' => false,
+        ]);
+
+        $this->queueMessagePush($message);
+
+        $message->load($this->messageRelations());
+
+        return response()->json([
+            'message' => new MessageResource($message),
+        ], 201);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    protected function storeFromResponsavel(User $user, array $validated): JsonResponse
+    {
+        $aluno = Student::query()
+            ->where('id', $validated['aluno_id'])
+            ->where('ativo', true)
+            ->firstOrFail();
+        $teacher = Teacher::query()
+            ->where('id', $validated['professor_id'])
+            ->where('ativo', true)
+            ->firstOrFail();
+
+        if (! $teacher->usuario_id) {
+            return response()->json([
+                'message' => 'Este professor não possui usuário vinculado para receber mensagens.',
+            ], 422);
+        }
+
+        $message = Message::create([
+            'tenant_id' => $aluno->tenant_id,
+            'remetente_id' => $user->id,
+            'destinatario_id' => $teacher->usuario_id,
+            'aluno_id' => $aluno->id,
+            'conversa_id' => (string) Str::uuid(),
+            'titulo' => $validated['titulo'],
+            'conteudo' => $validated['conteudo'],
+            'tipo' => $validated['tipo'] ?? 'outro',
+            'prioridade' => $validated['prioridade'] ?? 'normal',
+            'anexo_url' => $validated['anexo_url'] ?? null,
+            'lida' => false,
+        ]);
+
+        $this->queueMessagePush($message);
+
+        $message->load($this->messageRelations());
+
+        return response()->json([
+            'message' => new MessageResource($message),
+        ], 201);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    protected function storeFromTeacher(User $user, array $validated): JsonResponse
+    {
         $teacher = $user->teacher()->where('ativo', true)->first();
         if (! $teacher) {
             return response()->json([
-                'message' => 'Acesso negado. Apenas professores podem criar mensagens.',
+                'message' => 'Acesso negado. Apenas professores podem criar recados.',
             ], 403);
         }
 
         $tenantId = $teacher->tenant_id;
 
-        // Se turma_id foi enviado, criar mensagem para todos os alunos da turma
         if (isset($validated['turma_id'])) {
             $turma = Turma::where('id', $validated['turma_id'])
                 ->where('tenant_id', $tenantId)
                 ->firstOrFail();
 
-            // Garantir que o tenant_id está definido no modelo para a relação funcionar
             $turma->setAttribute('tenant_id', $tenantId);
             $alunos = $turma->alunos()->get();
 
@@ -190,11 +345,13 @@ class MessagesController extends Controller
 
             $messages = [];
             foreach ($alunos as $aluno) {
-                $message = Message::create([
+                $created = Message::create([
                     'tenant_id' => $tenantId,
                     'remetente_id' => $user->id,
                     'aluno_id' => $aluno->id,
                     'turma_id' => $validated['turma_id'],
+                    // Turma fan-out: cada aluno fica com conversa própria (reply 1:1 depois).
+                    'conversa_id' => (string) Str::uuid(),
                     'titulo' => $validated['titulo'],
                     'conteudo' => $validated['conteudo'],
                     'tipo' => $validated['tipo'] ?? 'outro',
@@ -202,126 +359,85 @@ class MessagesController extends Controller
                     'anexo_url' => $validated['anexo_url'] ?? null,
                     'lida' => false,
                 ]);
-                $messages[] = $message;
+                $messages[] = $created;
+                $this->queueMessagePush($created);
             }
 
             return response()->json([
-                'message' => "Mensagem enviada para {$alunos->count()} aluno(s) da turma {$turma->nome}.",
+                'message' => "Recado enviado para {$alunos->count()} aluno(s) da turma {$turma->nome}.",
                 'messages' => MessageResource::collection($messages),
                 'count' => count($messages),
             ], 201);
         }
 
-        // Comportamento normal: mensagem para um aluno específico
         $message = Message::create([
-            ...$validated,
             'tenant_id' => $tenantId,
             'remetente_id' => $user->id,
+            'aluno_id' => $validated['aluno_id'],
+            'conversa_id' => (string) Str::uuid(),
+            'titulo' => $validated['titulo'],
+            'conteudo' => $validated['conteudo'],
+            'tipo' => $validated['tipo'] ?? 'outro',
+            'prioridade' => $validated['prioridade'] ?? 'normal',
+            'anexo_url' => $validated['anexo_url'] ?? null,
             'lida' => false,
         ]);
 
-        $message->load(['aluno:id,nome,nome_social', 'remetente:id,nome_completo', 'turma:id,nome']);
+        $this->queueMessagePush($message);
+
+        $message->load($this->messageRelations());
 
         return response()->json([
             'message' => new MessageResource($message),
         ], 201);
     }
 
-    /**
-     * Mark a message as read (only for responsaveis).
-     */
-    public function markAsRead(Request $request, string $id): JsonResponse
+    protected function queueMessagePush(Message $message): void
     {
-        $user = $request->user();
+        $messageId = $message->id;
 
-        if (! $user->isResponsavel()) {
-            return response()->json([
-                'message' => 'Acesso negado. Apenas responsáveis podem marcar mensagens como lidas.',
-            ], 403);
+        $send = function () use ($messageId): void {
+            $fresh = Message::query()->find($messageId);
+            if (! $fresh) {
+                return;
+            }
+
+            app(NotifyMessagePushRecipients::class)->execute($fresh);
+        };
+
+        // Em testes, dispara na hora (afterResponse + terminate é frágil no Pest).
+        if (app()->runningUnitTests()) {
+            $send();
+
+            return;
         }
 
-        $message = Message::findOrFail($id);
-
-        // Verificar se o responsável tem acesso ao aluno
-        $responsaveis = Responsavel::where('usuario_id', $user->id)->get();
-        $responsavelIds = $responsaveis->pluck('id')->toArray();
-
-        $driver = DB::connection('shared')->getDriverName();
-        $pivotTable = $driver === 'sqlite' ? 'aluno_responsavel' : 'escola.aluno_responsavel';
-
-        $hasAccess = DB::connection('shared')
-            ->table($pivotTable)
-            ->whereIn('responsavel_id', $responsavelIds)
-            ->where('aluno_id', $message->aluno_id)
-            ->exists();
-
-        if (! $hasAccess) {
-            return response()->json([
-                'message' => 'Mensagem não encontrada ou você não tem permissão para acessá-la.',
-            ], 403);
-        }
-
-        if (! $message->lida) {
-            $message->update([
-                'lida' => true,
-                'lida_em' => now(),
-            ]);
-        }
-
-        $message->load(['aluno:id,nome,nome_social', 'remetente:id,nome_completo', 'turma:id,nome']);
-
-        return response()->json([
-            'message' => new MessageResource($message),
-        ]);
+        dispatch($send)->afterResponse();
     }
 
     /**
-     * Remove the specified message.
-     * For teachers: can only delete messages they sent.
-     * For responsaveis: can delete messages for their students.
+     * @return list<string>
      */
-    public function destroy(Request $request, string $id): JsonResponse
+    protected function messageRelations(): array
     {
-        $user = $request->user();
-        $message = Message::findOrFail($id);
+        return [
+            'aluno:id,nome,nome_social',
+            'remetente:id,nome_completo,avatar_url',
+            'destinatario:id,nome_completo,avatar_url',
+            'turma:id,nome',
+        ];
+    }
 
-        // Verificar permissão
-        if ($user->isTeacher()) {
-            // Professores só podem deletar mensagens que enviaram
-            if ($message->remetente_id !== $user->id) {
-                return response()->json([
-                    'message' => 'Mensagem não encontrada ou você não tem permissão para removê-la.',
-                ], 403);
-            }
-        } elseif ($user->isResponsavel()) {
-            // Responsáveis podem deletar mensagens dos alunos vinculados
-            $responsaveis = Responsavel::where('usuario_id', $user->id)->get();
-            $responsavelIds = $responsaveis->pluck('id')->toArray();
-
-            $driver = DB::connection('shared')->getDriverName();
-            $pivotTable = $driver === 'sqlite' ? 'aluno_responsavel' : 'escola.aluno_responsavel';
-
-            $hasAccess = DB::connection('shared')
-                ->table($pivotTable)
-                ->whereIn('responsavel_id', $responsavelIds)
-                ->where('aluno_id', $message->aluno_id)
-                ->exists();
-
-            if (! $hasAccess) {
-                return response()->json([
-                    'message' => 'Mensagem não encontrada ou você não tem permissão para removê-la.',
-                ], 403);
-            }
-        } else {
-            return response()->json([
-                'message' => 'Acesso negado. Apenas professores e responsáveis podem remover mensagens.',
-            ], 403);
+    protected function userCanMarkAsRead(User $user, Message $message, ListConversationsAction $listConversations): bool
+    {
+        if ($message->destinatario_id) {
+            return $message->destinatario_id === $user->id;
         }
 
-        $message->delete();
+        if ($user->isResponsavel()) {
+            return in_array($message->aluno_id, $listConversations->linkedAlunoIds($user), true);
+        }
 
-        return response()->json([
-            'message' => 'Mensagem removida com sucesso.',
-        ]);
+        return false;
     }
 }

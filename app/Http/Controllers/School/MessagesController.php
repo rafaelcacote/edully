@@ -296,8 +296,8 @@ class MessagesController extends Controller
                 ->route('school.messages.index')
                 ->with('toast', [
                     'type' => 'success',
-                    'title' => 'Mensagens enviadas',
-                    'message' => "Mensagem enviada para {$alunos->count()} aluno(s) da turma {$turma->nome}.",
+                    'title' => 'Recados enviados',
+                    'message' => "Recado enviado para {$alunos->count()} aluno(s) da turma {$turma->nome}.",
                 ]);
         }
 
@@ -312,8 +312,8 @@ class MessagesController extends Controller
             ->route('school.messages.index')
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Mensagem criada',
-                'message' => 'A mensagem foi enviada com sucesso.',
+                'title' => 'Recado criado',
+                'message' => 'O recado foi enviado com sucesso.',
             ]);
     }
 
@@ -473,7 +473,7 @@ class MessagesController extends Controller
             ->route('school.messages.edit', $message)
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Mensagem atualizada',
+                'title' => 'Recado atualizado',
                 'message' => 'As alterações foram salvas com sucesso.',
             ]);
     }
@@ -503,8 +503,8 @@ class MessagesController extends Controller
             ->route('school.messages.index')
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Mensagem excluída',
-                'message' => 'A mensagem foi removida com sucesso.',
+                'title' => 'Recado excluído',
+                'message' => 'O recado foi removido com sucesso.',
             ]);
     }
 }

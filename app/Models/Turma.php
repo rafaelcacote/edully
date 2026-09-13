@@ -144,4 +144,21 @@ class Turma extends Model
             ->wherePivot('tenant_id', $this->tenant_id)
             ->wherePivot('status', 'ativo');
     }
+
+    protected function turmaDisciplinasPivotTable(): string
+    {
+        return $this->getConnection()->getDriverName() === 'sqlite'
+            ? 'turma_disciplinas'
+            : 'escola.turma_disciplinas';
+    }
+
+    /**
+     * Get the disciplinas (subjects) for the class curriculum.
+     */
+    public function disciplinas(): BelongsToMany
+    {
+        return $this->belongsToMany(Disciplina::class, $this->turmaDisciplinasPivotTable(), 'turma_id', 'disciplina_id')
+            ->withPivot(['tenant_id', 'professor_id', 'created_at'])
+            ->wherePivot('tenant_id', $this->tenant_id);
+    }
 }

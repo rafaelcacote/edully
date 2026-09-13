@@ -39,7 +39,7 @@ const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Mensagens',
+        title: 'Recados',
         href: '/school/messages',
     },
     {
@@ -81,7 +81,7 @@ function getTipoLabel(tipo?: string | null): string {
         case 'atencao':
             return 'Atenção';
         case 'aviso':
-            return 'Aviso';
+            return 'Urgente';
         case 'lembrete':
             return 'Lembrete';
         default:
@@ -92,7 +92,7 @@ function getTipoLabel(tipo?: string | null): string {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head :title="`Mensagem: ${props.message.titulo}`" />
+        <Head :title="`Recado: ${props.message.titulo}`" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
@@ -103,7 +103,7 @@ function getTipoLabel(tipo?: string | null): string {
                             {{ props.message.titulo }}
                         </h2>
                         <p class="text-sm text-muted-foreground">
-                            Detalhes da mensagem
+                            Detalhes do recado
                         </p>
                     </div>
                 </div>

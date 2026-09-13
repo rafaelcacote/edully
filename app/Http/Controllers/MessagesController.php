@@ -137,8 +137,8 @@ class MessagesController extends Controller
             ->route('messages.index')
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Mensagem enviada',
-                'message' => 'A mensagem foi enviada com sucesso.',
+                'title' => 'Recado enviado',
+                'message' => 'O recado foi enviado com sucesso.',
             ]);
     }
 
@@ -208,7 +208,7 @@ class MessagesController extends Controller
             ->route('messages.edit', $message)
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Mensagem atualizada',
+                'title' => 'Recado atualizado',
                 'message' => 'As alterações foram salvas com sucesso.',
             ]);
     }
@@ -235,8 +235,8 @@ class MessagesController extends Controller
             ->back()
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Mensagem marcada como lida',
-                'message' => 'A mensagem foi marcada como lida.',
+                'title' => 'Recado marcado como lido',
+                'message' => 'O recado foi marcado como lido.',
             ]);
     }
 
@@ -253,7 +253,7 @@ class MessagesController extends Controller
         }
 
         if ($message->remetente_id !== $user->id && $message->destinatario_id !== $user->id) {
-            abort(403, 'Você não tem permissão para excluir esta mensagem.');
+            abort(403, 'Você não tem permissão para excluir este recado.');
         }
 
         $message->delete();
@@ -262,8 +262,8 @@ class MessagesController extends Controller
             ->route('messages.index')
             ->with('toast', [
                 'type' => 'success',
-                'title' => 'Mensagem excluída',
-                'message' => 'A mensagem foi removida com sucesso.',
+                'title' => 'Recado excluído',
+                'message' => 'O recado foi removido com sucesso.',
             ]);
     }
 }

@@ -104,6 +104,12 @@ return new class extends Migration
             )
         ');
 
+        // Bancos legados podem ter a tabela sem usuario_id; CREATE IF NOT EXISTS não adiciona colunas.
+        DB::connection('shared')->statement('ALTER TABLE escola.alunos ADD COLUMN IF NOT EXISTS usuario_id UUID');
+        DB::connection('shared')->statement('ALTER TABLE escola.alunos ADD COLUMN IF NOT EXISTS nome VARCHAR(255)');
+        DB::connection('shared')->statement('ALTER TABLE escola.alunos ADD COLUMN IF NOT EXISTS nome_social VARCHAR(255)');
+        DB::connection('shared')->statement('ALTER TABLE escola.alunos ADD COLUMN IF NOT EXISTS foto_url TEXT');
+
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_alunos_tenant_id ON escola.alunos(tenant_id)');
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_alunos_usuario_id ON escola.alunos(usuario_id)');
 
@@ -145,8 +151,32 @@ return new class extends Migration
         ');
 
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_professores_tenant_id ON escola.professores(tenant_id)');
-        DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_professores_cpf ON escola.professores(cpf)');
-        DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_professores_email ON escola.professores(email)');
+
+        // Schema legado tinha cpf/email; o modelo atual usa usuario_id (rebuild posterior).
+        DB::connection('shared')->statement("
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'escola'
+                      AND table_name = 'professores'
+                      AND column_name = 'cpf'
+                ) THEN
+                    CREATE INDEX IF NOT EXISTS idx_professores_cpf ON escola.professores(cpf);
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'escola'
+                      AND table_name = 'professores'
+                      AND column_name = 'email'
+                ) THEN
+                    CREATE INDEX IF NOT EXISTS idx_professores_email ON escola.professores(email);
+                END IF;
+            END $$;
+        ");
 
         DB::connection('shared')->statement('
             CREATE TABLE IF NOT EXISTS escola.aluno_responsavel (

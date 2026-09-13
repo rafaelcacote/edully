@@ -22,6 +22,7 @@ interface Student {
     data_nascimento?: string | null;
     ativo?: boolean;
     informacoes_medicas?: string | null;
+    turma_id?: string | null;
 }
 
 const props = defineProps<{

@@ -117,4 +117,23 @@ class Disciplina extends Model
                 $query->wherePivot('tenant_id', $this->tenant_id);
             });
     }
+
+    protected function turmaDisciplinasPivotTable(): string
+    {
+        return $this->getConnection()->getDriverName() === 'sqlite'
+            ? 'turma_disciplinas'
+            : 'escola.turma_disciplinas';
+    }
+
+    /**
+     * Get the turmas (classes) that include this discipline in their curriculum.
+     */
+    public function turmas(): BelongsToMany
+    {
+        return $this->belongsToMany(Turma::class, $this->turmaDisciplinasPivotTable(), 'disciplina_id', 'turma_id')
+            ->withPivot(['tenant_id', 'professor_id', 'created_at'])
+            ->when($this->tenant_id, function ($query) {
+                $query->wherePivot('tenant_id', $this->tenant_id);
+            });
+    }
 }

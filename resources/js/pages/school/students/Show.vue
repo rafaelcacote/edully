@@ -67,7 +67,18 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
-                <div class="mt-2">
+                <div class="mt-2 flex items-start gap-4">
+                    <div
+                        class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-input bg-muted"
+                    >
+                        <img
+                            v-if="props.student.foto_url"
+                            :src="props.student.foto_url"
+                            :alt="`Foto de ${props.student.nome}`"
+                            class="h-full w-full object-cover"
+                        />
+                        <User v-else class="h-8 w-8 text-muted-foreground" />
+                    </div>
                     <div class="mb-8 space-y-0.5">
                         <h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight">
                             <GraduationCap class="h-5 w-5" />
@@ -104,6 +115,18 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     <div>
                         <h3 class="mb-4 text-lg font-semibold">Informações Básicas</h3>
                         <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                                <p class="text-sm font-medium text-muted-foreground">Foto</p>
+                                <div class="mt-2">
+                                    <img
+                                        v-if="props.student.foto_url"
+                                        :src="props.student.foto_url"
+                                        :alt="`Foto de ${props.student.nome}`"
+                                        class="h-40 w-40 rounded-lg border border-input object-cover"
+                                    />
+                                    <span v-else class="text-sm text-muted-foreground">Sem foto cadastrada</span>
+                                </div>
+                            </div>
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Nome completo</p>
                                 <p class="mt-1">{{ props.student.nome }}</p>
@@ -131,15 +154,6 @@ const breadcrumbItems: BreadcrumbItem[] = [
                                 <p class="text-sm font-medium text-muted-foreground">Data de nascimento</p>
                                 <p class="mt-1">
                                     {{ props.student.data_nascimento ? new Date(props.student.data_nascimento).toLocaleDateString('pt-BR') : '—' }}
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-muted-foreground">Foto</p>
-                                <p class="mt-1">
-                                    <a v-if="props.student.foto_url" :href="props.student.foto_url" target="_blank" class="text-blue-500 hover:underline">
-                                        Ver foto
-                                    </a>
-                                    <span v-else>—</span>
                                 </p>
                             </div>
                             <div>

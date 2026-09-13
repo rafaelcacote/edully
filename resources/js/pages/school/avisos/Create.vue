@@ -9,11 +9,11 @@ import AvisoForm from './Partials/AvisoForm.vue';
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Avisos',
+        title: 'Comunicados',
         href: '/school/avisos',
     },
     {
-        title: 'Novo aviso',
+        title: 'Novo comunicado',
         href: '#',
     },
 ];
@@ -21,14 +21,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Novo aviso" />
+        <Head title="Novo comunicado" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
                     <Heading
-                        title="Novo aviso"
-                        description="Cadastre um novo aviso na escola"
+                        title="Novo comunicado"
+                        description="Publique um comunicado para toda a escola"
                         :icon="Bell"
                     />
                 </div>
@@ -55,7 +55,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     v-slot="{ errors, processing }"
                 >
                     <AvisoForm
-                        submit-label="Criar aviso"
+                        submit-label="Criar comunicado"
                         :processing="processing"
                         :errors="errors"
                     />

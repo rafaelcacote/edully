@@ -33,8 +33,15 @@ it('responsavel can list published avisos from their students tenant', function 
         'principal' => true,
     ]);
 
+    $criador = User::factory()->create([
+        'ativo' => true,
+        'nome_completo' => 'Professora Criadora',
+        'avatar_url' => asset('storage/teachers/photos/criadora.jpg'),
+    ]);
+
     $aviso = Aviso::create([
         'tenant_id' => $tenant->id,
+        'criado_por' => $criador->id,
         'titulo' => 'Aviso importante',
         'conteudo' => 'Conteúdo do aviso para todos',
         'prioridade' => 'alta',
@@ -63,6 +70,12 @@ it('responsavel can list published avisos from their students tenant', function 
                     'expira_em',
                     'created_at',
                     'updated_at',
+                    'criado_por' => [
+                        'id',
+                        'nome_completo',
+                        'avatar_url',
+                        'foto_url',
+                    ],
                     'tenant',
                 ],
             ],
@@ -77,6 +90,10 @@ it('responsavel can list published avisos from their students tenant', function 
     expect($response->json('avisos'))->toHaveCount(1);
     expect($response->json('avisos.0.id'))->toBe($aviso->id);
     expect($response->json('avisos.0.titulo'))->toBe('Aviso importante');
+    expect($response->json('avisos.0.criado_por.id'))->toBe($criador->id);
+    expect($response->json('avisos.0.criado_por.nome_completo'))->toBe('Professora Criadora');
+    expect($response->json('avisos.0.criado_por.foto_url'))->toBe($criador->avatar_url);
+    expect($response->json('avisos.0.criado_por.avatar_url'))->toBe($criador->avatar_url);
 });
 
 it('responsavel does not see unpublished or expired avisos', function () {
@@ -218,7 +235,7 @@ it('returns 403 when user is not responsavel or teacher', function () {
         ->getJson('/api/mobile/avisos');
 
     $response->assertForbidden()
-        ->assertJsonPath('message', 'Acesso negado. Apenas responsáveis e professores podem acessar os avisos.');
+        ->assertJsonPath('message', 'Acesso negado. Apenas responsáveis e professores podem acessar os comunicados.');
 });
 
 it('show returns 404 for aviso from another tenant', function () {

@@ -57,8 +57,22 @@ return new class extends Migration
 
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_mensagens_tenant_id ON escola.mensagens(tenant_id)');
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_mensagens_remetente_id ON escola.mensagens(remetente_id)');
-        DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_mensagens_destinatario_id ON escola.mensagens(destinatario_id)');
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_mensagens_lida ON escola.mensagens(lida)');
+
+        // Schema legado de mensagens pode não ter destinatario_id.
+        DB::connection('shared')->statement("
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'escola'
+                      AND table_name = 'mensagens'
+                      AND column_name = 'destinatario_id'
+                ) THEN
+                    CREATE INDEX IF NOT EXISTS idx_mensagens_destinatario_id ON escola.mensagens(destinatario_id);
+                END IF;
+            END $$;
+        ");
     }
 
     /**

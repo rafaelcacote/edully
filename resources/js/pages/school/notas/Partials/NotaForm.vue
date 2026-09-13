@@ -10,11 +10,9 @@ interface NotaData {
     aluno_id?: string;
     professor_id?: string;
     turma_id?: string | null;
-    disciplina?: string;
     disciplina_id?: string | null;
-    trimestre?: number;
+    bimestre?: number;
     nota?: number;
-    frequencia?: number | null;
     comportamento?: string | null;
     observacoes?: string | null;
     ano_letivo?: number;
@@ -47,7 +45,7 @@ const props = withDefaults(defineProps<{
     alunos?: Aluno[];
     professores?: Professor[];
     turmas?: Turma[];
-    disciplinas?: Disciplina[];
+    grade?: Record<string, Disciplina[]>;
     submitLabel: string;
     processing: boolean;
     errors: Record<string, string>;
@@ -55,18 +53,16 @@ const props = withDefaults(defineProps<{
     alunos: () => [],
     professores: () => [],
     turmas: () => [],
-    disciplinas: () => [],
+    grade: () => ({}),
     errors: () => ({}),
 });
 
 const alunoId = ref(props.notaData?.aluno_id || '');
 const professorId = ref(props.notaData?.professor_id || '');
 const turmaId = ref(props.notaData?.turma_id || '');
-const disciplina = ref(props.notaData?.disciplina || '');
 const disciplinaId = ref(props.notaData?.disciplina_id || '');
-const trimestre = ref(props.notaData?.trimestre?.toString() || '');
+const bimestre = ref(props.notaData?.bimestre?.toString() || '');
 const nota = ref(props.notaData?.nota?.toString() || '');
-const frequencia = ref(props.notaData?.frequencia?.toString() || '');
 const comportamento = ref(props.notaData?.comportamento || '');
 const observacoes = ref(props.notaData?.observacoes || '');
 const anoLetivo = ref(props.notaData?.ano_letivo?.toString() || new Date().getFullYear().toString());
@@ -74,7 +70,14 @@ const anoLetivo = ref(props.notaData?.ano_letivo?.toString() || new Date().getFu
 const alunosList = computed(() => props.alunos || []);
 const professoresList = computed(() => props.professores || []);
 const turmasList = computed(() => props.turmas || []);
-const disciplinasList = computed(() => props.disciplinas || []);
+
+const disciplinasDaTurma = computed(() => {
+    if (!turmaId.value) {
+        return [] as Disciplina[];
+    }
+
+    return props.grade?.[turmaId.value] || [];
+});
 
 const comportamentoOptions = [
     { value: '', label: 'Selecione' },
@@ -84,16 +87,25 @@ const comportamentoOptions = [
     { value: 'ruim', label: 'Ruim' },
 ];
 
+watch(turmaId, (newTurmaId, oldTurmaId) => {
+    if (oldTurmaId && newTurmaId !== oldTurmaId) {
+        disciplinaId.value = '';
+    }
+
+    const turma = turmasList.value.find((item) => item.id === newTurmaId);
+    if (turma?.ano_letivo) {
+        anoLetivo.value = String(turma.ano_letivo);
+    }
+});
+
 watch(() => props.notaData, (newData) => {
     if (newData) {
         alunoId.value = newData.aluno_id || '';
         professorId.value = newData.professor_id || '';
         turmaId.value = newData.turma_id || '';
-        disciplina.value = newData.disciplina || '';
         disciplinaId.value = newData.disciplina_id || '';
-        trimestre.value = newData.trimestre?.toString() || '';
+        bimestre.value = newData.bimestre?.toString() || '';
         nota.value = newData.nota?.toString() || '';
-        frequencia.value = newData.frequencia?.toString() || '';
         comportamento.value = newData.comportamento || '';
         observacoes.value = newData.observacoes || '';
         anoLetivo.value = newData.ano_letivo?.toString() || new Date().getFullYear().toString();
@@ -103,6 +115,48 @@ watch(() => props.notaData, (newData) => {
 
 <template>
     <div class="grid gap-6">
+        <div class="grid gap-6 sm:grid-cols-2">
+            <div class="grid gap-2">
+                <Label for="turma_id">Turma</Label>
+                <select
+                    id="turma_id"
+                    name="turma_id"
+                    v-model="turmaId"
+                    required
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option value="">Selecione uma turma</option>
+                    <option
+                        v-for="turma in turmasList"
+                        :key="turma.id"
+                        :value="turma.id"
+                    >
+                        {{ turma.nome }}
+                        <template v-if="turma.ano_letivo">
+                            ({{ turma.ano_letivo }})
+                        </template>
+                    </option>
+                </select>
+                <InputError :message="errors.turma_id" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="ano_letivo">Ano Letivo</Label>
+                <input
+                    id="ano_letivo"
+                    name="ano_letivo"
+                    v-model="anoLetivo"
+                    type="number"
+                    placeholder="Ex: 2026"
+                    min="2000"
+                    max="2100"
+                    required
+                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
+                />
+                <InputError :message="errors.ano_letivo" />
+            </div>
+        </div>
+
         <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="aluno_id">Aluno</Label>
@@ -149,100 +203,55 @@ watch(() => props.notaData, (newData) => {
 
         <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label for="turma_id">Turma (opcional)</Label>
-                <select
-                    id="turma_id"
-                    name="turma_id"
-                    v-model="turmaId"
-                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <option value="">Selecione uma turma</option>
-                    <option
-                        v-for="turma in turmasList"
-                        :key="turma.id"
-                        :value="turma.id"
-                    >
-                        {{ turma.nome }}
-                        <template v-if="turma.ano_letivo">
-                            ({{ turma.ano_letivo }})
-                        </template>
-                    </option>
-                </select>
-                <InputError :message="errors.turma_id" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="ano_letivo">Ano Letivo</Label>
-                <input
-                    id="ano_letivo"
-                    name="ano_letivo"
-                    v-model="anoLetivo"
-                    type="number"
-                    placeholder="Ex: 2024"
-                    min="2000"
-                    max="2100"
-                    required
-                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
-                />
-                <InputError :message="errors.ano_letivo" />
-            </div>
-        </div>
-
-        <div class="grid gap-6 sm:grid-cols-2">
-            <div class="grid gap-2">
-                <Label for="disciplina">Disciplina</Label>
-                <input
-                    id="disciplina"
-                    name="disciplina"
-                    v-model="disciplina"
-                    type="text"
-                    placeholder="Ex: Matemática"
-                    required
-                    maxlength="100"
-                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
-                />
-                <InputError :message="errors.disciplina" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="disciplina_id">Disciplina (opcional - relacionada)</Label>
+                <Label for="disciplina_id">Disciplina</Label>
                 <select
                     id="disciplina_id"
                     name="disciplina_id"
                     v-model="disciplinaId"
+                    required
+                    :disabled="!turmaId"
                     class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <option value="">Selecione uma disciplina</option>
+                    <option value="">
+                        {{ turmaId ? 'Selecione uma disciplina' : 'Selecione a turma primeiro' }}
+                    </option>
                     <option
-                        v-for="disciplinaItem in disciplinasList"
+                        v-for="disciplinaItem in disciplinasDaTurma"
                         :key="disciplinaItem.id"
                         :value="disciplinaItem.id"
                     >
                         {{ disciplinaItem.nome }}{{ disciplinaItem.sigla ? ` (${disciplinaItem.sigla})` : '' }}
                     </option>
                 </select>
+                <p
+                    v-if="turmaId && disciplinasDaTurma.length === 0"
+                    class="text-xs text-muted-foreground"
+                >
+                    Esta turma ainda não tem grade curricular. Vincule disciplinas na turma antes de lançar notas.
+                </p>
                 <InputError :message="errors.disciplina_id" />
             </div>
-        </div>
 
-        <div class="grid gap-6 sm:grid-cols-3">
             <div class="grid gap-2">
-                <Label for="trimestre">Trimestre</Label>
+                <Label for="bimestre">Bimestre</Label>
                 <select
-                    id="trimestre"
-                    name="trimestre"
-                    v-model="trimestre"
+                    id="bimestre"
+                    name="bimestre"
+                    v-model="bimestre"
                     required
                     class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <option value="">Selecione o trimestre</option>
-                    <option value="1">1º Trimestre</option>
-                    <option value="2">2º Trimestre</option>
-                    <option value="3">3º Trimestre</option>
+                    <option value="">Selecione o bimestre</option>
+                    <option value="1">1º Bimestre</option>
+                    <option value="2">2º Bimestre</option>
+                    <option value="3">3º Bimestre</option>
+                    <option value="4">4º Bimestre</option>
                 </select>
-                <InputError :message="errors.trimestre" />
+                <InputError :message="errors.bimestre" />
             </div>
+        </div>
 
+        <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="nota">Nota (0 a 10)</Label>
                 <input
@@ -261,38 +270,23 @@ watch(() => props.notaData, (newData) => {
             </div>
 
             <div class="grid gap-2">
-                <Label for="frequencia">Frequência (%)</Label>
-                <input
-                    id="frequencia"
-                    name="frequencia"
-                    v-model="frequencia"
-                    type="number"
-                    placeholder="Ex: 85"
-                    min="0"
-                    max="100"
-                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
-                />
-                <InputError :message="errors.frequencia" />
-            </div>
-        </div>
-
-        <div class="grid gap-2">
-            <Label for="comportamento">Comportamento (opcional)</Label>
-            <select
-                id="comportamento"
-                name="comportamento"
-                v-model="comportamento"
-                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-                <option
-                    v-for="option in comportamentoOptions"
-                    :key="option.value"
-                    :value="option.value"
+                <Label for="comportamento">Comportamento (opcional)</Label>
+                <select
+                    id="comportamento"
+                    name="comportamento"
+                    v-model="comportamento"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {{ option.label }}
-                </option>
-            </select>
-            <InputError :message="errors.comportamento" />
+                    <option
+                        v-for="option in comportamentoOptions"
+                        :key="option.value"
+                        :value="option.value"
+                    >
+                        {{ option.label }}
+                    </option>
+                </select>
+                <InputError :message="errors.comportamento" />
+            </div>
         </div>
 
         <div class="grid gap-2">

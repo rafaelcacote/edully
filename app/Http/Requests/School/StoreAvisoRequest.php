@@ -29,9 +29,9 @@ class StoreAvisoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'titulo.required' => 'Informe o título do aviso.',
+            'titulo.required' => 'Informe o título do comunicado.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
-            'conteudo.required' => 'Informe o conteúdo do aviso.',
+            'conteudo.required' => 'Informe o conteúdo do comunicado.',
             'prioridade.in' => 'A prioridade deve ser: normal, alta ou media.',
             'publico_alvo.in' => 'O público-alvo deve ser: todos, alunos, professores ou responsaveis.',
             'anexo.file' => 'O anexo deve ser um arquivo.',

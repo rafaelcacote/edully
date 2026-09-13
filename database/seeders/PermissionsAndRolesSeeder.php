@@ -82,6 +82,7 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.turmas.editar',
             'escola.turmas.excluir',
             'escola.turmas.alunos',
+            'escola.turmas.disciplinas',
             'escola.exercicios.visualizar',
             'escola.exercicios.criar',
             'escola.exercicios.editar',

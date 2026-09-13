@@ -98,7 +98,7 @@ function removeAnexo() {
                 id="titulo"
                 name="titulo"
                 :default-value="aviso?.titulo ?? ''"
-                placeholder="Ex: Aviso importante sobre..."
+                placeholder="Ex: Comunicado importante sobre..."
                 required
             />
             <InputError :message="errors.titulo" />
@@ -110,7 +110,7 @@ function removeAnexo() {
                 id="conteudo"
                 name="conteudo"
                 v-model="conteudo"
-                placeholder="Digite o conteúdo do aviso..."
+                placeholder="Digite o conteúdo do comunicado..."
                 rows="8"
                 required
                 class="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

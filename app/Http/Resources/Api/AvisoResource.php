@@ -26,6 +26,18 @@ class AvisoResource extends JsonResource
             'expira_em' => $this->expira_em?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
+            'criado_por' => $this->whenLoaded('criadoPor', function () {
+                if (! $this->criadoPor) {
+                    return null;
+                }
+
+                return [
+                    'id' => $this->criadoPor->id,
+                    'nome_completo' => $this->criadoPor->nome_completo,
+                    'avatar_url' => $this->criadoPor->avatar_url,
+                    'foto_url' => $this->criadoPor->avatar_url,
+                ];
+            }),
             'tenant' => $this->whenLoaded('tenant', function () {
                 return [
                     'id' => $this->tenant->id,

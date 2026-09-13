@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Eye, Plus, Trash2, ClipboardList } from 'lucide-vue-next';
+import { Edit, ListChecks, Plus, Trash2, ClipboardList } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface PaginationLink {
@@ -44,11 +44,10 @@ interface Nota {
     aluno: Aluno | null;
     professor: Professor | null;
     turma: Turma | null;
-    disciplina: string;
+    disciplina: string | null;
     disciplina_id: string | null;
-    trimestre: number;
+    bimestre: number;
     nota: number;
-    frequencia: number | null;
     comportamento: string | null;
     observacoes: string | null;
     ano_letivo: number;
@@ -71,7 +70,7 @@ interface Props {
         professor_id?: string | null;
         turma_id?: string | null;
         disciplina_id?: string | null;
-        trimestre?: string | null;
+        bimestre?: string | null;
         ano_letivo?: string | null;
     };
     alunos: Aluno[];
@@ -94,11 +93,11 @@ const alunoId = ref(props.filters.aluno_id ?? '');
 const professorId = ref(props.filters.professor_id ?? '');
 const turmaId = ref(props.filters.turma_id ?? '');
 const disciplinaId = ref(props.filters.disciplina_id ?? '');
-const trimestre = ref(props.filters.trimestre ?? '');
+const bimestre = ref(props.filters.bimestre ?? '');
 const anoLetivo = ref(props.filters.ano_letivo ?? '');
 
 const hasAnyFilter = computed(
-    () => !!search.value || !!alunoId.value || !!professorId.value || !!turmaId.value || !!disciplinaId.value || !!trimestre.value || !!anoLetivo.value,
+    () => !!search.value || !!alunoId.value || !!professorId.value || !!turmaId.value || !!disciplinaId.value || !!bimestre.value || !!anoLetivo.value,
 );
 
 function applyFilters() {
@@ -110,7 +109,7 @@ function applyFilters() {
             professor_id: professorId.value || undefined,
             turma_id: turmaId.value || undefined,
             disciplina_id: disciplinaId.value || undefined,
-            trimestre: trimestre.value || undefined,
+            bimestre: bimestre.value || undefined,
             ano_letivo: anoLetivo.value || undefined,
         },
         {
@@ -127,7 +126,7 @@ function clearFilters() {
     professorId.value = '';
     turmaId.value = '';
     disciplinaId.value = '';
-    trimestre.value = '';
+    bimestre.value = '';
     anoLetivo.value = '';
     applyFilters();
 }
@@ -155,7 +154,18 @@ function deleteNota(notaId: string) {
                     />
                 </div>
 
-                <div class="mt-2">
+                <div class="mt-2 flex items-center gap-2">
+                    <Button variant="outline" as-child>
+                        <Link href="/school/boletins" class="flex items-center gap-2">
+                            Boletins
+                        </Link>
+                    </Button>
+                    <Button variant="outline" as-child>
+                        <Link href="/school/notas/lote" class="flex items-center gap-2">
+                            <ListChecks class="h-4 w-4" />
+                            Lançar em lote
+                        </Link>
+                    </Button>
                     <Button as-child>
                         <Link href="/school/notas/create" class="flex items-center gap-2">
                             <Plus class="h-4 w-4" />
@@ -242,14 +252,15 @@ function deleteNota(notaId: string) {
                             </select>
 
                             <select
-                                v-model="trimestre"
+                                v-model="bimestre"
                                 class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-44"
                                 @change="applyFilters"
                             >
-                                <option value="">Todos os trimestres</option>
-                                <option value="1">1º Trimestre</option>
-                                <option value="2">2º Trimestre</option>
-                                <option value="3">3º Trimestre</option>
+                                <option value="">Todos os bimestres</option>
+                                <option value="1">1º Bimestre</option>
+                                <option value="2">2º Bimestre</option>
+                                <option value="3">3º Bimestre</option>
+                                <option value="4">4º Bimestre</option>
                             </select>
 
                             <input
@@ -290,9 +301,8 @@ function deleteNota(notaId: string) {
                                 <th class="px-4 py-3">Disciplina</th>
                                 <th class="px-4 py-3">Professor</th>
                                 <th class="px-4 py-3">Turma</th>
-                                <th class="px-4 py-3">Trimestre</th>
+                                <th class="px-4 py-3">Bimestre</th>
                                 <th class="px-4 py-3">Nota</th>
-                                <th class="px-4 py-3">Frequência</th>
                                 <th class="px-4 py-3">Ano Letivo</th>
                                 <th class="px-4 py-3 text-center">Ações</th>
                             </tr>
@@ -316,14 +326,11 @@ function deleteNota(notaId: string) {
                                 <td class="px-4 py-3">{{ nota.turma?.nome || '—' }}</td>
                                 <td class="px-4 py-3">
                                     <Badge variant="secondary">
-                                        {{ nota.trimestre }}º Trimestre
+                                        {{ nota.bimestre }}º Bimestre
                                     </Badge>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <span class="font-semibold">{{ nota.nota.toFixed(1) }}</span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    {{ nota.frequencia !== null ? `${nota.frequencia}%` : '—' }}
+                                    <span class="font-semibold">{{ Number(nota.nota).toFixed(1) }}</span>
                                 </td>
                                 <td class="px-4 py-3">{{ nota.ano_letivo }}</td>
                                 <td class="px-4 py-3">
@@ -358,7 +365,7 @@ function deleteNota(notaId: string) {
 
                             <tr v-if="props.notas.data.length === 0">
                                 <td
-                                    colspan="9"
+                                    colspan="8"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhuma nota encontrada.

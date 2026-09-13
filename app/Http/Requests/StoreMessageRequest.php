@@ -50,9 +50,9 @@ class StoreMessageRequest extends FormRequest
         return [
             'destinatario_id.required' => 'Selecione um destinatário.',
             'destinatario_id.exists' => 'Destinatário não encontrado.',
-            'titulo.required' => 'Informe o título da mensagem.',
+            'titulo.required' => 'Informe o título do recado.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
-            'conteudo.required' => 'Informe o conteúdo da mensagem.',
+            'conteudo.required' => 'Informe o conteúdo do recado.',
         ];
     }
 

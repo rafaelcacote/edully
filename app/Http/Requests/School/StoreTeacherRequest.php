@@ -24,6 +24,7 @@ class StoreTeacherRequest extends FormRequest
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'password' => ['nullable', 'string', 'min:6'],
+            'foto' => ['nullable', 'image', 'max:2048', 'mimes:jpeg,jpg,png,gif,webp'],
 
             // Teacher fields
             'matricula' => [
@@ -56,6 +57,9 @@ class StoreTeacherRequest extends FormRequest
             'disciplinas.*.exists' => 'Uma ou mais disciplinas selecionadas são inválidas ou não pertencem a esta escola.',
             'especializacao.max' => 'A especialização não pode ter mais de 255 caracteres.',
             'password.min' => 'A senha deve ter no mínimo 6 caracteres.',
+            'foto.image' => 'O arquivo deve ser uma imagem.',
+            'foto.max' => 'A imagem não pode ter mais de 2MB.',
+            'foto.mimes' => 'A imagem deve ser do tipo: jpeg, jpg, png, gif ou webp.',
         ];
     }
 }

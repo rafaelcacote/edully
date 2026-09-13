@@ -2,6 +2,7 @@
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import ThemeToggle from '@/components/ThemeToggle.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -87,7 +88,9 @@ const rightNavItems: NavItem[] = [
         <div
             class="sticky top-0 z-30 border-b border-sidebar-border/80 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40"
         >
-            <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl md:px-6">
+            <div
+                class="mx-auto flex h-16 items-center px-4 md:max-w-7xl md:px-6"
+            >
                 <!-- Mobile Menu -->
                 <div class="lg:hidden">
                     <Sheet>
@@ -191,6 +194,7 @@ const rightNavItems: NavItem[] = [
 
                 <div class="ml-auto flex items-center space-x-2">
                     <div class="relative flex items-center space-x-1">
+                        <ThemeToggle />
                         <Button
                             variant="ghost"
                             size="icon"

@@ -16,6 +16,9 @@ class MessageResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'aluno_id' => $this->aluno_id,
+            'conversa_id' => $this->conversa_id,
+            'mensagem_pai_id' => $this->mensagem_pai_id,
             'titulo' => $this->titulo,
             'conteudo' => $this->conteudo,
             'tipo' => $this->tipo,
@@ -36,6 +39,20 @@ class MessageResource extends JsonResource
                 return [
                     'id' => $this->remetente->id,
                     'nome_completo' => $this->remetente->nome_completo,
+                    'avatar_url' => $this->remetente->avatar_url,
+                    'foto_url' => $this->remetente->avatar_url,
+                ];
+            }),
+            'destinatario' => $this->whenLoaded('destinatario', function () {
+                if (! $this->destinatario) {
+                    return null;
+                }
+
+                return [
+                    'id' => $this->destinatario->id,
+                    'nome_completo' => $this->destinatario->nome_completo,
+                    'avatar_url' => $this->destinatario->avatar_url,
+                    'foto_url' => $this->destinatario->avatar_url,
                 ];
             }),
             'turma' => $this->whenLoaded('turma', function () {

@@ -12,7 +12,12 @@ use Illuminate\Support\Facades\DB;
 
 it('teacher can list their exercises', function () {
     $tenant = Tenant::factory()->create();
-    $user = User::factory()->create(['ativo' => true]);
+    $fotoUrl = asset('storage/teachers/photos/professor-exercicio.jpg');
+    $user = User::factory()->create([
+        'ativo' => true,
+        'nome_completo' => 'Professor Exercício',
+        'avatar_url' => $fotoUrl,
+    ]);
     $teacher = Teacher::create([
         'tenant_id' => $tenant->id,
         'usuario_id' => $user->id,
@@ -50,12 +55,10 @@ it('teacher can list their exercises', function () {
         'tenant_id' => $tenant->id,
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
-        'disciplina_id' => $disciplina->id,
         'disciplina' => $disciplina->nome,
         'titulo' => 'Exercício de Matemática',
         'descricao' => 'Resolver os exercícios da página 10',
         'data_entrega' => now()->addDays(7),
-        'tipo_exercicio' => 'exercicio_caderno',
     ]);
 
     $token = $user->createToken('mobile-app')->plainTextToken;
@@ -72,10 +75,17 @@ it('teacher can list their exercises', function () {
                     'descricao',
                     'data_entrega',
                     'data_entrega_formatted',
-                    'tipo_exercicio',
                     'disciplina',
                     'turma',
-                    'professor',
+                    'professor' => [
+                        'id',
+                        'usuario' => [
+                            'id',
+                            'nome_completo',
+                            'avatar_url',
+                            'foto_url',
+                        ],
+                    ],
                     'created_at',
                 ],
             ],
@@ -89,6 +99,9 @@ it('teacher can list their exercises', function () {
 
     expect($response->json('exercises'))->toHaveCount(1);
     expect($response->json('exercises.0.id'))->toBe($exercise->id);
+    expect($response->json('exercises.0.professor.usuario.nome_completo'))->toBe('Professor Exercício');
+    expect($response->json('exercises.0.professor.usuario.foto_url'))->toBe($fotoUrl);
+    expect($response->json('exercises.0.professor.usuario.avatar_url'))->toBe($fotoUrl);
 });
 
 it('responsavel can list exercises for their students classes', function () {

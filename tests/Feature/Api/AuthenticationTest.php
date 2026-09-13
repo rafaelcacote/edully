@@ -34,6 +34,7 @@ it('teacher can login successfully', function () {
                 'cpf',
                 'telefone',
                 'avatar_url',
+                'foto_url',
                 'type',
             ],
         ])
@@ -73,6 +74,7 @@ it('responsavel can login successfully', function () {
                 'cpf',
                 'telefone',
                 'avatar_url',
+                'foto_url',
                 'type',
             ],
         ])
@@ -194,6 +196,7 @@ it('authenticated user can get their information', function () {
                 'cpf',
                 'telefone',
                 'avatar_url',
+                'foto_url',
                 'type',
             ],
         ])

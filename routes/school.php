@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\School\AvisosController;
+use App\Http\Controllers\School\BoletinsController;
 use App\Http\Controllers\School\ClassesController;
 use App\Http\Controllers\School\DisciplinasController;
 use App\Http\Controllers\School\ExercisesController;
@@ -117,6 +118,12 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::get('classes/{class}/students', [ClassesController::class, 'students'])
         ->middleware('permission:escola.turmas.alunos')
         ->name('classes.students');
+    Route::get('classes/{class}/disciplinas', [ClassesController::class, 'disciplinas'])
+        ->middleware('permission:escola.turmas.disciplinas')
+        ->name('classes.disciplinas');
+    Route::put('classes/{class}/disciplinas', [ClassesController::class, 'syncDisciplinas'])
+        ->middleware('permission:escola.turmas.editar')
+        ->name('classes.disciplinas.sync');
     Route::get('classes/{class}/edit', [ClassesController::class, 'edit'])
         ->middleware('permission:escola.turmas.editar')
         ->name('classes.edit');
@@ -252,6 +259,12 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::get('notas', [NotasController::class, 'index'])
         ->middleware('permission:escola.notas.visualizar')
         ->name('notas.index');
+    Route::get('notas/lote', [NotasController::class, 'lote'])
+        ->middleware('permission:escola.notas.criar')
+        ->name('notas.lote');
+    Route::put('notas/lote', [NotasController::class, 'syncLote'])
+        ->middleware('permission:escola.notas.criar')
+        ->name('notas.lote.sync');
     Route::get('notas/create', [NotasController::class, 'create'])
         ->middleware('permission:escola.notas.criar')
         ->name('notas.create');
@@ -267,4 +280,9 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::delete('notas/{nota}', [NotasController::class, 'destroy'])
         ->middleware('permission:escola.notas.excluir')
         ->name('notas.destroy');
+
+    // Boletins
+    Route::get('boletins', [BoletinsController::class, 'index'])
+        ->middleware('permission:escola.notas.visualizar')
+        ->name('boletins.index');
 });

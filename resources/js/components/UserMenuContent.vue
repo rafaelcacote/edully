@@ -4,24 +4,42 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
     DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAppearance } from '@/composables/useAppearance';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
-import { LogOut, Settings } from 'lucide-vue-next';
+import { LogOut, Monitor, Moon, Palette, Settings, Sun } from 'lucide-vue-next';
+
+const { appearance, updateAppearance } = useAppearance();
+
+function setAppearance(value: string | number): void {
+    if (value === 'light' || value === 'dark' || value === 'system') {
+        updateAppearance(value);
+    }
+}
 
 interface Props {
     user: User;
 }
 
 const handleLogout = () => {
-    router.post(logout().url, {}, {
-        onFinish: () => {
-            router.flushAll();
+    router.post(
+        logout().url,
+        {},
+        {
+            onFinish: () => {
+                router.flushAll();
+            },
         },
-    });
+    );
 };
 
 defineProps<Props>();
@@ -41,6 +59,40 @@ defineProps<Props>();
                 Configurações
             </Link>
         </DropdownMenuItem>
+        <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+                <Palette class="mr-2 h-4 w-4" />
+                Tema
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+                <DropdownMenuRadioGroup
+                    :model-value="appearance"
+                    @update:model-value="setAppearance"
+                >
+                    <DropdownMenuRadioItem
+                        value="light"
+                        data-test="theme-option-light"
+                    >
+                        <Sun class="h-4 w-4" />
+                        Claro
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem
+                        value="dark"
+                        data-test="theme-option-dark"
+                    >
+                        <Moon class="h-4 w-4" />
+                        Escuro
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem
+                        value="system"
+                        data-test="theme-option-system"
+                    >
+                        <Monitor class="h-4 w-4" />
+                        Sistema
+                    </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+        </DropdownMenuSub>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
     <DropdownMenuItem :as-child="true">

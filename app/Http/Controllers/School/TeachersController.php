@@ -10,8 +10,10 @@ use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -102,7 +104,7 @@ class TeachersController extends Controller
         $teachers = Teacher::query()
             ->where('tenant_id', $tenant->id)
             ->with([
-                'usuario:id,nome_completo,cpf,email,telefone',
+                'usuario:id,nome_completo,cpf,email,telefone,avatar_url',
                 'disciplinas:id,nome,sigla',
             ])
             ->when($filters['search'] ?? null, function ($query, string $search) {
@@ -155,6 +157,7 @@ class TeachersController extends Controller
                     'cpf' => $teacher->usuario?->cpf,
                     'email' => $teacher->usuario?->email,
                     'telefone' => $teacher->usuario?->telefone,
+                    'foto_url' => $teacher->usuario?->avatar_url,
                 ];
             });
 
@@ -207,7 +210,7 @@ class TeachersController extends Controller
 
         $validated = $request->validated();
 
-        DB::transaction(function () use ($tenant, $validated) {
+        DB::transaction(function () use ($tenant, $validated, $request) {
             if (isset($validated['disciplinas'])) {
                 if (is_string($validated['disciplinas'])) {
                     $disciplinasJson = json_decode($validated['disciplinas'], true);
@@ -224,12 +227,18 @@ class TeachersController extends Controller
             // Determine password: use provided password, or CPF, or default
             $password = $validated['password'] ?? $validated['cpf'] ?? 'password';
 
+            $avatarUrl = null;
+            if ($request->hasFile('foto')) {
+                $avatarUrl = $this->storeTeacherPhoto($request->file('foto'));
+            }
+
             // Create the user first
             $user = User::create([
                 'nome_completo' => $validated['nome_completo'],
                 'cpf' => $validated['cpf'] ?? null,
                 'email' => $validated['email'] ?? null,
                 'telefone' => $validated['telefone'] ?? null,
+                'avatar_url' => $avatarUrl,
                 'password_hash' => Hash::make($password),
                 'ativo' => true,
             ]);
@@ -274,7 +283,7 @@ class TeachersController extends Controller
             abort(404);
         }
 
-        $teacher->load(['usuario:id,nome_completo,cpf,email,telefone', 'disciplinas:id,nome,sigla']);
+        $teacher->load(['usuario:id,nome_completo,cpf,email,telefone,avatar_url', 'disciplinas:id,nome,sigla']);
 
         // Get disciplinas names safely
         $disciplinasNames = [];
@@ -305,6 +314,7 @@ class TeachersController extends Controller
                 'cpf' => $teacher->usuario?->cpf,
                 'email' => $teacher->usuario?->email,
                 'telefone' => $teacher->usuario?->telefone,
+                'foto_url' => $teacher->usuario?->avatar_url,
             ],
         ]);
     }
@@ -320,7 +330,7 @@ class TeachersController extends Controller
             abort(404);
         }
 
-        $teacher->load(['usuario:id,nome_completo,cpf,email,telefone']);
+        $teacher->load(['usuario:id,nome_completo,cpf,email,telefone,avatar_url']);
 
         $disciplinas = Disciplina::query()
             ->where('tenant_id', $tenant->id)
@@ -351,6 +361,7 @@ class TeachersController extends Controller
                 'cpf' => $teacher->usuario?->cpf,
                 'email' => $teacher->usuario?->email,
                 'telefone' => $teacher->usuario?->telefone,
+                'foto_url' => $teacher->usuario?->avatar_url,
             ],
             'disciplinas' => $disciplinas->map(fn ($d) => [
                 'id' => $d->id,
@@ -373,14 +384,7 @@ class TeachersController extends Controller
 
         $validated = $request->validated();
 
-        DB::transaction(function () use ($teacher, $validated, $tenant) {
-            // Process disciplinas if it's a JSON string
-            \Log::info('Update Teacher - Dados recebidos:', [
-                'teacher_id' => $teacher->id,
-                'disciplinas_raw' => $validated['disciplinas'] ?? 'não enviado',
-                'disciplinas_type' => gettype($validated['disciplinas'] ?? null),
-            ]);
-
+        DB::transaction(function () use ($teacher, $validated, $tenant, $request) {
             if (isset($validated['disciplinas'])) {
                 if (is_string($validated['disciplinas'])) {
                     $disciplinasJson = json_decode($validated['disciplinas'], true);
@@ -390,21 +394,25 @@ class TeachersController extends Controller
                 }
             }
 
-            \Log::info('Update Teacher - Disciplinas processadas:', [
-                'disciplinas' => $validated['disciplinas'] ?? [],
-            ]);
             // Remove CPF formatting
             if (! empty($validated['cpf'])) {
                 $validated['cpf'] = preg_replace('/[^0-9]/', '', $validated['cpf']);
             }
 
-            // Update the user
-            $teacher->usuario->update([
+            $userData = [
                 'nome_completo' => $validated['nome_completo'],
                 'cpf' => $validated['cpf'] ?? null,
                 'email' => $validated['email'] ?? null,
                 'telefone' => $validated['telefone'] ?? null,
-            ]);
+            ];
+
+            if ($request->hasFile('foto')) {
+                $this->deleteStoredTeacherPhoto($teacher->usuario?->avatar_url);
+                $userData['avatar_url'] = $this->storeTeacherPhoto($request->file('foto'));
+            }
+
+            // Update the user
+            $teacher->usuario->update($userData);
 
             // Update password if provided
             if (! empty($validated['password'])) {
@@ -432,6 +440,30 @@ class TeachersController extends Controller
                 'title' => 'Professor atualizado',
                 'message' => 'As alterações foram salvas com sucesso.',
             ]);
+    }
+
+    protected function storeTeacherPhoto(UploadedFile $foto): string
+    {
+        $fotoPath = $foto->store('teachers/photos', 'public');
+
+        return asset('storage/'.$fotoPath);
+    }
+
+    protected function deleteStoredTeacherPhoto(?string $avatarUrl): void
+    {
+        if (! $avatarUrl) {
+            return;
+        }
+
+        $storageBaseUrl = asset('storage/');
+        if (! str_starts_with($avatarUrl, $storageBaseUrl)) {
+            return;
+        }
+
+        $oldFotoPath = str_replace($storageBaseUrl, '', $avatarUrl);
+        if (Storage::disk('public')->exists($oldFotoPath)) {
+            Storage::disk('public')->delete($oldFotoPath);
+        }
     }
 
     /**

@@ -74,10 +74,12 @@ const breadcrumbItems: BreadcrumbItem[] = [
             <div class="rounded-xl border bg-card p-6 shadow-sm">
                 <Form
                     :action="`/school/students/${props.student.id}`"
-                    method="patch"
+                    method="post"
+                    enctype="multipart/form-data"
                     class="space-y-6"
                     v-slot="{ errors, processing }"
                 >
+                    <input type="hidden" name="_method" value="patch" />
                     <StudentForm
                         :student="props.student"
                         :turmas="props.turmas"

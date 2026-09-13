@@ -54,13 +54,22 @@ return new class extends Migration
         // Postgres: Remover coluna disciplina e adicionar disciplina_id
         DB::connection('shared')->statement('ALTER TABLE escola.provas DROP COLUMN IF EXISTS disciplina');
         DB::connection('shared')->statement('ALTER TABLE escola.provas ADD COLUMN IF NOT EXISTS disciplina_id UUID');
-        DB::connection('shared')->statement('
-            ALTER TABLE escola.provas 
-            ADD CONSTRAINT IF NOT EXISTS provas_disciplina_id_fkey 
-            FOREIGN KEY (disciplina_id) 
-            REFERENCES escola.disciplinas(id) 
-            ON DELETE SET NULL
-        ');
+        DB::connection('shared')->statement("
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'provas_disciplina_id_fkey'
+                ) THEN
+                    ALTER TABLE escola.provas
+                    ADD CONSTRAINT provas_disciplina_id_fkey
+                    FOREIGN KEY (disciplina_id)
+                    REFERENCES escola.disciplinas(id)
+                    ON DELETE SET NULL;
+                END IF;
+            END $$;
+        ");
         DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_provas_disciplina_id ON escola.provas(disciplina_id)');
     }
 

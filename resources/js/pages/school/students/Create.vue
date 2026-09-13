@@ -63,6 +63,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 <Form
                     action="/school/students"
                     method="post"
+                    enctype="multipart/form-data"
                     reset-on-success
                     class="space-y-6"
                     v-slot="{ errors, processing }"

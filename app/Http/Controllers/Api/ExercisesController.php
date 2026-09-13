@@ -183,7 +183,7 @@ class ExercisesController extends Controller
             ->with([
                 'turma:id,nome,serie,turma_letra,ano_letivo',
                 'professor:id,usuario_id',
-                'professor.usuario:id,nome_completo',
+                'professor.usuario:id,nome_completo,avatar_url',
                 'disciplinaRelation:id,nome,sigla',
             ])
             ->orderBy('data_entrega', 'asc')
@@ -210,7 +210,7 @@ class ExercisesController extends Controller
         $exercise = Exercise::with([
             'turma:id,nome,serie,turma_letra,ano_letivo',
             'professor:id,usuario_id',
-            'professor.usuario:id,nome_completo',
+            'professor.usuario:id,nome_completo,avatar_url',
             'disciplinaRelation:id,nome,sigla',
         ])->findOrFail($id);
 
@@ -297,7 +297,7 @@ class ExercisesController extends Controller
         $exercise->load([
             'turma:id,nome,serie,turma_letra,ano_letivo',
             'professor:id,usuario_id',
-            'professor.usuario:id,nome_completo',
+            'professor.usuario:id,nome_completo,avatar_url',
             'disciplinaRelation:id,nome,sigla',
         ]);
 
@@ -336,7 +336,7 @@ class ExercisesController extends Controller
         $exercise->load([
             'turma:id,nome,serie,turma_letra,ano_letivo',
             'professor:id,usuario_id',
-            'professor.usuario:id,nome_completo',
+            'professor.usuario:id,nome_completo,avatar_url',
             'disciplinaRelation:id,nome,sigla',
         ]);
 

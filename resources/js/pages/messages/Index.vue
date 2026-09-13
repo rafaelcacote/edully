@@ -64,7 +64,7 @@ const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Mensagens',
+        title: 'Recados',
         href: '/messages',
     },
 ];
@@ -109,7 +109,7 @@ function formatDate(date: string): string {
 }
 
 function deleteMessage(messageId: string) {
-    if (confirm('Tem certeza que deseja excluir esta mensagem?')) {
+    if (confirm('Tem certeza que deseja excluir este recado?')) {
         router.delete(`/messages/${messageId}`, {
             preserveScroll: true,
         });
@@ -119,14 +119,14 @@ function deleteMessage(messageId: string) {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Mensagens" />
+        <Head title="Recados" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
                     <Heading
-                        title="Mensagens"
-                        description="Gerencie suas mensagens"
+                        title="Recados"
+                        description="Recados entre usuários"
                         :icon="Mail"
                     />
                 </div>
@@ -135,7 +135,7 @@ function deleteMessage(messageId: string) {
                     <Button as-child>
                         <Link :href="create()" class="flex items-center gap-2">
                             <Plus class="h-4 w-4" />
-                            Nova mensagem
+                            Novo recado
                         </Link>
                     </Button>
                 </div>
@@ -279,7 +279,7 @@ function deleteMessage(messageId: string) {
                                     colspan="6"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
-                                    Nenhuma mensagem encontrada.
+                                    Nenhum recado encontrado.
                                 </td>
                             </tr>
                         </tbody>

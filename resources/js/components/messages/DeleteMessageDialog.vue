@@ -47,7 +47,7 @@ defineProps<{
                         Confirmar exclusão
                     </DialogTitle>
                     <DialogDescription class="leading-relaxed">
-                        Você está prestes a excluir a mensagem
+                        Você está prestes a excluir o recado
                         <span class="font-medium text-foreground">{{
                             message.titulo
                         }}</span
@@ -60,7 +60,7 @@ defineProps<{
                 >
                     <p class="font-medium">Atenção</p>
                     <p class="mt-1 opacity-90">
-                        Recomendamos confirmar se esta mensagem não está em uso
+                        Recomendamos confirmar se este recado não está em uso
                         em outras rotinas do sistema.
                     </p>
                     <InputError class="mt-2" :message="errors.message" />

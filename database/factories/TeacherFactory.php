@@ -22,7 +22,6 @@ class TeacherFactory extends Factory
             'tenant_id' => Tenant::factory(),
             'usuario_id' => User::factory(),
             'matricula' => 'PROF'.fake()->unique()->numberBetween(2024000, 2024999),
-            'disciplinas' => [fake()->randomElement(['Matemática', 'Português', 'História', 'Geografia', 'Física'])],
             'especializacao' => fake()->randomElement(['Educação Especial', 'Educação Infantil', 'Educação Inclusiva', 'Psicopedagogia', null]),
             'ativo' => true,
         ];

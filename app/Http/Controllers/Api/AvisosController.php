@@ -72,7 +72,7 @@ class AvisosController extends Controller
 
         if (! $user->isResponsavel() && ! $user->isTeacher()) {
             return response()->json([
-                'message' => 'Acesso negado. Apenas responsáveis e professores podem acessar os avisos.',
+                'message' => 'Acesso negado. Apenas responsáveis e professores podem acessar os comunicados.',
             ], 403);
         }
 
@@ -97,7 +97,7 @@ class AvisosController extends Controller
                 $query->whereNull('expira_em')
                     ->orWhere('expira_em', '>=', now());
             })
-            ->with('tenant:id,nome')
+            ->with(['tenant:id,nome', 'criadoPor:id,nome_completo,avatar_url'])
             ->orderBy('publicado_em', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(15);
@@ -122,7 +122,7 @@ class AvisosController extends Controller
 
         if (! $user->isResponsavel() && ! $user->isTeacher()) {
             return response()->json([
-                'message' => 'Acesso negado. Apenas responsáveis e professores podem acessar os avisos.',
+                'message' => 'Acesso negado. Apenas responsáveis e professores podem acessar os comunicados.',
             ], 403);
         }
 
@@ -130,7 +130,7 @@ class AvisosController extends Controller
 
         if (empty($tenantIds)) {
             return response()->json([
-                'message' => 'Aviso não encontrado.',
+                'message' => 'Comunicado não encontrado.',
             ], 404);
         }
 
@@ -142,12 +142,12 @@ class AvisosController extends Controller
                 $query->whereNull('expira_em')
                     ->orWhere('expira_em', '>=', now());
             })
-            ->with('tenant:id,nome')
+            ->with(['tenant:id,nome', 'criadoPor:id,nome_completo,avatar_url'])
             ->first();
 
         if (! $aviso) {
             return response()->json([
-                'message' => 'Aviso não encontrado.',
+                'message' => 'Comunicado não encontrado.',
             ], 404);
         }
 

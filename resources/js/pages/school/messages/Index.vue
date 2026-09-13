@@ -62,7 +62,7 @@ const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Mensagens',
+        title: 'Recados',
         href: '/school/messages',
     },
 ];
@@ -127,14 +127,14 @@ function getPrioridadeLabel(prioridade?: string | null): string {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Mensagens" />
+        <Head title="Recados" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
                     <Heading
-                        title="Mensagens"
-                        description="Gerencie as mensagens enviadas"
+                        title="Recados"
+                        description="Recados para um aluno ou turma"
                         :icon="MessageSquare"
                     />
                 </div>
@@ -143,7 +143,7 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                     <Button as-child>
                         <Link href="/school/messages/create" class="flex items-center gap-2">
                             <Plus class="h-4 w-4" />
-                            Nova mensagem
+                            Novo recado
                         </Link>
                     </Button>
                 </div>
@@ -299,7 +299,7 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                                     colspan="6"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
-                                    Nenhuma mensagem encontrada.
+                                    Nenhum recado encontrado.
                                 </td>
                             </tr>
                         </tbody>

@@ -5,13 +5,19 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, BookOpen, Edit, Users } from 'lucide-vue-next';
+import { ArrowLeft, BookMarked, BookOpen, Edit, Users } from 'lucide-vue-next';
 
 interface Professor {
     id: string;
     usuario?: {
         nome_completo: string;
     } | null;
+}
+
+interface Disciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
 }
 
 interface Class {
@@ -24,6 +30,7 @@ interface Class {
     ativo: boolean;
     professor?: Professor | null;
     professores?: Professor[];
+    disciplinas?: Disciplina[];
 }
 
 interface Props {
@@ -73,6 +80,21 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             Voltar
                         </Link>
                     </Button>
+                    <Can permission="escola.turmas.disciplinas">
+                        <Button
+                            variant="outline"
+                            as-child
+                            class="rounded-lg"
+                        >
+                            <Link
+                                :href="`/school/classes/${props.turma.id}/disciplinas`"
+                                class="flex items-center gap-2"
+                            >
+                                <BookMarked class="h-4 w-4" />
+                                Disciplinas
+                            </Link>
+                        </Button>
+                    </Can>
                     <Can permission="escola.turmas.editar">
                         <Button as-child>
                             <Link :href="`/school/classes/${props.turma.id}/edit`" class="flex items-center gap-2">
@@ -153,6 +175,49 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         </div>
                         <p class="text-sm text-muted-foreground">
                             Nenhum professor vinculado a esta turma.
+                        </p>
+                    </div>
+
+                    <div class="border-t pt-6">
+                        <div class="mb-4 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <BookMarked class="h-5 w-5 text-muted-foreground" />
+                                <h3 class="text-lg font-semibold">Grade curricular</h3>
+                                <Badge
+                                    v-if="props.turma.disciplinas && props.turma.disciplinas.length > 0"
+                                    variant="secondary"
+                                    class="ml-2"
+                                >
+                                    {{ props.turma.disciplinas.length }}
+                                    {{ props.turma.disciplinas.length === 1 ? 'disciplina' : 'disciplinas' }}
+                                </Badge>
+                            </div>
+                            <Can permission="escola.turmas.disciplinas">
+                                <Button variant="outline" size="sm" as-child>
+                                    <Link :href="`/school/classes/${props.turma.id}/disciplinas`">
+                                        Gerenciar
+                                    </Link>
+                                </Button>
+                            </Can>
+                        </div>
+                        <div
+                            v-if="props.turma.disciplinas && props.turma.disciplinas.length > 0"
+                            class="flex flex-wrap gap-2"
+                        >
+                            <Badge
+                                v-for="disciplina in props.turma.disciplinas"
+                                :key="disciplina.id"
+                                variant="outline"
+                                class="px-3 py-1.5 text-sm"
+                            >
+                                {{ disciplina.nome }}{{ disciplina.sigla ? ` (${disciplina.sigla})` : '' }}
+                            </Badge>
+                        </div>
+                        <p
+                            v-else
+                            class="text-sm text-muted-foreground"
+                        >
+                            Nenhuma disciplina vinculada a esta turma.
                         </p>
                     </div>
                 </div>

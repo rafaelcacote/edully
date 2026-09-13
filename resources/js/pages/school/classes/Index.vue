@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { BookOpen, Edit, Eye, GraduationCap, Plus } from 'lucide-vue-next';
+import { BookMarked, BookOpen, Edit, Eye, GraduationCap, Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface PaginationLink {
@@ -245,6 +245,20 @@ function toggleStatus(classId: string, nextStatus: boolean) {
                                                 <Link :href="`/school/classes/${classItem.id}/students`">
                                                     <GraduationCap
                                                         class="h-4 w-4 text-green-500 dark:text-green-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </Can>
+                                        <Can permission="escola.turmas.disciplinas">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/classes/${classItem.id}/disciplinas`">
+                                                    <BookMarked
+                                                        class="h-4 w-4 text-violet-500 dark:text-violet-400"
                                                     />
                                                 </Link>
                                             </Button>

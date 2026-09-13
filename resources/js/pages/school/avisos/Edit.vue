@@ -29,7 +29,7 @@ const props = defineProps<Props>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Avisos',
+        title: 'Comunicados',
         href: '/school/avisos',
     },
     {
@@ -41,14 +41,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head :title="`Editar aviso: ${props.aviso.titulo}`" />
+        <Head :title="`Editar comunicado: ${props.aviso.titulo}`" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
                     <Heading
                         :title="props.aviso.titulo"
-                        description="Atualize os dados do aviso"
+                        description="Atualize os dados do comunicado"
                         :icon="Bell"
                     />
                 </div>

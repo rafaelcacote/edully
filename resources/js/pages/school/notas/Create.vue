@@ -33,7 +33,7 @@ interface Props {
     alunos: Aluno[];
     professores: Professor[];
     turmas: Turma[];
-    disciplinas: Disciplina[];
+    grade: Record<string, Disciplina[]>;
 }
 
 const props = defineProps<Props>();
@@ -59,7 +59,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 <div class="mt-2">
                     <Heading
                         title="Nova nota"
-                        description="Cadastre uma nova nota"
+                        description="Cadastre a nota bimestral do aluno"
                         :icon="ClipboardList"
                     />
                 </div>
@@ -88,7 +88,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         :alunos="props.alunos"
                         :professores="props.professores"
                         :turmas="props.turmas"
-                        :disciplinas="props.disciplinas"
+                        :grade="props.grade"
                         submit-label="Criar nota"
                         :processing="processing"
                         :errors="errors"

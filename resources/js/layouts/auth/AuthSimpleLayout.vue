@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ThemeToggle from '@/components/ThemeToggle.vue';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 
@@ -10,8 +11,11 @@ defineProps<{
 
 <template>
     <div
-        class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
+        class="relative flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
     >
+        <div class="absolute top-4 right-4">
+            <ThemeToggle />
+        </div>
         <div class="w-full max-w-sm">
             <div class="flex flex-col gap-8">
                 <div class="flex flex-col items-center gap-4">
@@ -19,9 +23,7 @@ defineProps<{
                         :href="home()"
                         class="flex flex-col items-center gap-2 font-medium"
                     >
-                        <div
-                            class="mb-1 flex items-center justify-center"
-                        >
+                        <div class="mb-1 flex items-center justify-center">
                             <img
                                 src="/images/logo.svg"
                                 :alt="title ?? 'Logo'"

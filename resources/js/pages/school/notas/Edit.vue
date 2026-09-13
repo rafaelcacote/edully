@@ -12,11 +12,9 @@ interface Nota {
     aluno_id: string;
     professor_id: string;
     turma_id?: string | null;
-    disciplina: string;
     disciplina_id?: string | null;
-    trimestre: number;
+    bimestre: number;
     nota: number;
-    frequencia?: number | null;
     comportamento?: string | null;
     observacoes?: string | null;
     ano_letivo: number;
@@ -49,7 +47,7 @@ interface Props {
     alunos: Aluno[];
     professores: Professor[];
     turmas: Turma[];
-    disciplinas: Disciplina[];
+    grade: Record<string, Disciplina[]>;
 }
 
 const props = defineProps<Props>();
@@ -68,14 +66,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head :title="`Editar nota: ${props.nota.disciplina}`" />
+        <Head title="Editar nota" />
 
         <div class="space-y-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="mt-2">
                     <Heading
-                        :title="`Nota - ${props.nota.disciplina}`"
-                        description="Atualize os dados da nota"
+                        title="Editar nota"
+                        description="Atualize a nota bimestral do aluno"
                         :icon="ClipboardList"
                     />
                 </div>
@@ -104,7 +102,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         :alunos="props.alunos"
                         :professores="props.professores"
                         :turmas="props.turmas"
-                        :disciplinas="props.disciplinas"
+                        :grade="props.grade"
                         submit-label="Salvar alterações"
                         :processing="processing"
                         :errors="errors"

@@ -21,7 +21,7 @@ import { index as tenantsIndex } from '@/routes/tenants';
 import { index as usersIndex } from '@/routes/users';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, CreditCard, FileSearch, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck, BookText, MessageSquare, Bell, ClipboardList } from 'lucide-vue-next';
+import { BookOpen, CreditCard, FileSearch, FileSpreadsheet, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck, BookText, MessageSquare, Bell, ClipboardList } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -209,7 +209,7 @@ const schoolNavItems = computed<NavItem[]>(() => {
 
     if (canViewMessages.value) {
         items.push({
-            title: 'Mensagens',
+            title: 'Recados',
             href: '/school/messages',
             icon: MessageSquare,
         });
@@ -217,7 +217,7 @@ const schoolNavItems = computed<NavItem[]>(() => {
 
     if (canViewAvisos.value) {
         items.push({
-            title: 'Avisos',
+            title: 'Comunicados',
             href: '/school/avisos',
             icon: Bell,
         });
@@ -228,6 +228,11 @@ const schoolNavItems = computed<NavItem[]>(() => {
             title: 'Notas',
             href: '/school/notas',
             icon: ClipboardList,
+        });
+        items.push({
+            title: 'Boletins',
+            href: '/school/boletins',
+            icon: FileSpreadsheet,
         });
     }
 

@@ -24,7 +24,7 @@ const sidebarNavItems: NavItem[] = [
         href: show(),
     },
     {
-        title: 'Appearance',
+        title: 'Aparência',
         href: editAppearance(),
     },
 ];

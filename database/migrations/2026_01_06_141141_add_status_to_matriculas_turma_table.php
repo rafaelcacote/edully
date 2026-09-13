@@ -28,20 +28,34 @@ return new class extends Migration
         }
 
         // Postgres: adicionar coluna no schema escola
-        DB::connection('shared')->statement('
+        DB::connection('shared')->statement("
             ALTER TABLE escola.matriculas_turma
-            ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT \'ativo\'
-        ');
+            ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ativo'
+        ");
 
-        // Atualizar registros existentes
-        DB::connection('shared')->statement('
-            UPDATE escola.matriculas_turma
-            SET status = CASE
-                WHEN ativo = true THEN \'ativo\'
-                ELSE \'inativo\'
-            END
-            WHERE status IS NULL
-        ');
+        // Atualizar registros existentes apenas se a coluna legado `ativo` existir.
+        DB::connection('shared')->statement("
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'escola'
+                      AND table_name = 'matriculas_turma'
+                      AND column_name = 'ativo'
+                ) THEN
+                    UPDATE escola.matriculas_turma
+                    SET status = CASE
+                        WHEN ativo = true THEN 'ativo'
+                        ELSE 'inativo'
+                    END
+                    WHERE status IS NULL;
+                ELSE
+                    UPDATE escola.matriculas_turma
+                    SET status = 'ativo'
+                    WHERE status IS NULL;
+                END IF;
+            END $$;
+        ");
     }
 
     /**

@@ -90,6 +90,7 @@
 }
 
 :root {
+    color-scheme: light;
     /* Base (inspirado no layout enviado: fundo frio + cards brancos + destaque azul/roxo) */
     --background: hsl(230 45% 98%);
     --foreground: hsl(228 25% 14%);
@@ -136,6 +137,7 @@
 }
 
 .dark {
+    color-scheme: dark;
     --background: hsl(0 0% 3.9%);
     --foreground: hsl(0 0% 98%);
     --card: hsl(0 0% 3.9%);
@@ -278,7 +280,8 @@
     left: 0;
     width: 100%;
     height: 3px;
-    box-shadow: 0 0 10px rgba(5, 111, 189, 0.5),
+    box-shadow:
+        0 0 10px rgba(5, 111, 189, 0.5),
         0 0 5px rgba(5, 111, 189, 0.3);
 }
 
@@ -288,7 +291,8 @@
     right: 0px;
     width: 100px;
     height: 100%;
-    box-shadow: 0 0 10px #056fbd,
+    box-shadow:
+        0 0 10px #056fbd,
         0 0 5px rgba(5, 111, 189, 0.5);
     opacity: 1;
     transform: rotate(3deg) translate(0px, -4px);
