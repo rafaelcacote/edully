@@ -43,6 +43,15 @@
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
+        @if (app()->environment('staging'))
+            <div
+                role="status"
+                style="position: sticky; top: 0; z-index: 9999; background: #b45309; color: #fff; text-align: center; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.01em;"
+            >
+                Ambiente de homologação — somente para testes. Dados podem ser apagados a qualquer momento.
+            </div>
+        @endif
+
         @inertia
     </body>
 </html>
