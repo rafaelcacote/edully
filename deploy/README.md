@@ -85,13 +85,16 @@ docker compose exec app php artisan migrate --force
 ### 3) Nginx do host
 
 ```bash
-sudo cp /opt/apps/edully/staging/deploy/proxy/nginx-host.conf \
-  /etc/nginx/sites-available/edully
-sudo ln -sf /etc/nginx/sites-available/edully /etc/nginx/sites-enabled/edully
+# Neste servidor (CloudPanel) o include é *.conf — use essa extensão.
+sudo cp /opt/apps/edully/production/deploy/proxy/nginx-host.conf \
+  /etc/nginx/sites-available/edully.conf
+sudo ln -sf /etc/nginx/sites-available/edully.conf /etc/nginx/sites-enabled/edully.conf
 sudo nginx -t && sudo systemctl reload nginx
 
-# SSL (quando for ativar HTTPS, mesmo fluxo dos outros projetos)
-# sudo certbot --nginx -d homolog.agendaedully.com.br -d app.agendaedully.com.br
+# SSL (quando HTTP já responder)
+# sudo apt install -y certbot python3-certbot-nginx
+# sudo certbot --nginx -d app.agendaedully.com.br
+# Depois: APP_URL=https://app.agendaedully.com.br no .env e recreate do container
 ```
 
 ## Deploy do dia a dia
