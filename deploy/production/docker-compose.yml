@@ -1,0 +1,56 @@
+name: edully-production
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: edully-app:production
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      RUN_MIGRATIONS: "false"
+    ports:
+      - "127.0.0.1:8082:80"
+    volumes:
+      - production_storage:/var/www/html/storage/app
+      - production_logs:/var/www/html/storage/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - edully_production
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-edully_production}
+      POSTGRES_USER: ${DB_USERNAME:-edully}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      # Postgres 18+: montar /var/lib/postgresql (não .../data)
+      - production_pgdata:/var/lib/postgresql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-edully} -d ${DB_DATABASE:-edully_production}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - edully_production
+
+volumes:
+  production_pgdata:
+  production_storage:
+  production_logs:
+
+networks:
+  edully_production:
+    name: edully_production

@@ -26,3 +26,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Deploy env files
+/deploy/staging/.env
+/deploy/production/.env
