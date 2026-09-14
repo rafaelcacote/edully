@@ -94,12 +94,14 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => env('DB_SCHEMA', 'escola,laravel,saas,shered'),
+            'search_path' => env('DB_SCHEMA', 'escola,laravel,saas,shared'),
             'sslmode' => 'prefer',
         ],
 
         // Conexão usada para tabelas no schema `shared` (Postgres).
         // Em ambiente de testes (SQLite), espelhamos a conexão sqlite para permitir rodar migrations/testes.
+        // Importante: NÃO reutilizar DB_SCHEMA aqui — esse env coloca `escola` primeiro e
+        // faria Schema::connection('shared')->create('tenants') criar escola.tenants.
         'shared' => env('DB_CONNECTION', 'sqlite') === 'sqlite'
             ? [
                 'driver' => 'sqlite',
@@ -123,7 +125,7 @@ return [
                 'charset' => env('DB_CHARSET', 'utf8'),
                 'prefix' => '',
                 'prefix_indexes' => true,
-                'search_path' => env('DB_SCHEMA', 'shared,escola,laravel,saas'),
+                'search_path' => env('DB_SHARED_SEARCH_PATH', 'shared,escola,laravel,saas'),
                 'sslmode' => 'prefer',
             ],
 
