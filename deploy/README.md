@@ -1,6 +1,9 @@
 # Layout de deploy do Edully (homologação + produção)
 # Modo: Nginx do host + containers Docker + Postgres 18
 
+> Registro detalhado do primeiro deploy na Hostinger (problemas, fixes e checklist):
+> [`HOSTINGER-DEPLOY.md`](./HOSTINGER-DEPLOY.md)
+
 ## Repositório e branches
 
 | Ambiente | Domínio | Branch | Porta local |
