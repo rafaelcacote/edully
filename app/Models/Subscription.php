@@ -40,6 +40,18 @@ class Subscription extends Model
     protected $table = 'saas.assinaturas';
 
     /**
+     * Get the table name for the model.
+     */
+    public function getTable(): string
+    {
+        if ($this->getConnection()->getDriverName() === 'sqlite') {
+            return 'assinaturas';
+        }
+
+        return parent::getTable();
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>

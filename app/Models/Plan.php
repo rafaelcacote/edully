@@ -40,6 +40,18 @@ class Plan extends Model
     protected $table = 'saas.planos';
 
     /**
+     * Get the table name for the model.
+     */
+    public function getTable(): string
+    {
+        if ($this->getConnection()->getDriverName() === 'sqlite') {
+            return 'planos';
+        }
+
+        return parent::getTable();
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
