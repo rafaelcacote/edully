@@ -63,6 +63,8 @@ const emailDisplay = ref(props.parent?.email ?? '');
 const emailError = ref<string | null>(null);
 const emailValidating = ref(false);
 const emailExists = ref(false);
+const dataNascimento = ref(props.parent?.data_nascimento ?? '');
+const observacoes = ref(props.parent?.observacoes ?? '');
 let emailCheckTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function validateCpf(cpf: string): boolean {
@@ -399,7 +401,7 @@ onMounted(() => {
                     id="data_nascimento"
                     name="data_nascimento"
                     type="date"
-                    :default-value="parent?.data_nascimento ?? ''"
+                    v-model="dataNascimento"
                 />
                 <InputError :message="errors.data_nascimento" />
             </div>
@@ -561,8 +563,8 @@ onMounted(() => {
                 id="observacoes"
                 name="observacoes"
                 rows="3"
+                v-model="observacoes"
                 class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                :default-value="parent?.observacoes ?? ''"
                 placeholder="Observações adicionais sobre o responsável..."
             />
             <InputError :message="errors.observacoes" />

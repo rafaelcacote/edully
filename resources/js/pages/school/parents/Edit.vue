@@ -9,12 +9,15 @@ import ParentForm from './Partials/ParentForm.vue';
 
 interface Parent {
     id: string;
+    usuario_id?: string;
     nome_completo?: string | null;
     cpf?: string | null;
     email?: string | null;
     telefone?: string | null;
     parentesco?: string | null;
     profissao?: string | null;
+    data_nascimento?: string | null;
+    observacoes?: string | null;
     ativo: boolean;
 }
 

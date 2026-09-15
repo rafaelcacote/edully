@@ -69,6 +69,8 @@ class Responsavel extends Model
         'cpf',
         'parentesco',
         'profissao',
+        'data_nascimento',
+        'observacoes',
     ];
 
     /**
@@ -79,6 +81,7 @@ class Responsavel extends Model
     protected function casts(): array
     {
         return [
+            'data_nascimento' => 'date',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

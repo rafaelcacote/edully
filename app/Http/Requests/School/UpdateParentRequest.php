@@ -62,6 +62,8 @@ class UpdateParentRequest extends FormRequest
             // Parent fields
             'parentesco' => ['nullable', 'string', Rule::in($allowedParentesco)],
             'profissao' => ['nullable', 'string', 'max:100'],
+            'data_nascimento' => ['nullable', 'date'],
+            'observacoes' => ['nullable', 'string', 'max:5000'],
             'ativo' => ['nullable', 'boolean'],
         ];
     }
@@ -77,6 +79,8 @@ class UpdateParentRequest extends FormRequest
             'email.unique' => 'Este e-mail já está cadastrado no sistema e não pode ser utilizado novamente.',
             'parentesco.in' => 'Selecione um parentesco válido.',
             'profissao.max' => 'A profissão não pode ter mais de 100 caracteres.',
+            'data_nascimento.date' => 'Informe uma data de nascimento válida.',
+            'observacoes.max' => 'As observações não podem ter mais de 5000 caracteres.',
             'password.min' => 'A senha deve ter no mínimo 6 caracteres.',
         ];
     }

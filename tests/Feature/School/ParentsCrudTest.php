@@ -65,6 +65,8 @@ it('creates usuario and responsavel with role on store', function () {
         'telefone' => '11999999999',
         'parentesco' => 'Mãe',
         'profissao' => 'Advogada',
+        'data_nascimento' => '1985-03-15',
+        'observacoes' => 'Contato preferencial no período da manhã',
         'ativo' => '1',
     ];
 
@@ -92,7 +94,11 @@ it('creates usuario and responsavel with role on store', function () {
         'usuario_id' => $user->id,
         'parentesco' => 'Mãe',
         'profissao' => 'Advogada',
+        'observacoes' => 'Contato preferencial no período da manhã',
     ], 'shared');
+
+    $parent = Responsavel::query()->where('usuario_id', $user->id)->firstOrFail();
+    expect(optional($parent->data_nascimento)->toDateString())->toBe('1985-03-15');
 });
 
 it('rejects invalid parentesco on store', function () {
@@ -282,6 +288,8 @@ it('can update parent parentesco', function () {
         'cpf' => $usuario->cpf,
         'parentesco' => 'Pai',
         'profissao' => 'Engenheiro',
+        'data_nascimento' => '1980-01-10',
+        'observacoes' => 'Observação antiga',
     ]);
 
     $response = $this->actingAs($authUser)->patch("/school/parents/{$parent->id}", [
@@ -290,6 +298,8 @@ it('can update parent parentesco', function () {
         'telefone' => '11988887777',
         'parentesco' => 'Padrasto',
         'profissao' => 'Engenheiro',
+        'data_nascimento' => '1980-05-20',
+        'observacoes' => 'Nova observação do responsável',
         'ativo' => '1',
     ]);
 
@@ -298,5 +308,47 @@ it('can update parent parentesco', function () {
     $this->assertDatabaseHas('responsaveis', [
         'id' => $parent->id,
         'parentesco' => 'Padrasto',
+        'observacoes' => 'Nova observação do responsável',
     ], 'shared');
+
+    expect(optional($parent->fresh()->data_nascimento)->toDateString())->toBe('1980-05-20');
+});
+
+it('includes data_nascimento and observacoes on edit page', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $usuario = User::factory()->create([
+        'nome_completo' => 'Maria Silva',
+        'cpf' => '39053344705',
+        'email' => 'maria.silva@example.com',
+    ]);
+    $usuario->tenants()->attach($tenant->id);
+
+    $parent = Responsavel::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $usuario->id,
+        'cpf' => $usuario->cpf,
+        'parentesco' => 'Mãe',
+        'profissao' => 'Médica',
+        'data_nascimento' => '1978-11-02',
+        'observacoes' => 'Prefere contato por WhatsApp',
+    ]);
+
+    $response = $this->actingAs($authUser)->get("/school/parents/{$parent->id}/edit");
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('school/parents/Edit')
+        ->where('parent.data_nascimento', '1978-11-02')
+        ->where('parent.observacoes', 'Prefere contato por WhatsApp')
+    );
 });

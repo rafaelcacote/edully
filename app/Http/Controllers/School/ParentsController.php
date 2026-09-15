@@ -315,6 +315,8 @@ class ParentsController extends Controller
                 'parentesco' => $validated['parentesco'] ?? null,
                 'cpf' => $validated['cpf'] ?? null,
                 'profissao' => $validated['profissao'] ?? null,
+                'data_nascimento' => $validated['data_nascimento'] ?? null,
+                'observacoes' => $validated['observacoes'] ?? null,
             ]);
         });
 
@@ -380,6 +382,8 @@ class ParentsController extends Controller
                 'telefone' => $parent->user?->telefone,
                 'parentesco' => $parent->parentesco,
                 'profissao' => $parent->profissao,
+                'data_nascimento' => optional($parent->data_nascimento)->toDateString(),
+                'observacoes' => $parent->observacoes,
                 'ativo' => $parent->user?->ativo ?? false,
                 'students' => $parent->students->map(function ($student) use ($matriculasMap, $turmasMap) {
                     $turmaId = $matriculasMap->get($student->id);
@@ -429,6 +433,8 @@ class ParentsController extends Controller
                 'telefone' => $parent->user?->telefone,
                 'parentesco' => $parent->parentesco,
                 'profissao' => $parent->profissao,
+                'data_nascimento' => optional($parent->data_nascimento)->toDateString(),
+                'observacoes' => $parent->observacoes,
                 'ativo' => $parent->user?->ativo ?? false,
             ],
         ]);
@@ -467,6 +473,8 @@ class ParentsController extends Controller
             $parent->update([
                 'parentesco' => $validated['parentesco'] ?? null,
                 'profissao' => $validated['profissao'] ?? null,
+                'data_nascimento' => $validated['data_nascimento'] ?? null,
+                'observacoes' => $validated['observacoes'] ?? null,
             ]);
         });
 
