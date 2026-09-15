@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\School;
 
+use App\Actions\Api\NotifyMessagePushRecipients;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreMessageRequest;
 use App\Http\Requests\School\UpdateMessageRequest;
@@ -11,6 +12,7 @@ use App\Models\Turma;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -277,12 +279,16 @@ class MessagesController extends Controller
                     ->withErrors(['turma_id' => 'Esta turma não possui alunos matriculados.']);
             }
 
+            $notify = app(NotifyMessagePushRecipients::class);
+
             foreach ($alunos as $aluno) {
-                Message::create([
+                $created = Message::create([
                     'tenant_id' => $tenant->id,
                     'remetente_id' => $user->id,
                     'aluno_id' => $aluno->id,
                     'turma_id' => $validated['turma_id'],
+                    // Fan-out por turma: cada aluno fica com conversa própria (reply 1:1 no app).
+                    'conversa_id' => (string) Str::uuid(),
                     'titulo' => $validated['titulo'],
                     'conteudo' => $validated['conteudo'],
                     'tipo' => $validated['tipo'] ?? 'outro',
@@ -290,6 +296,7 @@ class MessagesController extends Controller
                     'anexo_url' => $validated['anexo_url'] ?? null,
                     'lida' => false,
                 ]);
+                $notify->queue($created);
             }
 
             return redirect()
@@ -302,11 +309,14 @@ class MessagesController extends Controller
         }
 
         // Comportamento normal: mensagem para um aluno específico
-        Message::create([
+        $message = Message::create([
             ...$validated,
             'tenant_id' => $tenant->id,
             'remetente_id' => $user->id,
+            'conversa_id' => (string) Str::uuid(),
         ]);
+
+        app(NotifyMessagePushRecipients::class)->queue($message);
 
         return redirect()
             ->route('school.messages.index')
