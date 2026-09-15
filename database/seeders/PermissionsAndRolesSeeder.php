@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionsAndRolesSeeder extends Seeder
 {
@@ -12,6 +13,8 @@ class PermissionsAndRolesSeeder extends Seeder
     {
         // Guard padrão usado pela aplicação (Fortify/Inertia)
         $guard = 'web';
+
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Permissões de Escolas (Tenants)
         $escolasPermissions = [
@@ -177,5 +180,10 @@ class PermissionsAndRolesSeeder extends Seeder
         // Perfil Professor
         $roleProfessor = Role::findOrCreate('Professor', $guard);
         $roleProfessor->syncPermissions($professorPermissions);
+
+        // Perfil Responsável Aluno (acesso ao app móvel; sem permissões do painel web)
+        Role::findOrCreate('Responsável Aluno', $guard);
+
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

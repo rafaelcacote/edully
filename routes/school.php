@@ -54,6 +54,12 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::get('parents', [ParentsController::class, 'index'])
         ->middleware('permission:escola.responsaveis.visualizar')
         ->name('parents.index');
+    Route::post('parents/check-cpf', [ParentsController::class, 'checkCpf'])
+        ->middleware('permission:escola.responsaveis.criar')
+        ->name('parents.check-cpf');
+    Route::post('parents/check-email', [ParentsController::class, 'checkEmail'])
+        ->middleware('permission:escola.responsaveis.criar|escola.responsaveis.editar')
+        ->name('parents.check-email');
     Route::get('parents/create', [ParentsController::class, 'create'])
         ->middleware('permission:escola.responsaveis.criar')
         ->name('parents.create');

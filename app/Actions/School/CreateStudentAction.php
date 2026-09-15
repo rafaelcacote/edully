@@ -45,6 +45,7 @@ class CreateStudentAction
             // A matrícula é o próprio ID da tabela matriculas_turma
             DB::connection('shared')->table($pivotTable)->insert([
                 'id' => $matriculaId,
+                'matricula' => $matriculaId,
                 'tenant_id' => $tenant->id,
                 'aluno_id' => $student->id,
                 'turma_id' => $turma->id,
