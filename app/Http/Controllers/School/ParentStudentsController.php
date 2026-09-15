@@ -44,6 +44,18 @@ class ParentStudentsController extends Controller
             abort(404);
         }
 
+        $parent->loadMissing('user');
+
+        if (! $parent->ativo) {
+            return redirect()
+                ->route('school.parents.show', $parent)
+                ->with('toast', [
+                    'type' => 'error',
+                    'title' => 'Responsável inativo',
+                    'message' => 'Não é possível vincular alunos a um responsável inativo.',
+                ]);
+        }
+
         $validated = $request->validated();
 
         DB::connection('shared')->transaction(function () use ($tenant, $validated, $parent) {
@@ -121,6 +133,12 @@ class ParentStudentsController extends Controller
 
     protected function attachParentStudent(Responsavel $parent, Student $student, Tenant $tenant): void
     {
+        $parent->loadMissing('user');
+
+        if (! $parent->ativo) {
+            throw new \Exception('Não é possível vincular alunos a um responsável inativo.');
+        }
+
         $connection = DB::connection('shared');
         $pivotTable = $this->pivotTable();
 

@@ -307,7 +307,7 @@ onMounted(() => {
 
 <template>
     <div class="grid gap-6">
-        <div class="grid gap-6 sm:grid-cols-2">
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div class="grid gap-2">
                 <Label for="nome_completo">Nome completo</Label>
                 <Input
@@ -392,9 +392,7 @@ onMounted(() => {
                     O CPF não pode ser alterado após o cadastro.
                 </p>
             </div>
-        </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="data_nascimento">Data de nascimento</Label>
                 <Input
@@ -432,6 +430,9 @@ onMounted(() => {
                 </select>
                 <InputError :message="errors.parentesco" />
             </div>
+        </div>
+
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div class="grid gap-2">
                 <Label for="profissao">Profissão</Label>
                 <Input
@@ -442,9 +443,7 @@ onMounted(() => {
                 />
                 <InputError :message="errors.profissao" />
             </div>
-        </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="email">E-mail</Label>
                 <div class="relative">
@@ -516,9 +515,7 @@ onMounted(() => {
                 </div>
                 <InputError :message="errors.telefone" />
             </div>
-        </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="ativo">Status</Label>
                 <label

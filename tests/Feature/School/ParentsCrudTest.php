@@ -352,3 +352,42 @@ it('includes data_nascimento and observacoes on edit page', function () {
         ->where('parent.observacoes', 'Prefere contato por WhatsApp')
     );
 });
+
+it('includes data_nascimento and observacoes on show page', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $usuario = User::factory()->create([
+        'nome_completo' => 'João Souza',
+        'cpf' => '39053344705',
+        'email' => 'joao.souza@example.com',
+    ]);
+    $usuario->tenants()->attach($tenant->id);
+
+    $parent = Responsavel::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $usuario->id,
+        'cpf' => $usuario->cpf,
+        'parentesco' => 'Pai',
+        'profissao' => 'Engenheiro',
+        'data_nascimento' => '1975-08-20',
+        'observacoes' => 'Disponível após as 18h',
+    ]);
+
+    $response = $this->actingAs($authUser)->get("/school/parents/{$parent->id}");
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('school/parents/Show')
+        ->where('parent.data_nascimento', '1975-08-20')
+        ->where('parent.observacoes', 'Disponível após as 18h')
+    );
+});
