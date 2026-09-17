@@ -17,7 +17,7 @@ beforeEach(function () {
     Storage::fake('public');
 });
 
-it('creates an aviso on store', function () {
+it('creates an aviso with publication dates and keeps them on edit', function () {
     $this->withoutMiddleware([
         HandleInertiaRequests::class,
         PermissionMiddleware::class,
@@ -29,26 +29,36 @@ it('creates an aviso on store', function () {
     $authUser = User::factory()->create();
     $authUser->tenants()->attach($tenant->id);
 
-    $payload = [
-        'titulo' => 'Aviso importante',
-        'conteudo' => 'Conteúdo do aviso',
-        'prioridade' => 'alta',
-        'publico_alvo' => 'todos',
-        'publicado' => true,
-    ];
+    $publicadoEm = '2026-09-17T10:30';
+    $expiraEm = '2026-09-30T18:00';
 
-    $response = $this->actingAs($authUser)->post('/school/avisos', $payload);
+    $response = $this->actingAs($authUser)->post('/school/avisos', [
+        'titulo' => 'Aviso com datas',
+        'conteudo' => 'Conteúdo com datas',
+        'prioridade' => 'media',
+        'publico_alvo' => 'professores',
+        'publicado' => '1',
+        'publicado_em' => $publicadoEm,
+        'expira_em' => $expiraEm,
+    ]);
 
     $response->assertRedirect(route('school.avisos.index', absolute: false));
 
-    $this->assertDatabaseHas('avisos', [
-        'tenant_id' => $tenant->id,
-        'titulo' => 'Aviso importante',
-        'conteudo' => 'Conteúdo do aviso',
-        'prioridade' => 'alta',
-        'publico_alvo' => 'todos',
-        'publicado' => true,
-    ], 'shared');
+    $aviso = Aviso::query()->where('titulo', 'Aviso com datas')->first();
+
+    expect($aviso)->not->toBeNull();
+    expect($aviso->publicado_em?->format('Y-m-d\TH:i'))->toBe($publicadoEm);
+    expect($aviso->expira_em?->format('Y-m-d\TH:i'))->toBe($expiraEm);
+
+    $editResponse = $this->actingAs($authUser)->get("/school/avisos/{$aviso->id}/edit");
+
+    $editResponse->assertSuccessful();
+    $editResponse->assertInertia(fn ($page) => $page
+        ->component('school/avisos/Edit')
+        ->where('aviso.publicado_em', $publicadoEm)
+        ->where('aviso.expira_em', $expiraEm)
+        ->where('aviso.publicado', true)
+    );
 });
 
 it('creates an aviso with pdf attachment', function () {

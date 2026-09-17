@@ -51,6 +51,8 @@ class UpdateAvisoRequest extends FormRequest
             'publicado' => $this->publicado ?? false,
             'prioridade' => $this->prioridade ?? 'normal',
             'publico_alvo' => $this->publico_alvo ?? 'todos',
+            'publicado_em' => $this->publicado_em === '' ? null : $this->publicado_em,
+            'expira_em' => $this->expira_em === '' ? null : $this->expira_em,
         ]);
     }
 }

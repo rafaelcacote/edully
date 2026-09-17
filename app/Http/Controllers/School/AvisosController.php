@@ -161,7 +161,20 @@ class AvisosController extends Controller
         }
 
         return Inertia::render('school/avisos/Edit', [
-            'aviso' => $aviso,
+            'aviso' => [
+                'id' => $aviso->id,
+                'titulo' => $aviso->titulo,
+                'conteudo' => $aviso->conteudo,
+                'prioridade' => $aviso->prioridade,
+                'publico_alvo' => $aviso->publico_alvo,
+                'anexo_url' => $aviso->anexo_url,
+                'publicado' => (bool) $aviso->publicado,
+                // Formato datetime-local (sem conversão UTC via ISO) para o formulário.
+                'publicado_em' => $aviso->publicado_em?->format('Y-m-d\TH:i'),
+                'expira_em' => $aviso->expira_em?->format('Y-m-d\TH:i'),
+                'created_at' => $aviso->created_at,
+                'updated_at' => $aviso->updated_at,
+            ],
         ]);
     }
 
