@@ -13,6 +13,7 @@ interface ClassData {
     nome?: string;
     serie?: string | null;
     turma_letra?: string | null;
+    turno?: string | null;
     capacidade?: number | null;
     ano_letivo?: number | null;
     professor_id?: string | null;
@@ -36,6 +37,7 @@ const props = defineProps<{
 const nome = ref(props.classData?.nome || '');
 const serie = ref(props.classData?.serie || '');
 const turmaLetra = ref(props.classData?.turma_letra || '');
+const turno = ref(props.classData?.turno || '');
 const anoLetivo = ref(props.classData?.ano_letivo || new Date().getFullYear());
 const professorId = ref(props.classData?.professor_id || '');
 const professorIds = ref<string[]>(
@@ -94,6 +96,7 @@ watch(() => props.classData, (newData) => {
         nome.value = newData.nome || '';
         serie.value = newData.serie || '';
         turmaLetra.value = newData.turma_letra || '';
+        turno.value = newData.turno || '';
         anoLetivo.value = newData.ano_letivo || new Date().getFullYear();
         professorId.value = newData.professor_id || '';
         professorIds.value = Array.isArray(newData.professor_ids)
@@ -166,6 +169,24 @@ onMounted(() => {
             </div>
 
             <div class="grid gap-2">
+                <Label for="turno">Turno</Label>
+                <select
+                    id="turno"
+                    name="turno"
+                    v-model="turno"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option value="">Selecione o turno</option>
+                    <option value="matutino">Matutino</option>
+                    <option value="vespertino">Vespertino</option>
+                    <option value="integral">Integral</option>
+                </select>
+                <InputError :message="errors.turno" />
+            </div>
+        </div>
+
+        <div class="grid gap-6 sm:grid-cols-3">
+            <div class="grid gap-2">
                 <Label for="ano_letivo">Ano letivo</Label>
                 <input
                     id="ano_letivo"
@@ -179,100 +200,6 @@ onMounted(() => {
                     class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
                 />
                 <InputError :message="errors.ano_letivo" />
-            </div>
-        </div>
-
-        <div class="grid gap-6 sm:grid-cols-2">
-            <div class="grid gap-3">
-                <div class="flex items-center justify-between">
-                    <Label for="professor_ids" class="flex items-center gap-2">
-                        <Users class="h-4 w-4" />
-                        Professores Responsáveis
-                    </Label>
-                    <span v-if="professorIds.length > 0" class="text-xs text-muted-foreground">
-                        {{ professorIds.length }} {{ professorIds.length === 1 ? 'selecionado' : 'selecionados' }}
-                    </span>
-                </div>
-
-                <!-- Professores Selecionados (Badges) -->
-                <div v-if="selectedTeachers.length > 0" class="flex flex-wrap gap-2 rounded-lg border border-input bg-muted/30 p-3 min-h-[60px]">
-                    <Badge
-                        v-for="teacher in selectedTeachers"
-                        :key="teacher.id"
-                        variant="secondary"
-                        class="group flex items-center gap-1.5 pr-1.5"
-                    >
-                        <span>{{ teacher.nome_completo }}</span>
-                        <button
-                            type="button"
-                            @click="removeTeacher(teacher.id)"
-                            class="ml-1 rounded-full p-0.5 transition-colors hover:bg-destructive/20 hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring"
-                            :aria-label="`Remover ${teacher.nome_completo}`"
-                        >
-                            <X class="h-3 w-3" />
-                        </button>
-                    </Badge>
-                </div>
-
-                <!-- Campo de Busca -->
-                <div class="relative">
-                    <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        v-model="searchQuery"
-                        type="text"
-                        placeholder="Buscar professores..."
-                        class="pl-9 pr-9"
-                    />
-                    <button
-                        v-if="searchQuery"
-                        type="button"
-                        @click="clearSearch"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                        aria-label="Limpar busca"
-                    >
-                        <X class="h-4 w-4" />
-                    </button>
-                </div>
-
-                <!-- Lista de Professores -->
-                <div class="rounded-lg border border-input bg-background">
-                    <div
-                        v-if="filteredTeachers.length === 0"
-                        class="p-6 text-center text-sm text-muted-foreground"
-                    >
-                        <p v-if="searchQuery">Nenhum professor encontrado com "{{ searchQuery }}"</p>
-                        <p v-else>Nenhum professor disponível</p>
-                    </div>
-                    <div
-                        v-else
-                        class="max-h-[240px] overflow-y-auto p-2"
-                    >
-                        <label
-                            v-for="teacher in filteredTeachers"
-                            :key="teacher.id"
-                            class="flex items-center gap-3 rounded-md p-2.5 transition-colors hover:bg-accent cursor-pointer"
-                            @click="toggleTeacher(teacher.id)"
-                        >
-                            <Checkbox
-                                :model-value="professorIds.includes(String(teacher.id))"
-                                :aria-label="`Selecionar ${teacher.nome_completo}`"
-                                @click.stop
-                            />
-                            <span class="flex-1 text-sm">{{ teacher.nome_completo }}</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Inputs hidden para o formulário -->
-                <template v-for="(teacherId, index) in professorIds" :key="teacherId">
-                    <input
-                        type="hidden"
-                        :name="`professor_ids[${index}]`"
-                        :value="teacherId"
-                    />
-                </template>
-
-                <InputError :message="errors['professor_ids'] || errors['professor_ids.0']" />
             </div>
 
             <div class="grid gap-2">
@@ -288,9 +215,7 @@ onMounted(() => {
                 />
                 <InputError :message="errors.capacidade" />
             </div>
-        </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="ativo">Status</Label>
                 <label
@@ -313,6 +238,98 @@ onMounted(() => {
                 </label>
                 <InputError :message="errors.ativo" />
             </div>
+        </div>
+
+        <div class="grid gap-3">
+            <div class="flex items-center justify-between">
+                <Label for="professor_ids" class="flex items-center gap-2">
+                    <Users class="h-4 w-4" />
+                    Professores Responsáveis
+                </Label>
+                <span v-if="professorIds.length > 0" class="text-xs text-muted-foreground">
+                    {{ professorIds.length }} {{ professorIds.length === 1 ? 'selecionado' : 'selecionados' }}
+                </span>
+            </div>
+
+            <!-- Professores Selecionados (Badges) -->
+            <div v-if="selectedTeachers.length > 0" class="flex flex-wrap gap-2 rounded-lg border border-input bg-muted/30 p-3 min-h-[60px]">
+                <Badge
+                    v-for="teacher in selectedTeachers"
+                    :key="teacher.id"
+                    variant="secondary"
+                    class="group flex items-center gap-1.5 pr-1.5"
+                >
+                    <span>{{ teacher.nome_completo }}</span>
+                    <button
+                        type="button"
+                        @click="removeTeacher(teacher.id)"
+                        class="ml-1 rounded-full p-0.5 transition-colors hover:bg-destructive/20 hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring"
+                        :aria-label="`Remover ${teacher.nome_completo}`"
+                    >
+                        <X class="h-3 w-3" />
+                    </button>
+                </Badge>
+            </div>
+
+            <!-- Campo de Busca -->
+            <div class="relative">
+                <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    v-model="searchQuery"
+                    type="text"
+                    placeholder="Buscar professores..."
+                    class="pl-9 pr-9"
+                />
+                <button
+                    v-if="searchQuery"
+                    type="button"
+                    @click="clearSearch"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    aria-label="Limpar busca"
+                >
+                    <X class="h-4 w-4" />
+                </button>
+            </div>
+
+            <!-- Lista de Professores -->
+            <div class="rounded-lg border border-input bg-background">
+                <div
+                    v-if="filteredTeachers.length === 0"
+                    class="p-6 text-center text-sm text-muted-foreground"
+                >
+                    <p v-if="searchQuery">Nenhum professor encontrado com "{{ searchQuery }}"</p>
+                    <p v-else>Nenhum professor disponível</p>
+                </div>
+                <div
+                    v-else
+                    class="max-h-[240px] overflow-y-auto p-2"
+                >
+                    <label
+                        v-for="teacher in filteredTeachers"
+                        :key="teacher.id"
+                        class="flex items-center gap-3 rounded-md p-2.5 transition-colors hover:bg-accent cursor-pointer"
+                        @click="toggleTeacher(teacher.id)"
+                    >
+                        <Checkbox
+                            :model-value="professorIds.includes(String(teacher.id))"
+                            :aria-label="`Selecionar ${teacher.nome_completo}`"
+                            @click.stop
+                        />
+                        <span class="flex-1 text-sm">{{ teacher.nome_completo }}</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Inputs hidden para o formulário -->
+            <template v-for="(teacherId, index) in professorIds" :key="teacherId">
+                <input
+                    type="hidden"
+                    :name="`professor_ids[${index}]`"
+                    :value="teacherId"
+                />
+            </template>
+
+            <InputError :message="errors['professor_ids'] || errors['professor_ids.0']" />
         </div>
 
         <div class="flex items-center justify-end gap-2">

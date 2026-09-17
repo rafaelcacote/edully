@@ -12,6 +12,7 @@ interface Test {
     disciplina_id: string;
     titulo: string;
     descricao?: string | null;
+    bimestre?: number | null;
     data_prova: string;
     horario?: string | null;
     sala?: string | null;

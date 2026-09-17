@@ -62,6 +62,7 @@ class Turma extends Model
         'nome',
         'serie',
         'turma_letra',
+        'turno',
         'capacidade',
         'ano_letivo',
         'ativo',

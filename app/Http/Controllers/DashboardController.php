@@ -295,6 +295,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $test->id,
                     'titulo' => $test->titulo,
+                    'bimestre' => $test->bimestre,
                     'data' => $test->data_prova->format('Y-m-d'),
                     'data_formatted' => $test->data_prova->format('d/m/Y'),
                     'horario' => $test->horario,
@@ -319,6 +320,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $exercise->id,
                     'titulo' => $exercise->titulo,
+                    'bimestre' => $exercise->bimestre,
                     'data' => $exercise->data_entrega->format('Y-m-d'),
                     'data_formatted' => $exercise->data_entrega->format('d/m/Y'),
                     'turma' => $exercise->turma?->nome,

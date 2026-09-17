@@ -9,6 +9,7 @@ use App\Models\Disciplina;
 use App\Models\Exercise;
 use App\Models\Teacher;
 use App\Models\Turma;
+use App\Support\Bimestre;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -55,7 +56,11 @@ class ExercisesController extends Controller
     {
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
-        $filters = $request->only(['search', 'turma_id', 'disciplina_id']);
+        $filters = $request->only(['search', 'turma_id', 'disciplina_id', 'bimestre']);
+
+        if (! $request->has('bimestre')) {
+            $filters['bimestre'] = (string) Bimestre::atual();
+        }
 
         $exercises = Exercise::query()
             ->where('tenant_id', $tenant->id)
@@ -85,6 +90,12 @@ class ExercisesController extends Controller
             ->when($filters['disciplina_id'] ?? null, function ($query, string $disciplinaId) {
                 $query->where('disciplina_id', $disciplinaId);
             })
+            ->when(
+                isset($filters['bimestre']) && $filters['bimestre'] !== '' && $filters['bimestre'] !== 'all',
+                function ($query) use ($filters) {
+                    $query->where('bimestre', (int) $filters['bimestre']);
+                }
+            )
             ->orderBy('data_entrega', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(10)
@@ -93,6 +104,7 @@ class ExercisesController extends Controller
                 return [
                     'id' => $exercise->id,
                     'titulo' => $exercise->titulo,
+                    'bimestre' => $exercise->bimestre,
                     'disciplina' => $exercise->disciplinaRelation
                         ? ($exercise->disciplinaRelation->nome.($exercise->disciplinaRelation->sigla ? ' ('.$exercise->disciplinaRelation->sigla.')' : ''))
                         : $exercise->disciplina,
@@ -167,6 +179,7 @@ class ExercisesController extends Controller
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
             'filters' => $filters,
+            'defaultBimestre' => Bimestre::atual(),
         ]);
     }
 
@@ -237,6 +250,7 @@ class ExercisesController extends Controller
         return Inertia::render('school/exercises/Create', [
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
+            'defaultBimestre' => Bimestre::atual(),
         ]);
     }
 
@@ -324,6 +338,7 @@ class ExercisesController extends Controller
                     : $exercise->disciplina,
                 'titulo' => $exercise->titulo,
                 'descricao' => $exercise->descricao,
+                'bimestre' => $exercise->bimestre,
                 'data_entrega' => $exercise->data_entrega->format('Y-m-d'),
                 'data_entrega_formatted' => $exercise->data_entrega->format('d/m/Y'),
                 'anexo_url' => $exercise->anexo_url,
@@ -430,6 +445,7 @@ class ExercisesController extends Controller
                 'disciplina_id' => $exercise->disciplina_id,
                 'titulo' => $exercise->titulo,
                 'descricao' => $exercise->descricao,
+                'bimestre' => $exercise->bimestre,
                 'data_entrega' => $exercise->data_entrega->format('Y-m-d'),
                 'anexo_url' => $exercise->anexo_url,
                 'turma_id' => $exercise->turma_id,

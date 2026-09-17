@@ -66,6 +66,7 @@ class Exercise extends Model
         'data_entrega',
         'anexo_url',
         'tipo_exercicio',
+        'bimestre',
     ];
 
     /**
@@ -77,6 +78,7 @@ class Exercise extends Model
     {
         return [
             'data_entrega' => 'date',
+            'bimestre' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

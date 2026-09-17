@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Can from '@/components/Can.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -101,15 +102,17 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
                             Voltar
                         </Link>
                     </Button>
-                    <Button as-child>
-                        <Link
-                            :href="`/school/avisos/${props.aviso.id}/edit`"
-                            class="flex items-center gap-2"
-                        >
-                            <Edit class="h-4 w-4" />
-                            Editar
-                        </Link>
-                    </Button>
+                    <Can permission="escola.avisos.editar">
+                        <Button as-child>
+                            <Link
+                                :href="`/school/avisos/${props.aviso.id}/edit`"
+                                class="flex items-center gap-2"
+                            >
+                                <Edit class="h-4 w-4" />
+                                Editar
+                            </Link>
+                        </Button>
+                    </Can>
                 </div>
             </div>
 

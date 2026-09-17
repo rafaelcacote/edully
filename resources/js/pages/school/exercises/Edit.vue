@@ -12,6 +12,7 @@ interface Exercise {
     disciplina_id: string;
     titulo: string;
     descricao?: string | null;
+    bimestre?: number | null;
     data_entrega: string;
     anexo_url?: string | null;
     turma_id: string;
@@ -81,6 +82,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 <Form
                     :action="`/school/exercises/${props.exercise.id}`"
                     method="patch"
+                    enctype="multipart/form-data"
                     class="space-y-6"
                     v-slot="{ errors, processing }"
                 >

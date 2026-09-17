@@ -29,6 +29,7 @@ interface Class {
     id: string;
     nome: string;
     serie?: string | null;
+    turno?: string | null;
     ano_letivo?: number | string | null;
     capacidade?: number | null;
     ativo: boolean;
@@ -65,6 +66,20 @@ const search = ref(props.filters.search ?? '');
 const active = ref(props.filters.active ?? '');
 
 const updatingStatus = ref<Record<string, boolean>>({});
+
+const turnoLabels: Record<string, string> = {
+    matutino: 'Matutino',
+    vespertino: 'Vespertino',
+    integral: 'Integral',
+};
+
+function formatTurno(turno?: string | null): string {
+    if (!turno) {
+        return '—';
+    }
+
+    return turnoLabels[turno] ?? turno;
+}
 
 const hasAnyFilter = computed(
     () => !!search.value || active.value !== '',
@@ -189,6 +204,7 @@ function toggleStatus(classId: string, nextStatus: boolean) {
                             <tr>
                                 <th class="px-4 py-3">Nome</th>
                                 <th class="px-4 py-3">Série</th>
+                                <th class="px-4 py-3">Turno</th>
                                 <th class="px-4 py-3">Ano Letivo</th>
                                 <th class="px-4 py-3">Capacidade</th>
                                 <th class="px-4 py-3">Status</th>
@@ -208,6 +224,7 @@ function toggleStatus(classId: string, nextStatus: boolean) {
                                     </div>
                                 </td>
                                 <td class="px-4 py-3">{{ classItem.serie || '—' }}</td>
+                                <td class="px-4 py-3">{{ formatTurno(classItem.turno) }}</td>
                                 <td class="px-4 py-3">{{ classItem.ano_letivo || '—' }}</td>
                                 <td class="px-4 py-3">{{ classItem.capacidade || '—' }}</td>
                                 <td class="px-4 py-3">
@@ -297,7 +314,7 @@ function toggleStatus(classId: string, nextStatus: boolean) {
 
                             <tr v-if="props.classes.data.length === 0">
                                 <td
-                                    colspan="6"
+                                    colspan="7"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhuma turma encontrada.

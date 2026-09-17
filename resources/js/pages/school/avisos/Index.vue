@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Can from '@/components/Can.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -138,12 +139,14 @@ function deleteAviso(avisoId: string) {
                 </div>
 
                 <div class="mt-2">
-                    <Button as-child>
-                        <Link href="/school/avisos/create" class="flex items-center gap-2">
-                            <Plus class="h-4 w-4" />
-                            Novo comunicado
-                        </Link>
-                    </Button>
+                    <Can permission="escola.avisos.criar">
+                        <Button as-child>
+                            <Link href="/school/avisos/create" class="flex items-center gap-2">
+                                <Plus class="h-4 w-4" />
+                                Novo comunicado
+                            </Link>
+                        </Button>
+                    </Can>
                 </div>
             </div>
 
@@ -264,40 +267,46 @@ function deleteAviso(avisoId: string) {
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center justify-end gap-2">
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/avisos/${aviso.id}`">
-                                                <Eye
-                                                    class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                        <Can permission="escola.avisos.visualizar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/avisos/${aviso.id}`">
+                                                    <Eye
+                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </Can>
+                                        <Can permission="escola.avisos.editar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/avisos/${aviso.id}/edit`">
+                                                    <Edit
+                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </Can>
+                                        <Can permission="escola.avisos.excluir">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                                @click="deleteAviso(aviso.id)"
+                                            >
+                                                <Trash2
+                                                    class="h-4 w-4 text-red-500 dark:text-red-400"
                                                 />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/avisos/${aviso.id}/edit`">
-                                                <Edit
-                                                    class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                            @click="deleteAviso(aviso.id)"
-                                        >
-                                            <Trash2
-                                                class="h-4 w-4 text-red-500 dark:text-red-400"
-                                            />
-                                        </Button>
+                                            </Button>
+                                        </Can>
                                     </div>
                                 </td>
                             </tr>

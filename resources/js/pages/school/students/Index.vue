@@ -178,6 +178,7 @@ function clearFilters() {
                             class="border-b bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900/40 dark:text-neutral-400"
                         >
                             <tr>
+                                <th class="px-4 py-3">Foto</th>
                                 <th class="px-4 py-3">Nome</th>
                                 <th class="px-4 py-3">Nome social</th>
                                 <th class="px-4 py-3">Turma</th>
@@ -193,6 +194,19 @@ function clearFilters() {
                                 :key="student.id"
                                 class="border-b last:border-0"
                             >
+                                <td class="px-4 py-3">
+                                    <div
+                                        class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-input bg-muted"
+                                    >
+                                        <img
+                                            v-if="student.foto_url"
+                                            :src="student.foto_url"
+                                            :alt="`Foto de ${student.nome}`"
+                                            class="h-full w-full object-cover"
+                                        />
+                                        <User v-else class="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                </td>
                                 <td class="px-4 py-3">
                                     <div class="font-medium">
                                         {{ student.nome }}
@@ -257,7 +271,7 @@ function clearFilters() {
 
                             <tr v-if="props.students.data.length === 0">
                                 <td
-                                    colspan="6"
+                                    colspan="7"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhum aluno encontrado.

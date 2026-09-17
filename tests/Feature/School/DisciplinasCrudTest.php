@@ -4,6 +4,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Disciplina;
 use App\Models\Tenant;
 use App\Models\User;
+use Database\Seeders\PermissionsAndRolesSeeder;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -191,4 +192,17 @@ it('prevents access to disciplina from different tenant', function () {
     $response = $this->actingAs($authUser)->get("/school/disciplinas/{$disciplina->id}");
 
     $response->assertNotFound();
+});
+
+it('forbids professors from accessing the disciplinas index', function () {
+    $this->seed(PermissionsAndRolesSeeder::class);
+
+    $tenant = Tenant::factory()->create();
+    $user = User::factory()->create(['ativo' => true]);
+    $user->tenants()->attach($tenant->id);
+    $user->assignRole('Professor');
+
+    $this->actingAs($user)
+        ->get(route('school.disciplinas.index'))
+        ->assertForbidden();
 });

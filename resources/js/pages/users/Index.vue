@@ -63,14 +63,21 @@ interface Paginated<T> {
     total: number;
 }
 
+interface TenantOption {
+    id: string;
+    name: string;
+}
+
 interface Props {
     users: Paginated<User>;
     filters: {
         search?: string | null;
         role?: string | null;
         active?: string | null;
+        tenant_id?: string | null;
     };
     roles: string[];
+    tenants: TenantOption[];
 }
 
 const props = defineProps<Props>();
@@ -85,9 +92,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
 const search = ref(props.filters.search ?? '');
 const role = ref(props.filters.role ?? '');
 const active = ref(props.filters.active ?? '');
+const tenantId = ref(props.filters.tenant_id ?? '');
 
 const hasAnyFilter = computed(
-    () => !!search.value || !!role.value || active.value !== '',
+    () =>
+        !!search.value ||
+        !!role.value ||
+        !!tenantId.value ||
+        active.value !== '',
 );
 
 function applyFilters() {
@@ -97,6 +109,7 @@ function applyFilters() {
             search: search.value || undefined,
             role: role.value || undefined,
             active: active.value || undefined,
+            tenant_id: tenantId.value || undefined,
         },
         {
             preserveState: true,
@@ -110,6 +123,7 @@ function clearFilters() {
     search.value = '';
     role.value = '';
     active.value = '';
+    tenantId.value = '';
     applyFilters();
 }
 </script>
@@ -150,6 +164,21 @@ function clearFilters() {
                                 @keyup.enter="applyFilters"
                             />
                         </div>
+
+                        <select
+                            v-model="tenantId"
+                            class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-56"
+                            @change="applyFilters"
+                        >
+                            <option value="">Todas escolas</option>
+                            <option
+                                v-for="tenant in props.tenants"
+                                :key="tenant.id"
+                                :value="tenant.id"
+                            >
+                                {{ tenant.name }}
+                            </option>
+                        </select>
 
                         <select
                             v-model="role"

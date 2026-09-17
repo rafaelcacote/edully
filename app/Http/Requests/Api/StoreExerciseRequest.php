@@ -82,6 +82,7 @@ class StoreExerciseRequest extends FormRequest
             'titulo' => ['required', 'string', 'max:255'],
             'descricao' => ['nullable', 'string'],
             'data_entrega' => ['required', 'date', 'after_or_equal:today'],
+            'bimestre' => ['required', 'integer', 'min:1', 'max:4'],
             'anexo_url' => ['nullable', 'url', 'max:2048'],
             'turma_id' => [
                 'required',
@@ -122,6 +123,9 @@ class StoreExerciseRequest extends FormRequest
             'data_entrega.required' => 'Informe a data de entrega.',
             'data_entrega.date' => 'A data de entrega deve ser uma data válida.',
             'data_entrega.after_or_equal' => 'A data de entrega deve ser hoje ou uma data futura.',
+            'bimestre.required' => 'Selecione o bimestre.',
+            'bimestre.min' => 'O bimestre deve ser entre 1 e 4.',
+            'bimestre.max' => 'O bimestre deve ser entre 1 e 4.',
             'anexo_url.url' => 'A URL do anexo deve ser válida.',
             'anexo_url.max' => 'A URL do anexo não pode ter mais de 2048 caracteres.',
             'turma_id.required' => 'Selecione uma turma.',

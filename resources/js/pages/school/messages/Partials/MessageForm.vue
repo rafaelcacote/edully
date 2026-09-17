@@ -226,14 +226,12 @@ watch(() => props.messageData, (newData) => {
     }
 }, { immediate: true, deep: true });
 
-// Limpar busca quando o aluno for selecionado
 watch(alunoId, () => {
     if (!isAlunoDropdownOpen.value) {
         alunoSearch.value = '';
     }
 });
 
-// Limpar busca quando a turma for selecionada
 watch(turmaId, () => {
     if (!isTurmaDropdownOpen.value) {
         turmaSearch.value = '';
@@ -243,176 +241,178 @@ watch(turmaId, () => {
 
 <template>
     <div class="grid gap-6">
-        <div class="grid gap-2">
-            <Label>Destinatário</Label>
-            <div class="flex gap-4 rounded-lg border border-input bg-background p-1">
-                <button
-                    type="button"
-                    @click="switchRecipientType('aluno')"
-                    class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                    :class="
-                        recipientType === 'aluno'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    "
-                >
-                    Aluno
-                </button>
-                <button
-                    type="button"
-                    @click="switchRecipientType('turma')"
-                    class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                    :class="
-                        recipientType === 'turma'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    "
-                >
-                    Turma
-                </button>
+        <div class="grid gap-4">
+            <div class="grid gap-2">
+                <Label>Destinatário</Label>
+                <div class="flex gap-4 rounded-lg border border-input bg-background p-1">
+                    <button
+                        type="button"
+                        class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                        :class="
+                            recipientType === 'aluno'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        "
+                        @click="switchRecipientType('aluno')"
+                    >
+                        Aluno
+                    </button>
+                    <button
+                        type="button"
+                        class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                        :class="
+                            recipientType === 'turma'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        "
+                        @click="switchRecipientType('turma')"
+                    >
+                        Turma
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <div v-if="recipientType === 'aluno'" class="grid gap-2">
-            <Label for="aluno_id">Aluno</Label>
-            <div class="relative" ref="alunoDropdownRef">
-                <input
-                    type="hidden"
-                    id="aluno_id"
-                    name="aluno_id"
-                    :value="alunoId"
-                />
-                <button
-                    type="button"
-                    @click="toggleAlunoDropdown"
-                    class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    :class="{
-                        'text-muted-foreground': !selectedAlunoName,
-                    }"
-                >
-                    <span>{{ selectedAlunoName || 'Selecione um aluno' }}</span>
-                    <ChevronDown
-                        class="h-4 w-4 text-muted-foreground transition-transform"
-                        :class="{ 'rotate-180': isAlunoDropdownOpen }"
+            <div v-if="recipientType === 'aluno'" class="grid gap-2">
+                <Label for="aluno_id">Aluno</Label>
+                <div ref="alunoDropdownRef" class="relative">
+                    <input
+                        id="aluno_id"
+                        type="hidden"
+                        name="aluno_id"
+                        :value="alunoId"
                     />
-                </button>
+                    <button
+                        type="button"
+                        class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        :class="{
+                            'text-muted-foreground': !selectedAlunoName,
+                        }"
+                        @click="toggleAlunoDropdown"
+                    >
+                        <span>{{ selectedAlunoName || 'Selecione um aluno' }}</span>
+                        <ChevronDown
+                            class="h-4 w-4 text-muted-foreground transition-transform"
+                            :class="{ 'rotate-180': isAlunoDropdownOpen }"
+                        />
+                    </button>
 
-                <div
-                    v-if="isAlunoDropdownOpen"
-                    class="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md"
-                >
-                    <div class="p-2 border-b">
-                        <div class="relative">
-                            <Search class="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                ref="alunoSearchInputRef"
-                                v-model="alunoSearch"
-                                type="text"
-                                placeholder="Digite para pesquisar..."
-                                class="pl-8 h-9"
-                                @input.stop
-                                @click.stop
-                            />
+                    <div
+                        v-if="isAlunoDropdownOpen"
+                        class="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md"
+                    >
+                        <div class="border-b p-2">
+                            <div class="relative">
+                                <Search class="absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    ref="alunoSearchInputRef"
+                                    v-model="alunoSearch"
+                                    type="text"
+                                    placeholder="Digite para pesquisar..."
+                                    class="h-9 pl-8"
+                                    @input.stop
+                                    @click.stop
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <div class="max-h-[200px] overflow-y-auto p-1">
-                        <button
-                            v-for="aluno in filteredAlunos"
-                            :key="aluno.id"
-                            type="button"
-                            @click.stop="selectAluno(aluno)"
-                            class="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                            :class="{
-                                'bg-accent text-accent-foreground': aluno.id === alunoId,
-                            }"
-                        >
-                            {{ aluno.nome }}
-                        </button>
-                        <div
-                            v-if="alunoSearch && filteredAlunos.length === 0"
-                            class="px-2 py-1.5 text-sm text-muted-foreground text-center"
-                        >
-                            Nenhum aluno encontrado
+                        <div class="max-h-[200px] overflow-y-auto p-1">
+                            <button
+                                v-for="aluno in filteredAlunos"
+                                :key="aluno.id"
+                                type="button"
+                                class="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                                :class="{
+                                    'bg-accent text-accent-foreground': aluno.id === alunoId,
+                                }"
+                                @click.stop="selectAluno(aluno)"
+                            >
+                                {{ aluno.nome }}
+                            </button>
+                            <div
+                                v-if="alunoSearch && filteredAlunos.length === 0"
+                                class="px-2 py-1.5 text-center text-sm text-muted-foreground"
+                            >
+                                Nenhum aluno encontrado
+                            </div>
                         </div>
                     </div>
                 </div>
+                <InputError :message="errors.aluno_id" />
             </div>
-            <InputError :message="errors.aluno_id" />
-        </div>
 
-        <div v-else class="grid gap-2">
-            <Label for="turma_id">Turma</Label>
-            <div class="relative" ref="turmaDropdownRef">
-                <input
-                    type="hidden"
-                    id="turma_id"
-                    name="turma_id"
-                    :value="turmaId"
-                />
-                <button
-                    type="button"
-                    @click="toggleTurmaDropdown"
-                    class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    :class="{
-                        'text-muted-foreground': !selectedTurmaName,
-                    }"
-                >
-                    <span>{{ selectedTurmaName || 'Selecione uma turma' }}</span>
-                    <ChevronDown
-                        class="h-4 w-4 text-muted-foreground transition-transform"
-                        :class="{ 'rotate-180': isTurmaDropdownOpen }"
+            <div v-else class="grid gap-2">
+                <Label for="turma_id">Turma</Label>
+                <div ref="turmaDropdownRef" class="relative">
+                    <input
+                        id="turma_id"
+                        type="hidden"
+                        name="turma_id"
+                        :value="turmaId"
                     />
-                </button>
+                    <button
+                        type="button"
+                        class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        :class="{
+                            'text-muted-foreground': !selectedTurmaName,
+                        }"
+                        @click="toggleTurmaDropdown"
+                    >
+                        <span>{{ selectedTurmaName || 'Selecione uma turma' }}</span>
+                        <ChevronDown
+                            class="h-4 w-4 text-muted-foreground transition-transform"
+                            :class="{ 'rotate-180': isTurmaDropdownOpen }"
+                        />
+                    </button>
 
-                <div
-                    v-if="isTurmaDropdownOpen"
-                    class="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md"
-                >
-                    <div class="p-2 border-b">
-                        <div class="relative">
-                            <Search class="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                ref="turmaSearchInputRef"
-                                v-model="turmaSearch"
-                                type="text"
-                                placeholder="Digite para pesquisar..."
-                                class="pl-8 h-9"
-                                @input.stop
-                                @click.stop
-                            />
+                    <div
+                        v-if="isTurmaDropdownOpen"
+                        class="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md"
+                    >
+                        <div class="border-b p-2">
+                            <div class="relative">
+                                <Search class="absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    ref="turmaSearchInputRef"
+                                    v-model="turmaSearch"
+                                    type="text"
+                                    placeholder="Digite para pesquisar..."
+                                    class="h-9 pl-8"
+                                    @input.stop
+                                    @click.stop
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <div class="max-h-[200px] overflow-y-auto p-1">
-                        <button
-                            v-for="turma in filteredTurmas"
-                            :key="turma.id"
-                            type="button"
-                            @click.stop="selectTurma(turma)"
-                            class="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                            :class="{
-                                'bg-accent text-accent-foreground': turma.id === turmaId,
-                            }"
-                        >
-                            {{ turma.nome }}
-                        </button>
-                        <div
-                            v-if="turmaSearch && filteredTurmas.length === 0"
-                            class="px-2 py-1.5 text-sm text-muted-foreground text-center"
-                        >
-                            Nenhuma turma encontrada
+                        <div class="max-h-[200px] overflow-y-auto p-1">
+                            <button
+                                v-for="turma in filteredTurmas"
+                                :key="turma.id"
+                                type="button"
+                                class="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                                :class="{
+                                    'bg-accent text-accent-foreground': turma.id === turmaId,
+                                }"
+                                @click.stop="selectTurma(turma)"
+                            >
+                                {{ turma.nome }}
+                            </button>
+                            <div
+                                v-if="turmaSearch && filteredTurmas.length === 0"
+                                class="px-2 py-1.5 text-center text-sm text-muted-foreground"
+                            >
+                                Nenhuma turma encontrada
+                            </div>
                         </div>
                     </div>
                 </div>
+                <InputError :message="errors.turma_id" />
             </div>
-            <InputError :message="errors.turma_id" />
         </div>
 
         <div class="grid gap-2">
             <Label for="titulo">Título</Label>
             <input
                 id="titulo"
-                name="titulo"
                 v-model="titulo"
+                name="titulo"
                 type="text"
                 placeholder="Ex: Informações sobre a prova"
                 required
@@ -422,13 +422,27 @@ watch(turmaId, () => {
             <InputError :message="errors.titulo" />
         </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
+        <div class="grid gap-2">
+            <Label for="conteudo">Conteúdo</Label>
+            <textarea
+                id="conteudo"
+                v-model="conteudo"
+                name="conteudo"
+                rows="6"
+                placeholder="Digite o conteúdo do recado..."
+                required
+                class="flex min-h-[120px] w-full rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
+            />
+            <InputError :message="errors.conteudo" />
+        </div>
+
+        <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             <div class="grid gap-2">
                 <Label for="tipo">Tipo</Label>
                 <select
                     id="tipo"
-                    name="tipo"
                     v-model="tipo"
+                    name="tipo"
                     class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     <option value="outro">Outro</option>
@@ -444,8 +458,8 @@ watch(turmaId, () => {
                 <Label for="prioridade">Prioridade</Label>
                 <select
                     id="prioridade"
-                    name="prioridade"
                     v-model="prioridade"
+                    name="prioridade"
                     class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     <option value="normal">Normal</option>
@@ -454,100 +468,86 @@ watch(turmaId, () => {
                 </select>
                 <InputError :message="errors.prioridade" />
             </div>
-        </div>
 
-        <div class="grid gap-2">
-            <Label for="conteudo">Conteúdo</Label>
-            <textarea
-                id="conteudo"
-                name="conteudo"
-                v-model="conteudo"
-                rows="6"
-                placeholder="Digite o conteúdo do recado..."
-                required
-                class="flex min-h-[120px] w-full rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
-            />
-            <InputError :message="errors.conteudo" />
-        </div>
+            <div class="grid gap-2 sm:col-span-2 xl:col-span-1">
+                <Label for="anexo">Anexo (opcional)</Label>
 
-        <div class="grid gap-2">
-            <Label for="anexo">Anexo (opcional)</Label>
-
-            <div v-if="!anexoPreview && !anexoFile" class="space-y-2">
-                <label
-                    for="anexo"
-                    class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
-                >
-                    <Upload class="h-4 w-4" />
-                    <span>Selecionar PDF ou imagem</span>
-                </label>
-                <input
-                    id="anexo"
-                    name="anexo"
-                    type="file"
-                    accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
-                    class="hidden"
-                    @change="handleAnexoChange"
-                />
-                <p class="text-xs text-muted-foreground">
-                    Formatos aceitos: PDF, JPG, PNG ou WEBP. Tamanho máximo: 10MB.
-                </p>
-                <input
-                    v-if="anexoRemoved && !anexoFile"
-                    type="hidden"
-                    name="anexo_url"
-                    value=""
-                />
-            </div>
-
-            <div v-else class="space-y-2">
-                <div class="flex items-center gap-2 rounded-lg border border-input bg-muted/50 p-3">
-                    <ImageIcon v-if="isImageAnexo" class="h-5 w-5 text-muted-foreground" />
-                    <FileText v-else class="h-5 w-5 text-muted-foreground" />
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium">
-                            {{ anexoLabel }}
-                        </p>
-                        <p
-                            v-if="props.messageData?.anexo_url && !anexoFile"
-                            class="text-xs text-muted-foreground"
-                        >
-                            <a
-                                :href="props.messageData.anexo_url"
-                                target="_blank"
-                                class="text-blue-500 hover:underline"
-                            >
-                                Ver anexo atual
-                            </a>
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        class="rounded p-1 hover:bg-destructive/10 hover:text-destructive"
-                        @click="removeAnexo"
+                <div v-if="!anexoPreview && !anexoFile" class="space-y-2">
+                    <label
+                        for="anexo"
+                        class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
                     >
-                        <X class="h-4 w-4" />
-                    </button>
+                        <Upload class="h-4 w-4" />
+                        <span>Selecionar PDF ou imagem</span>
+                    </label>
+                    <input
+                        id="anexo"
+                        name="anexo"
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
+                        class="hidden"
+                        @change="handleAnexoChange"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        PDF, JPG, PNG ou WEBP. Máx. 10MB.
+                    </p>
+                    <input
+                        v-if="anexoRemoved && !anexoFile"
+                        type="hidden"
+                        name="anexo_url"
+                        value=""
+                    />
                 </div>
-                <label
-                    for="anexo"
-                    class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
-                >
-                    <Upload class="h-4 w-4" />
-                    <span>Alterar arquivo</span>
-                </label>
-                <input
-                    id="anexo"
-                    name="anexo"
-                    type="file"
-                    accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
-                    class="hidden"
-                    @change="handleAnexoChange"
-                />
-            </div>
 
-            <InputError :message="errors.anexo" />
-            <InputError :message="errors.anexo_url" />
+                <div v-else class="space-y-2">
+                    <div class="flex items-center gap-2 rounded-lg border border-input bg-muted/50 p-3">
+                        <ImageIcon v-if="isImageAnexo" class="h-5 w-5 text-muted-foreground" />
+                        <FileText v-else class="h-5 w-5 text-muted-foreground" />
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-medium">
+                                {{ anexoLabel }}
+                            </p>
+                            <p
+                                v-if="props.messageData?.anexo_url && !anexoFile"
+                                class="text-xs text-muted-foreground"
+                            >
+                                <a
+                                    :href="props.messageData.anexo_url"
+                                    target="_blank"
+                                    class="text-blue-500 hover:underline"
+                                >
+                                    Ver anexo atual
+                                </a>
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            class="rounded p-1 hover:bg-destructive/10 hover:text-destructive"
+                            @click="removeAnexo"
+                        >
+                            <X class="h-4 w-4" />
+                        </button>
+                    </div>
+                    <label
+                        for="anexo"
+                        class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
+                    >
+                        <Upload class="h-4 w-4" />
+                        <span>Alterar arquivo</span>
+                    </label>
+                    <input
+                        id="anexo"
+                        name="anexo"
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
+                        class="hidden"
+                        @change="handleAnexoChange"
+                    />
+                </div>
+
+                <InputError :message="errors.anexo" />
+                <InputError :message="errors.anexo_url" />
+            </div>
         </div>
 
         <div class="flex items-center justify-end gap-2">

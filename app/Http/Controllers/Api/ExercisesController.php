@@ -178,6 +178,10 @@ class ExercisesController extends Controller
             ], 403);
         }
 
+        if ($request->filled('bimestre') && $request->input('bimestre') !== 'all') {
+            $query->where('bimestre', (int) $request->input('bimestre'));
+        }
+
         // Ordenar por data de entrega (mais próximos primeiro) e depois por data de criação
         $exercises = $query
             ->with([

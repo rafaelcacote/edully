@@ -89,34 +89,34 @@ function removeFoto() {
             </div>
         </div>
 
-        <div class="grid gap-2">
-            <Label for="turma_id">Turma</Label>
-            <select
-                id="turma_id"
-                name="turma_id"
-                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                required
-            >
-                <option value="">Selecione uma turma</option>
-                <option
-                    v-for="turma in props.turmas"
-                    :key="turma.id"
-                    :value="turma.id"
-                    :selected="student?.turma_id === turma.id"
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="grid gap-2">
+                <Label for="turma_id">Turma</Label>
+                <select
+                    id="turma_id"
+                    name="turma_id"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
                 >
-                    {{ turma.nome }}
-                    <template v-if="turma.serie || turma.turma_letra">
-                        ({{ [turma.serie, turma.turma_letra].filter(Boolean).join(' - ') }})
-                    </template>
-                    <template v-if="turma.ano_letivo">
-                        - {{ turma.ano_letivo }}
-                    </template>
-                </option>
-            </select>
-            <InputError :message="errors.turma_id" />
-        </div>
+                    <option value="">Selecione uma turma</option>
+                    <option
+                        v-for="turma in props.turmas"
+                        :key="turma.id"
+                        :value="turma.id"
+                        :selected="student?.turma_id === turma.id"
+                    >
+                        {{ turma.nome }}
+                        <template v-if="turma.serie || turma.turma_letra">
+                            ({{ [turma.serie, turma.turma_letra].filter(Boolean).join(' - ') }})
+                        </template>
+                        <template v-if="turma.ano_letivo">
+                            - {{ turma.ano_letivo }}
+                        </template>
+                    </option>
+                </select>
+                <InputError :message="errors.turma_id" />
+            </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="data_nascimento">Data de nascimento</Label>
                 <Input
@@ -129,13 +129,46 @@ function removeFoto() {
             </div>
 
             <div class="grid gap-2">
+                <Label for="ativo">Status</Label>
+                <label
+                    class="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                    <input
+                        type="hidden"
+                        name="ativo"
+                        :value="student?.ativo === false ? '0' : '1'"
+                    />
+                    <input
+                        id="ativo"
+                        type="checkbox"
+                        name="_ativo_toggle"
+                        class="h-4 w-4 rounded border border-input"
+                        :checked="student?.ativo !== false"
+                        @change="
+                            (e) => {
+                                const checked = (e.target as HTMLInputElement).checked;
+                                const hidden = (e.currentTarget as HTMLInputElement)
+                                    .closest('label')
+                                    ?.querySelector('input[type=hidden][name=ativo]') as HTMLInputElement | null;
+                                if (hidden) hidden.value = checked ? '1' : '0';
+                            }
+                        "
+                    />
+                    <span class="text-muted-foreground">
+                        {{ student?.ativo === false ? 'Inativo' : 'Ativo' }}
+                    </span>
+                </label>
+                <InputError :message="errors.ativo" />
+            </div>
+
+            <div class="grid gap-2">
                 <Label for="foto">Foto do aluno</Label>
-                <div class="space-y-3">
+                <div class="space-y-2">
                     <div v-if="fotoPreview" class="relative inline-block">
                         <img
                             :src="fotoPreview"
                             alt="Preview da foto"
-                            class="h-32 w-32 rounded-lg object-cover border border-input"
+                            class="h-20 w-20 rounded-lg border border-input object-cover"
                         />
                         <button
                             type="button"
@@ -148,10 +181,10 @@ function removeFoto() {
                     <div class="flex items-center gap-2">
                         <label
                             for="foto"
-                            class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
+                            class="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
                         >
-                            <Upload class="h-4 w-4" />
-                            <span>{{ fotoPreview ? 'Alterar foto' : 'Selecionar foto' }}</span>
+                            <Upload class="h-4 w-4 shrink-0" />
+                            <span class="truncate">{{ fotoPreview ? 'Alterar' : 'Selecionar' }}</span>
                         </label>
                         <input
                             id="foto"
@@ -163,44 +196,11 @@ function removeFoto() {
                         />
                     </div>
                     <p class="text-xs text-muted-foreground">
-                        Formatos aceitos: JPEG, PNG, GIF, WebP. Tamanho máximo: 2MB.
+                        JPEG, PNG, GIF ou WebP · máx. 2MB
                     </p>
                 </div>
                 <InputError :message="errors.foto" />
             </div>
-        </div>
-
-        <div class="grid gap-2">
-            <Label for="ativo">Status</Label>
-            <label
-                class="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm"
-            >
-                <input
-                    type="hidden"
-                    name="ativo"
-                    :value="student?.ativo === false ? '0' : '1'"
-                />
-                <input
-                    id="ativo"
-                    type="checkbox"
-                    name="_ativo_toggle"
-                    class="h-4 w-4 rounded border border-input"
-                    :checked="student?.ativo !== false"
-                    @change="
-                        (e) => {
-                            const checked = (e.target as HTMLInputElement).checked;
-                            const hidden = (e.currentTarget as HTMLInputElement)
-                                .closest('label')
-                                ?.querySelector('input[type=hidden][name=ativo]') as HTMLInputElement | null;
-                            if (hidden) hidden.value = checked ? '1' : '0';
-                        }
-                    "
-                />
-                <span class="text-muted-foreground">
-                    {{ student?.ativo === false ? 'Inativo' : 'Ativo' }}
-                </span>
-            </label>
-            <InputError :message="errors.ativo" />
         </div>
 
         <div class="grid gap-2">

@@ -29,6 +29,7 @@ interface Test {
     id: string;
     titulo: string;
     disciplina: string | null;
+    bimestre?: number | null;
     data_prova: string;
     horario?: string | null;
     turma?: Turma | null;
@@ -56,7 +57,9 @@ interface Props {
         search?: string | null;
         turma_id?: string | null;
         disciplina_id?: string | null;
+        bimestre?: string | null;
     };
+    defaultBimestre: number;
 }
 
 const props = defineProps<Props>();
@@ -71,9 +74,16 @@ const breadcrumbItems: BreadcrumbItem[] = [
 const search = ref(props.filters.search ?? '');
 const turmaId = ref(props.filters.turma_id ?? '');
 const disciplinaId = ref(props.filters.disciplina_id ?? '');
+const bimestre = ref(
+    !Object.prototype.hasOwnProperty.call(props.filters, 'bimestre')
+        ? String(props.defaultBimestre)
+        : props.filters.bimestre === 'all' || props.filters.bimestre === '' || props.filters.bimestre === null
+            ? ''
+            : String(props.filters.bimestre),
+);
 
 const hasAnyFilter = computed(
-    () => !!search.value || turmaId.value !== '' || disciplinaId.value !== '',
+    () => !!search.value || turmaId.value !== '' || disciplinaId.value !== '' || bimestre.value !== '',
 );
 
 function applyFilters() {
@@ -83,6 +93,7 @@ function applyFilters() {
             search: search.value || undefined,
             turma_id: turmaId.value || undefined,
             disciplina_id: disciplinaId.value || undefined,
+            bimestre: bimestre.value || 'all',
         },
         {
             preserveState: true,
@@ -96,6 +107,7 @@ function clearFilters() {
     search.value = '';
     turmaId.value = '';
     disciplinaId.value = '';
+    bimestre.value = '';
     applyFilters();
 }
 </script>
@@ -166,6 +178,18 @@ function clearFilters() {
                                 {{ disc.nome }}
                             </option>
                         </select>
+
+                        <select
+                            v-model="bimestre"
+                            class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-48"
+                            @change="applyFilters"
+                        >
+                            <option value="">Todos os bimestres</option>
+                            <option value="1">1º Bimestre</option>
+                            <option value="2">2º Bimestre</option>
+                            <option value="3">3º Bimestre</option>
+                            <option value="4">4º Bimestre</option>
+                        </select>
                     </div>
 
                     <div class="flex items-center gap-2">
@@ -193,6 +217,7 @@ function clearFilters() {
                                 <th class="px-4 py-3">Título</th>
                                 <th class="px-4 py-3">Disciplina</th>
                                 <th class="px-4 py-3">Turma</th>
+                                <th class="px-4 py-3">Bimestre</th>
                                 <th class="px-4 py-3">Data da Prova</th>
                                 <th class="px-4 py-3">Horário</th>
                                 <th class="px-4 py-3 text-center">Ações</th>
@@ -218,6 +243,12 @@ function clearFilters() {
                                     <template v-else>
                                         —
                                     </template>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span v-if="test.bimestre" class="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                                        {{ test.bimestre }}º Bimestre
+                                    </span>
+                                    <span v-else>—</span>
                                 </td>
                                 <td class="px-4 py-3">{{ test.data_prova }}</td>
                                 <td class="px-4 py-3">{{ test.horario || '—' }}</td>
@@ -262,7 +293,7 @@ function clearFilters() {
 
                             <tr v-if="props.tests.data.length === 0">
                                 <td
-                                    colspan="6"
+                                    colspan="7"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhuma prova encontrada.

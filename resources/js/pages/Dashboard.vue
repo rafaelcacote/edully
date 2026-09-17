@@ -91,6 +91,7 @@ interface CalendarEvent {
     provas: Array<{
         id: string;
         titulo: string;
+        bimestre?: number | null;
         data: string;
         data_formatted: string;
         horario?: string | null;
@@ -101,6 +102,7 @@ interface CalendarEvent {
     exercicios: Array<{
         id: string;
         titulo: string;
+        bimestre?: number | null;
         data: string;
         data_formatted: string;
         turma?: string | null;
@@ -1118,9 +1120,18 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                         </span>
                                     </div>
                                 </div>
-                                <Badge variant="secondary" class="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shrink-0">
-                                    Prova
-                                </Badge>
+                                <div class="flex shrink-0 flex-col items-end gap-1">
+                                    <Badge
+                                        v-if="prova.bimestre"
+                                        variant="outline"
+                                        class="text-xs"
+                                    >
+                                        {{ prova.bimestre }}º bimestre
+                                    </Badge>
+                                    <Badge variant="secondary" class="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                        Prova
+                                    </Badge>
+                                </div>
                             </div>
 
                             <!-- Exercícios -->
@@ -1143,9 +1154,18 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                         </span>
                                     </div>
                                 </div>
-                                <Badge variant="secondary" class="bg-brand-100 text-brand-700 shrink-0">
-                                    Exercício
-                                </Badge>
+                                <div class="flex shrink-0 flex-col items-end gap-1">
+                                    <Badge
+                                        v-if="exercicio.bimestre"
+                                        variant="outline"
+                                        class="text-xs"
+                                    >
+                                        {{ exercicio.bimestre }}º bimestre
+                                    </Badge>
+                                    <Badge variant="secondary" class="bg-brand-100 text-brand-700">
+                                        Exercício
+                                    </Badge>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -9,6 +9,7 @@ use App\Models\Disciplina;
 use App\Models\Teacher;
 use App\Models\Test;
 use App\Models\Turma;
+use App\Support\Bimestre;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -54,7 +55,11 @@ class TestsController extends Controller
     {
         $tenant = $this->getTenant();
         $teacher = $this->getCurrentTeacher();
-        $filters = $request->only(['search', 'turma_id', 'disciplina_id']);
+        $filters = $request->only(['search', 'turma_id', 'disciplina_id', 'bimestre']);
+
+        if (! $request->has('bimestre')) {
+            $filters['bimestre'] = (string) Bimestre::atual();
+        }
 
         $tests = Test::query()
             ->where('tenant_id', $tenant->id)
@@ -80,6 +85,12 @@ class TestsController extends Controller
             ->when($filters['disciplina_id'] ?? null, function ($query, string $disciplinaId) {
                 $query->where('disciplina_id', $disciplinaId);
             })
+            ->when(
+                isset($filters['bimestre']) && $filters['bimestre'] !== '' && $filters['bimestre'] !== 'all',
+                function ($query) use ($filters) {
+                    $query->where('bimestre', (int) $filters['bimestre']);
+                }
+            )
             ->orderBy('data_prova', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(10)
@@ -88,6 +99,7 @@ class TestsController extends Controller
                 return [
                     'id' => $test->id,
                     'titulo' => $test->titulo,
+                    'bimestre' => $test->bimestre,
                     'disciplina' => $test->disciplinaRelation
                         ? ($test->disciplinaRelation->nome.($test->disciplinaRelation->sigla ? ' ('.$test->disciplinaRelation->sigla.')' : ''))
                         : null,
@@ -161,6 +173,7 @@ class TestsController extends Controller
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
             'filters' => $filters,
+            'defaultBimestre' => Bimestre::atual(),
         ]);
     }
 
@@ -231,6 +244,7 @@ class TestsController extends Controller
         return Inertia::render('school/tests/Create', [
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
+            'defaultBimestre' => Bimestre::atual(),
         ]);
     }
 
@@ -310,6 +324,7 @@ class TestsController extends Controller
                     : null,
                 'titulo' => $test->titulo,
                 'descricao' => $test->descricao,
+                'bimestre' => $test->bimestre,
                 'data_prova' => $test->data_prova->format('Y-m-d'),
                 'data_prova_formatted' => $test->data_prova->format('d/m/Y'),
                 'horario' => $test->horario,
@@ -419,6 +434,7 @@ class TestsController extends Controller
                 'disciplina_id' => $test->disciplina_id,
                 'titulo' => $test->titulo,
                 'descricao' => $test->descricao,
+                'bimestre' => $test->bimestre,
                 'data_prova' => $test->data_prova->format('Y-m-d'),
                 'horario' => $test->horario,
                 'sala' => $test->sala,

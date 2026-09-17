@@ -26,6 +26,7 @@ interface Test {
     disciplina: string;
     titulo: string;
     descricao?: string | null;
+    bimestre?: number | null;
     data_prova: string;
     data_prova_formatted: string;
     horario?: string | null;
@@ -122,6 +123,12 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Data da Prova</p>
                                 <p class="mt-1">{{ props.test.data_prova_formatted }}</p>
+                            </div>
+                            <div v-if="props.test.bimestre">
+                                <p class="text-sm font-medium text-muted-foreground">Bimestre</p>
+                                <p class="mt-1">
+                                    <Badge variant="secondary">{{ props.test.bimestre }}º Bimestre</Badge>
+                                </p>
                             </div>
                             <div v-if="props.test.horario_formatted">
                                 <p class="text-sm font-medium text-muted-foreground">Horário</p>

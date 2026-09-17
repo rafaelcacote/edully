@@ -12,6 +12,7 @@ interface Class {
     nome: string;
     serie?: string | null;
     turma_letra?: string | null;
+    turno?: string | null;
     capacidade?: number | null;
     ano_letivo?: number | null;
     professor_id?: string | null;
