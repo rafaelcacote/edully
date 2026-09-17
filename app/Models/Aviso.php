@@ -100,4 +100,27 @@ class Aviso extends Model
     {
         return $this->belongsTo(User::class, 'criado_por');
     }
+
+    /**
+     * Whether the aviso expiration date has already passed.
+     */
+    public function isExpirado(): bool
+    {
+        return $this->expira_em !== null && $this->expira_em->isPast();
+    }
+
+    /**
+     * Effective publication status for school UI.
+     * Expired avisos are no longer visible to the target audience.
+     *
+     * @return 'rascunho'|'publicado'|'expirado'
+     */
+    public function statusPublicacao(): string
+    {
+        if ($this->isExpirado()) {
+            return 'expirado';
+        }
+
+        return $this->publicado ? 'publicado' : 'rascunho';
+    }
 }

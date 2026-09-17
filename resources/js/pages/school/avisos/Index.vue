@@ -36,6 +36,8 @@ interface Aviso {
     expira_em: string | null;
     anexo_url: string | null;
     created_at: string;
+    expirado: boolean;
+    status: 'rascunho' | 'publicado' | 'expirado';
 }
 
 interface Props {
@@ -113,6 +115,24 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
         responsaveis: 'Responsáveis',
     };
     return labels[publicoAlvo] || publicoAlvo;
+}
+
+function getStatusLabel(status: Aviso['status']): string {
+    const labels: Record<Aviso['status'], string> = {
+        rascunho: 'Rascunho',
+        publicado: 'Publicado',
+        expirado: 'Expirado',
+    };
+    return labels[status];
+}
+
+function getStatusVariant(status: Aviso['status']): 'default' | 'secondary' | 'destructive' | 'outline' {
+    const variants: Record<Aviso['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
+        rascunho: 'secondary',
+        publicado: 'default',
+        expirado: 'destructive',
+    };
+    return variants[status];
 }
 
 function deleteAviso(avisoId: string) {
@@ -239,11 +259,17 @@ function deleteAviso(avisoId: string) {
                                     {{ getPublicoAlvoLabel(aviso.publico_alvo) }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <Badge
-                                        :variant="aviso.publicado ? 'default' : 'secondary'"
-                                    >
-                                        {{ aviso.publicado ? 'Publicado' : 'Não publicado' }}
-                                    </Badge>
+                                    <div class="space-y-1">
+                                        <Badge :variant="getStatusVariant(aviso.status)">
+                                            {{ getStatusLabel(aviso.status) }}
+                                        </Badge>
+                                        <p
+                                            v-if="aviso.status === 'expirado'"
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Não está mais publicado
+                                        </p>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3">
                                     {{

@@ -22,10 +22,17 @@ interface Aluno {
     nome_social?: string | null;
 }
 
+interface Turma {
+    id: string;
+    nome: string;
+}
+
 interface Message {
     id: string;
     titulo: string;
+    destinatario_tipo: 'aluno' | 'turma';
     aluno: Aluno | null;
+    turma: Turma | null;
     tipo?: string | null;
     prioridade?: string | null;
     lida: boolean;
@@ -123,6 +130,14 @@ function getPrioridadeLabel(prioridade?: string | null): string {
             return 'Normal';
     }
 }
+
+function getDestinatarioLabel(message: Message): string {
+    if (message.destinatario_tipo === 'turma') {
+        return message.turma?.nome ? `Turma ${message.turma.nome}` : 'Turma inteira';
+    }
+
+    return message.aluno?.nome || '—';
+}
 </script>
 
 <template>
@@ -157,7 +172,7 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                         <div class="flex-1">
                             <Input
                                 v-model="search"
-                                placeholder="Buscar por título, conteúdo ou aluno..."
+                                placeholder="Buscar por título, conteúdo, aluno ou turma..."
                                 @keyup.enter="applyFilters"
                             />
                         </div>
@@ -216,7 +231,7 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                         >
                             <tr>
                                 <th class="px-4 py-3">Título</th>
-                                <th class="px-4 py-3">Aluno</th>
+                                <th class="px-4 py-3">Destinatário</th>
                                 <th class="px-4 py-3">Prioridade</th>
                                 <th class="px-4 py-3">Status</th>
                                 <th class="px-4 py-3">Data</th>
@@ -236,7 +251,17 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                                     </div>
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ message.aluno?.nome || '—' }}
+                                    <div class="space-y-0.5">
+                                        <div class="font-medium">
+                                            {{ getDestinatarioLabel(message) }}
+                                        </div>
+                                        <p
+                                            v-if="message.destinatario_tipo === 'turma'"
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Enviado para a turma inteira
+                                        </p>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3">
                                     <span

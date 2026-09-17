@@ -25,6 +25,8 @@ interface Aviso {
     created_at: string;
     updated_at: string;
     criado_por?: User | null;
+    expirado?: boolean;
+    status?: 'rascunho' | 'publicado' | 'expirado';
 }
 
 interface Props {
@@ -70,6 +72,32 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
         responsaveis: 'Responsáveis',
     };
     return labels[publicoAlvo] || publicoAlvo;
+}
+
+function getStatusLabel(status?: string): string {
+    const labels: Record<string, string> = {
+        rascunho: 'Rascunho',
+        publicado: 'Publicado',
+        expirado: 'Expirado',
+    };
+
+    if (status && labels[status]) {
+        return labels[status];
+    }
+
+    return props.aviso.publicado ? 'Publicado' : 'Rascunho';
+}
+
+function getStatusVariant(status?: string): 'default' | 'secondary' | 'destructive' {
+    if (status === 'expirado') {
+        return 'destructive';
+    }
+
+    if (status === 'publicado' || (!status && props.aviso.publicado)) {
+        return 'default';
+    }
+
+    return 'secondary';
 }
 </script>
 
@@ -143,12 +171,16 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Status</p>
-                                <div class="mt-1">
-                                    <Badge
-                                        :variant="props.aviso.publicado ? 'default' : 'secondary'"
-                                    >
-                                        {{ props.aviso.publicado ? 'Publicado' : 'Não publicado' }}
+                                <div class="mt-1 space-y-1">
+                                    <Badge :variant="getStatusVariant(props.aviso.status)">
+                                        {{ getStatusLabel(props.aviso.status) }}
                                     </Badge>
+                                    <p
+                                        v-if="props.aviso.status === 'expirado'"
+                                        class="text-xs text-muted-foreground"
+                                    >
+                                        Este comunicado expirou e não está mais publicado.
+                                    </p>
                                 </div>
                             </div>
                             <div>

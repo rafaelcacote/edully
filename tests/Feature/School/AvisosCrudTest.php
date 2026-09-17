@@ -17,6 +17,71 @@ beforeEach(function () {
     Storage::fake('public');
 });
 
+it('marks expired avisos as expirado on the index listing', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $expired = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'criado_por' => $authUser->id,
+        'titulo' => 'Aviso expirado',
+        'conteudo' => 'Conteúdo expirado',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'todos',
+        'publicado' => true,
+        'publicado_em' => now()->subDays(10),
+        'expira_em' => now()->subDay(),
+    ]);
+
+    $active = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'criado_por' => $authUser->id,
+        'titulo' => 'Aviso ativo',
+        'conteudo' => 'Conteúdo ativo',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'todos',
+        'publicado' => true,
+        'publicado_em' => now()->subDay(),
+        'expira_em' => now()->addDays(5),
+    ]);
+
+    $draft = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'criado_por' => $authUser->id,
+        'titulo' => 'Aviso rascunho',
+        'conteudo' => 'Conteúdo rascunho',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'todos',
+        'publicado' => false,
+    ]);
+
+    $response = $this->actingAs($authUser)->get('/school/avisos');
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('school/avisos/Index')
+        ->has('avisos.data', 3)
+        ->where('avisos.data', function ($avisos) use ($expired, $active, $draft) {
+            $byId = collect($avisos)->keyBy('id');
+
+            return $byId[$expired->id]['status'] === 'expirado'
+                && $byId[$expired->id]['expirado'] === true
+                && $byId[$active->id]['status'] === 'publicado'
+                && $byId[$active->id]['expirado'] === false
+                && $byId[$draft->id]['status'] === 'rascunho'
+                && $byId[$draft->id]['expirado'] === false;
+        })
+    );
+});
+
 it('creates an aviso with publication dates and keeps them on edit', function () {
     $this->withoutMiddleware([
         HandleInertiaRequests::class,

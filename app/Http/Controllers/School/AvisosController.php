@@ -68,7 +68,22 @@ class AvisosController extends Controller
                 'created_at',
             ])
             ->paginate(10)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function (Aviso $aviso) {
+                return [
+                    'id' => $aviso->id,
+                    'titulo' => $aviso->titulo,
+                    'prioridade' => $aviso->prioridade,
+                    'publico_alvo' => $aviso->publico_alvo,
+                    'publicado' => (bool) $aviso->publicado,
+                    'publicado_em' => $aviso->publicado_em,
+                    'expira_em' => $aviso->expira_em,
+                    'anexo_url' => $aviso->anexo_url,
+                    'created_at' => $aviso->created_at,
+                    'expirado' => $aviso->isExpirado(),
+                    'status' => $aviso->statusPublicacao(),
+                ];
+            });
 
         return Inertia::render('school/avisos/Index', [
             'avisos' => $avisos,
@@ -145,7 +160,12 @@ class AvisosController extends Controller
         $aviso->load('criadoPor');
 
         return Inertia::render('school/avisos/Show', [
-            'aviso' => $aviso,
+            'aviso' => [
+                ...$aviso->toArray(),
+                'publicado' => (bool) $aviso->publicado,
+                'expirado' => $aviso->isExpirado(),
+                'status' => $aviso->statusPublicacao(),
+            ],
         ]);
     }
 
