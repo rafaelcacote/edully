@@ -21,7 +21,26 @@ import { index as tenantsIndex } from '@/routes/tenants';
 import { index as usersIndex } from '@/routes/users';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, CreditCard, FileSearch, FileSpreadsheet, FileText, GraduationCap, KeyRound, LayoutGrid, School, Shield, UserCheck, Users, NotebookPen, ClipboardCheck, BookText, MessageSquare, Bell, ClipboardList } from 'lucide-vue-next';
+import {
+    Bell,
+    BookOpen,
+    BookText,
+    ClipboardCheck,
+    ClipboardList,
+    CreditCard,
+    FileSearch,
+    FileSpreadsheet,
+    FileText,
+    GraduationCap,
+    KeyRound,
+    LayoutGrid,
+    MessageSquare,
+    NotebookPen,
+    School,
+    Shield,
+    UserCheck,
+    Users,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -66,6 +85,10 @@ const hasAnySchoolPermission = computed(
         canViewNotas.value
 );
 
+const canAccessSchoolMenu = computed(
+    () => hasTenant.value && (isAdminEscola.value || isProfessor.value || hasAnySchoolPermission.value)
+);
+
 const generalNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
         {
@@ -90,65 +113,22 @@ const generalNavItems = computed<NavItem[]>(() => {
         );
     }
 
-    return items;
-});
-
-const plansAndSubscriptionsNavItems = computed<NavItem[]>(() => {
-    if (!isAdminGeral.value) {
-        return [];
-    }
-
-    return [
-        {
-            title: 'Planos',
-            href: plansIndex(),
-            icon: CreditCard,
-        },
-        {
-            title: 'Assinaturas',
-            href: subscriptionsIndex(),
-            icon: FileText,
-        },
-    ];
-});
-
-const usersAndPermissionsNavItems = computed<NavItem[]>(() => {
-    if (!isAdminGeral.value) {
-        return [];
-    }
-
-    return [
-        {
-            title: 'Usuários',
-            href: usersIndex(),
-            icon: Users,
-        },
-        {
-            title: 'Roles',
-            href: rolesIndex(),
-            icon: Shield,
-        },
-        {
-            title: 'Permissões',
-            href: permissionsIndex(),
-            icon: KeyRound,
-        },
-    ];
-});
-
-const schoolNavItems = computed<NavItem[]>(() => {
-    const items: NavItem[] = [];
-
-    if (!hasTenant.value || (!isAdminEscola.value && !isProfessor.value && !hasAnySchoolPermission.value)) {
-        return items;
-    }
-
-    if (canViewSchoolProfile.value) {
+    if (canAccessSchoolMenu.value && canViewSchoolProfile.value) {
         items.push({
             title: 'Perfil da Escola',
             href: '/school/profile',
             icon: School,
         });
+    }
+
+    return items;
+});
+
+const peopleNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [];
+
+    if (!canAccessSchoolMenu.value) {
+        return items;
     }
 
     if (canViewStudents.value) {
@@ -175,6 +155,16 @@ const schoolNavItems = computed<NavItem[]>(() => {
         });
     }
 
+    return items;
+});
+
+const academicNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [];
+
+    if (!canAccessSchoolMenu.value) {
+        return items;
+    }
+
     if (canViewClasses.value) {
         items.push({
             title: 'Turmas',
@@ -189,6 +179,16 @@ const schoolNavItems = computed<NavItem[]>(() => {
             href: '/school/disciplinas',
             icon: BookText,
         });
+    }
+
+    return items;
+});
+
+const assessmentsNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [];
+
+    if (!canAccessSchoolMenu.value) {
+        return items;
     }
 
     if (canViewExercises.value) {
@@ -207,6 +207,29 @@ const schoolNavItems = computed<NavItem[]>(() => {
         });
     }
 
+    if (canViewNotas.value) {
+        items.push({
+            title: 'Notas',
+            href: '/school/notas',
+            icon: ClipboardList,
+        });
+        items.push({
+            title: 'Boletins',
+            href: '/school/boletins',
+            icon: FileSpreadsheet,
+        });
+    }
+
+    return items;
+});
+
+const communicationNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [];
+
+    if (!canAccessSchoolMenu.value) {
+        return items;
+    }
+
     if (canViewMessages.value) {
         items.push({
             title: 'Recados',
@@ -223,20 +246,50 @@ const schoolNavItems = computed<NavItem[]>(() => {
         });
     }
 
-    if (canViewNotas.value) {
-        items.push({
-            title: 'Notas',
-            href: '/school/notas',
-            icon: ClipboardList,
-        });
-        items.push({
-            title: 'Boletins',
-            href: '/school/boletins',
-            icon: FileSpreadsheet,
-        });
+    return items;
+});
+
+const plansAndSubscriptionsNavItems = computed<NavItem[]>(() => {
+    if (!isAdminGeral.value) {
+        return [];
     }
 
-    return items;
+    return [
+        {
+            title: 'Planos',
+            href: plansIndex(),
+            icon: CreditCard,
+        },
+        {
+            title: 'Assinaturas',
+            href: subscriptionsIndex(),
+            icon: FileText,
+        },
+    ];
+});
+
+const accessNavItems = computed<NavItem[]>(() => {
+    if (!isAdminGeral.value) {
+        return [];
+    }
+
+    return [
+        {
+            title: 'Usuários',
+            href: usersIndex(),
+            icon: Users,
+        },
+        {
+            title: 'Roles',
+            href: rolesIndex(),
+            icon: Shield,
+        },
+        {
+            title: 'Permissões',
+            href: permissionsIndex(),
+            icon: KeyRound,
+        },
+    ];
 });
 
 const footerNavItems: NavItem[] = [];
@@ -258,21 +311,16 @@ const footerNavItems: NavItem[] = [];
 
         <SidebarContent>
             <NavMain label="Geral" :items="generalNavItems" />
-            <NavMain
-                v-if="schoolNavItems.length > 0"
-                label="Escola"
-                :items="schoolNavItems"
-            />
+            <NavMain v-if="peopleNavItems.length > 0" label="Pessoas" :items="peopleNavItems" />
+            <NavMain v-if="academicNavItems.length > 0" label="Acadêmico" :items="academicNavItems" />
+            <NavMain v-if="assessmentsNavItems.length > 0" label="Avaliações" :items="assessmentsNavItems" />
+            <NavMain v-if="communicationNavItems.length > 0" label="Comunicação" :items="communicationNavItems" />
             <NavMain
                 v-if="plansAndSubscriptionsNavItems.length > 0"
                 label="Planos e Assinaturas"
                 :items="plansAndSubscriptionsNavItems"
             />
-            <NavMain
-                v-if="usersAndPermissionsNavItems.length > 0"
-                label="Usuários e Permissões"
-                :items="usersAndPermissionsNavItems"
-            />
+            <NavMain v-if="accessNavItems.length > 0" label="Acesso" :items="accessNavItems" />
         </SidebarContent>
 
         <SidebarFooter>

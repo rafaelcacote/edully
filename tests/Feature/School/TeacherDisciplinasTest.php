@@ -192,6 +192,64 @@ it('can load teacher with disciplinas relationship', function () {
     expect($disciplinaIds)->toContain($this->disciplina2->id);
 });
 
+it('shows linked disciplinas on the teacher show page', function () {
+    $this->post(route('school.teachers.store'), [
+        'nome_completo' => 'Professor Show',
+        'cpf' => '12345678901',
+        'email' => 'professor.show@test.com',
+        'telefone' => '11999999999',
+        'matricula' => 'PROFSHOW',
+        'disciplinas' => json_encode([$this->disciplina1->id, $this->disciplina2->id]),
+        'ativo' => true,
+    ]);
+
+    $teacher = Teacher::query()->where('matricula', 'PROFSHOW')->first();
+    expect($teacher)->not->toBeNull();
+
+    $response = $this->get(route('school.teachers.show', $teacher));
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('school/teachers/Show')
+        ->has('teacher.disciplinas', 2)
+        ->where('teacher.disciplinas.0.id', $this->disciplina1->id)
+        ->where('teacher.disciplinas.0.nome', 'Matemática')
+        ->where('teacher.disciplinas.0.sigla', 'MAT')
+        ->where('teacher.disciplinas.1.id', $this->disciplina2->id)
+        ->where('teacher.disciplinas.1.nome', 'Português')
+        ->where('teacher.disciplinas.1.sigla', 'PORT')
+    );
+});
+
+it('shows linked disciplinas on the teachers index page', function () {
+    $this->post(route('school.teachers.store'), [
+        'nome_completo' => 'Professor Index',
+        'cpf' => '12345678901',
+        'email' => 'professor.index@test.com',
+        'telefone' => '11999999999',
+        'matricula' => 'PROFIDX',
+        'disciplinas' => json_encode([$this->disciplina1->id, $this->disciplina2->id]),
+        'ativo' => true,
+    ]);
+
+    $teacher = Teacher::query()->where('matricula', 'PROFIDX')->first();
+    expect($teacher)->not->toBeNull();
+
+    $response = $this->get(route('school.teachers.index'));
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('school/teachers/Index')
+        ->has('teachers.data', 1)
+        ->where('teachers.data.0.id', $teacher->id)
+        ->has('teachers.data.0.disciplinas', 2)
+        ->where('teachers.data.0.disciplinas.0.nome', 'Matemática')
+        ->where('teachers.data.0.disciplinas.0.sigla', 'MAT')
+        ->where('teachers.data.0.disciplinas.1.nome', 'Português')
+        ->where('teachers.data.0.disciplinas.1.sigla', 'PORT')
+    );
+});
+
 it('cannot store a teacher when tenant has no disciplinas', function () {
     $tenantWithNoDisciplinas = Tenant::factory()->create();
     $userWithNoDisciplinas = User::factory()->create(['nome_completo' => 'Admin Sem Disciplinas']);

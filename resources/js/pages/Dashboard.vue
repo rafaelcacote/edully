@@ -79,6 +79,12 @@ interface ProfessorStats {
     total_exercicios: number;
 }
 
+interface ProfessorDisciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
 interface CalendarEvent {
     date: string;
     date_formatted: string;
@@ -112,6 +118,7 @@ interface Props {
         nome: string;
         logo_url?: string | null;
     } | null;
+    disciplinas?: ProfessorDisciplina[];
     calendarEvents?: CalendarEvent[];
 }
 
@@ -140,6 +147,7 @@ const adminGeralStats = computed(() => (isAdminGeral.value ? (props.stats as Adm
 const adminEscolaStats = computed(() => (isAdminEscola.value ? (props.stats as AdminEscolaStats) : null));
 const professorStats = computed(() => (isProfessor.value ? (props.stats as ProfessorStats) : null));
 const calendarEvents = computed(() => props.calendarEvents || []);
+const professorDisciplinas = computed(() => (isProfessor.value ? (props.disciplinas ?? []) : []));
 
 // Calendário mensal
 const currentDate = ref(new Date());
@@ -266,17 +274,67 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                             </template>
                         </p>
 
-                        <div class="mt-4 flex items-center gap-2">
+                        <div v-if="isProfessor" class="mt-5 space-y-3">
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm text-white/70">Perfil</span>
+                                    <Badge
+                                        variant="secondary"
+                                        class="border-white/20 bg-white/15 text-white"
+                                    >
+                                        Professor
+                                    </Badge>
+                                </div>
+
+                                <template v-if="props.tenant">
+                                    <span
+                                        class="hidden h-4 w-px bg-white/25 sm:block"
+                                        aria-hidden="true"
+                                    />
+                                    <div class="flex min-w-0 items-center gap-2 text-sm text-white/90">
+                                        <School class="size-4 shrink-0 text-white/70" />
+                                        <span class="truncate font-medium">{{ props.tenant.nome }}</span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-sm text-white/70">Disciplinas</span>
+                                <template v-if="professorDisciplinas.length > 0">
+                                    <Badge
+                                        v-for="disciplina in professorDisciplinas"
+                                        :key="disciplina.id"
+                                        variant="secondary"
+                                        class="border-white/15 bg-white/10 font-medium text-white hover:bg-white/15"
+                                    >
+                                        {{ disciplina.nome }}
+                                        <span
+                                            v-if="disciplina.sigla"
+                                            class="ml-1.5 text-white/60"
+                                        >
+                                            {{ disciplina.sigla }}
+                                        </span>
+                                    </Badge>
+                                </template>
+                                <span
+                                    v-else
+                                    class="text-sm text-white/55"
+                                >
+                                    Nenhuma vinculada
+                                </span>
+                            </div>
+                        </div>
+
+                        <div v-else class="mt-4 flex items-center gap-2">
                             <span class="text-sm text-white/80">Perfil</span>
                             <Badge
                                 variant="secondary"
                                 class="border-white/20 bg-white/15 text-white"
                             >
                                 <template v-if="isAdminGeral">Administrador Geral</template>
-                                <template v-else-if="isProfessor">Professor</template>
                                 <template v-else>Administrador Escola</template>
                             </Badge>
-                            <template v-if="(isAdminEscola || isProfessor) && props.tenant">
+                            <template v-if="isAdminEscola && props.tenant">
                                 <span class="text-sm text-white/80">•</span>
                                 <span class="text-sm text-white/80">{{ props.tenant.nome }}</span>
                             </template>

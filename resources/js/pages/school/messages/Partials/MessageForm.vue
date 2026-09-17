@@ -3,7 +3,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, ChevronDown, Search, X } from 'lucide-vue-next';
+import { Save, ChevronDown, Search, X, Upload, FileText, Image as ImageIcon } from 'lucide-vue-next';
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 
 interface MessageData {
@@ -43,6 +43,9 @@ const conteudo = ref(props.messageData?.conteudo || '');
 const tipo = ref(props.messageData?.tipo || 'outro');
 const prioridade = ref(props.messageData?.prioridade || 'normal');
 const anexoUrl = ref(props.messageData?.anexo_url || '');
+const anexoFile = ref<File | null>(null);
+const anexoPreview = ref<string | null>(props.messageData?.anexo_url ?? null);
+const anexoRemoved = ref(false);
 const alunoSearch = ref('');
 const turmaSearch = ref('');
 const isAlunoDropdownOpen = ref(false);
@@ -53,6 +56,46 @@ const alunoSearchInputRef = ref<HTMLInputElement | null>(null);
 const turmaSearchInputRef = ref<HTMLInputElement | null>(null);
 
 const isEdit = computed(() => !!props.messageData?.id);
+const isImageAnexo = computed(() => {
+    const source = anexoFile.value?.type || anexoPreview.value || '';
+    if (typeof source === 'string' && source.startsWith('image/')) {
+        return true;
+    }
+    if (typeof source === 'string') {
+        return /\.(jpg|jpeg|png|webp)(\?|$)/i.test(source);
+    }
+    return false;
+});
+const anexoLabel = computed(() => {
+    if (anexoFile.value) {
+        return anexoFile.value.name;
+    }
+    if (anexoPreview.value) {
+        return isImageAnexo.value ? 'Imagem anexada' : 'Arquivo anexado';
+    }
+    return '';
+});
+
+function handleAnexoChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        anexoFile.value = target.files[0];
+        anexoPreview.value = target.files[0].name;
+        anexoUrl.value = '';
+        anexoRemoved.value = false;
+    }
+}
+
+function removeAnexo() {
+    anexoFile.value = null;
+    anexoPreview.value = null;
+    anexoUrl.value = '';
+    anexoRemoved.value = true;
+    const input = document.querySelector('input[name="anexo"]') as HTMLInputElement | null;
+    if (input) {
+        input.value = '';
+    }
+}
 
 const selectedAlunoName = computed(() => {
     if (!alunoId.value || !props.alunos) {
@@ -428,16 +471,82 @@ watch(turmaId, () => {
         </div>
 
         <div class="grid gap-2">
-            <Label for="anexo_url">URL do Anexo (opcional)</Label>
-            <input
-                id="anexo_url"
-                name="anexo_url"
-                v-model="anexoUrl"
-                type="url"
-                placeholder="https://..."
-                maxlength="2048"
-                class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
-            />
+            <Label for="anexo">Anexo (opcional)</Label>
+
+            <div v-if="!anexoPreview && !anexoFile" class="space-y-2">
+                <label
+                    for="anexo"
+                    class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
+                >
+                    <Upload class="h-4 w-4" />
+                    <span>Selecionar PDF ou imagem</span>
+                </label>
+                <input
+                    id="anexo"
+                    name="anexo"
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
+                    class="hidden"
+                    @change="handleAnexoChange"
+                />
+                <p class="text-xs text-muted-foreground">
+                    Formatos aceitos: PDF, JPG, PNG ou WEBP. Tamanho máximo: 10MB.
+                </p>
+                <input
+                    v-if="anexoRemoved && !anexoFile"
+                    type="hidden"
+                    name="anexo_url"
+                    value=""
+                />
+            </div>
+
+            <div v-else class="space-y-2">
+                <div class="flex items-center gap-2 rounded-lg border border-input bg-muted/50 p-3">
+                    <ImageIcon v-if="isImageAnexo" class="h-5 w-5 text-muted-foreground" />
+                    <FileText v-else class="h-5 w-5 text-muted-foreground" />
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium">
+                            {{ anexoLabel }}
+                        </p>
+                        <p
+                            v-if="props.messageData?.anexo_url && !anexoFile"
+                            class="text-xs text-muted-foreground"
+                        >
+                            <a
+                                :href="props.messageData.anexo_url"
+                                target="_blank"
+                                class="text-blue-500 hover:underline"
+                            >
+                                Ver anexo atual
+                            </a>
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="rounded p-1 hover:bg-destructive/10 hover:text-destructive"
+                        @click="removeAnexo"
+                    >
+                        <X class="h-4 w-4" />
+                    </button>
+                </div>
+                <label
+                    for="anexo"
+                    class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
+                >
+                    <Upload class="h-4 w-4" />
+                    <span>Alterar arquivo</span>
+                </label>
+                <input
+                    id="anexo"
+                    name="anexo"
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
+                    class="hidden"
+                    @change="handleAnexoChange"
+                />
+            </div>
+
+            <InputError :message="errors.anexo" />
             <InputError :message="errors.anexo_url" />
         </div>
 

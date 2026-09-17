@@ -5,8 +5,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * @deprecated Prefer 2026_09_16_225103_ensure_turma_id_on_mensagens_table.
- * Kept idempotent so fresh installs and re-runs stay safe.
+ * Ensures mensagens.turma_id exists on Postgres.
+ *
+ * The earlier migration 2026_02_13_224129 was an empty stub, and
+ * 2026_01_17 only added turma_id on SQLite. Homolog/production Postgres
+ * therefore never received the column.
  */
 return new class extends Migration
 {
@@ -43,7 +46,19 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Intentionally empty: column may be required by application code.
-        // Use 2026_09_16_225103 down() if you need to drop it deliberately.
+        $driver = DB::connection('shared')->getDriverName();
+
+        if ($driver === 'sqlite') {
+            if (Schema::connection('shared')->hasColumn('mensagens', 'turma_id')) {
+                Schema::connection('shared')->table('mensagens', function ($table) {
+                    $table->dropColumn('turma_id');
+                });
+            }
+
+            return;
+        }
+
+        DB::connection('shared')->statement('DROP INDEX IF EXISTS escola.idx_mensagens_turma_id');
+        DB::connection('shared')->statement('ALTER TABLE escola.mensagens DROP COLUMN IF EXISTS turma_id');
     }
 };

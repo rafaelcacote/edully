@@ -8,8 +8,11 @@ use App\Models\Teacher;
 use App\Models\Tenant;
 use App\Models\Turma;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -172,6 +175,14 @@ it('sends expo push to parents when school web creates a recado for a turma', fu
 
     $response->assertRedirect(route('school.messages.index', absolute: false));
 
+    $this->assertDatabaseHas('mensagens', [
+        'tenant_id' => $ctx['tenant']->id,
+        'remetente_id' => $ctx['teacherUser']->id,
+        'aluno_id' => $ctx['aluno']->id,
+        'turma_id' => $ctx['turma']->id,
+        'titulo' => 'Recado da turma',
+    ], 'shared');
+
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), 'exp.host')) {
             return false;
@@ -182,4 +193,75 @@ it('sends expo push to parents when school web creates a recado for a turma', fu
 
         return ($first['to'] ?? null) === 'ExponentPushToken[web-turma-parent]';
     });
+});
+
+it('stores uploaded pdf anexo url when creating a school message', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    Storage::fake('public');
+    Http::fake();
+
+    $ctx = setupSchoolMessagePushContext();
+    $anexo = UploadedFile::fake()->create('dever.pdf', 120, 'application/pdf');
+
+    $response = $this->actingAs($ctx['teacherUser'])->post('/school/messages', [
+        'aluno_id' => $ctx['aluno']->id,
+        'titulo' => 'Recado com anexo',
+        'conteudo' => 'Segue o arquivo em anexo.',
+        'tipo' => 'outro',
+        'prioridade' => 'normal',
+        'anexo' => $anexo,
+    ]);
+
+    $response->assertRedirect(route('school.messages.index', absolute: false));
+
+    $message = DB::connection('shared')
+        ->table('mensagens')
+        ->where('tenant_id', $ctx['tenant']->id)
+        ->where('titulo', 'Recado com anexo')
+        ->first();
+
+    expect($message)->not->toBeNull();
+    expect($message->anexo_url)->not->toBeNull();
+    expect($message->anexo_url)->toContain('mensagens/anexos');
+
+    $relativePath = str_replace(asset('storage/'), '', $message->anexo_url);
+    Storage::disk('public')->assertExists($relativePath);
+});
+
+it('stores turma_id when creating a recado for an entire class', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    Http::fake();
+
+    $ctx = setupSchoolMessagePushContext();
+
+    expect(Schema::connection('shared')->hasColumn('mensagens', 'turma_id'))->toBeTrue();
+
+    $response = $this->actingAs($ctx['teacherUser'])->post('/school/messages', [
+        'turma_id' => $ctx['turma']->id,
+        'titulo' => 'Recado turma schema',
+        'conteudo' => 'Validando coluna turma_id.',
+        'tipo' => 'outro',
+        'prioridade' => 'normal',
+    ]);
+
+    $response->assertRedirect(route('school.messages.index', absolute: false));
+
+    $this->assertDatabaseHas('mensagens', [
+        'tenant_id' => $ctx['tenant']->id,
+        'aluno_id' => $ctx['aluno']->id,
+        'turma_id' => $ctx['turma']->id,
+        'titulo' => 'Recado turma schema',
+    ], 'shared');
 });

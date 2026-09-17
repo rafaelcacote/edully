@@ -36,10 +36,16 @@ interface PaginationLink {
     active: boolean;
 }
 
+interface TeacherDisciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
 interface Teacher {
     id: string;
     matricula: string;
-    disciplinas?: string[] | null;
+    disciplinas?: TeacherDisciplina[] | null;
     especializacao?: string | null;
     ativo: boolean;
     nome_completo?: string;
@@ -202,17 +208,21 @@ function clearFilters() {
                                 </td>
                                 <td class="px-4 py-3">{{ teacher.email || '—' }}</td>
                                 <td class="px-4 py-3">
-                                    <div v-if="teacher.disciplinas && teacher.disciplinas.length > 0" class="flex flex-wrap gap-1">
+                                    <div
+                                        v-if="teacher.disciplinas && teacher.disciplinas.length > 0"
+                                        class="flex flex-wrap gap-1"
+                                    >
                                         <span
-                                            v-for="(disciplina, idx) in teacher.disciplinas.slice(0, 2)"
-                                            :key="idx"
-                                            class="text-xs rounded bg-primary/10 px-2 py-0.5"
+                                            v-for="disciplina in teacher.disciplinas.slice(0, 2)"
+                                            :key="disciplina.id"
+                                            class="rounded bg-primary/10 px-2 py-0.5 text-xs"
                                         >
-                                            {{ disciplina }}
+                                            {{ disciplina.sigla || disciplina.nome }}
                                         </span>
                                         <span
                                             v-if="teacher.disciplinas.length > 2"
                                             class="text-xs text-muted-foreground"
+                                            :title="teacher.disciplinas.map((d) => d.nome).join(', ')"
                                         >
                                             +{{ teacher.disciplinas.length - 2 }}
                                         </span>

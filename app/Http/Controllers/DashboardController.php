@@ -353,6 +353,17 @@ class DashboardController extends Controller
             ->where('data_entrega', '>=', now()->startOfDay())
             ->count();
 
+        $disciplinas = $teacher->disciplinas()
+            ->orderBy('nome')
+            ->get()
+            ->map(fn ($disciplina) => [
+                'id' => $disciplina->id,
+                'nome' => $disciplina->nome,
+                'sigla' => $disciplina->sigla,
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('Dashboard', [
             'dashboardType' => 'professor',
             'tenant' => $tenant ? [
@@ -360,6 +371,7 @@ class DashboardController extends Controller
                 'nome' => $tenant->nome,
                 'logo_url' => $tenant->logo_url,
             ] : null,
+            'disciplinas' => $disciplinas,
             'stats' => [
                 'total_provas' => $totalProvas,
                 'total_exercicios' => $totalExercicios,

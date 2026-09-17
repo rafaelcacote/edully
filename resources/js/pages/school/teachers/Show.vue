@@ -6,10 +6,16 @@ import type { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, User, UserCheck } from 'lucide-vue-next';
 
+interface TeacherDisciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
 interface Teacher {
     id: string;
     matricula: string;
-    disciplinas?: string[] | null;
+    disciplinas?: TeacherDisciplina[] | null;
     especializacao?: string | null;
     ativo: boolean;
     nome_completo?: string;
@@ -161,14 +167,23 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
                     <div class="border-t pt-6">
                         <h3 class="mb-4 text-lg font-semibold">Disciplinas</h3>
-                        <div v-if="props.teacher.disciplinas && props.teacher.disciplinas.length > 0" class="flex flex-wrap gap-2">
+                        <div
+                            v-if="props.teacher.disciplinas && props.teacher.disciplinas.length > 0"
+                            class="flex flex-wrap gap-2"
+                        >
                             <Badge
-                                v-for="(disciplina, index) in props.teacher.disciplinas"
-                                :key="index"
+                                v-for="disciplina in props.teacher.disciplinas"
+                                :key="disciplina.id"
                                 variant="secondary"
                                 class="px-3 py-1.5 text-sm"
                             >
-                                {{ disciplina }}
+                                <span>{{ disciplina.nome }}</span>
+                                <span
+                                    v-if="disciplina.sigla"
+                                    class="ml-1.5 text-muted-foreground"
+                                >
+                                    ({{ disciplina.sigla }})
+                                </span>
                             </Badge>
                         </div>
                         <p v-else class="text-sm text-muted-foreground">

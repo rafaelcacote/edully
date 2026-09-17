@@ -11,7 +11,9 @@ use App\Models\Teacher;
 use App\Models\Turma;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -264,6 +266,7 @@ class MessagesController extends Controller
         $tenant = $this->getTenant();
         $user = auth()->user();
         $validated = $request->validated();
+        $anexoUrl = $this->resolveMessageAnexoUrl($request);
 
         // Se turma_id foi enviado, criar mensagem para todos os alunos da turma
         if (isset($validated['turma_id'])) {
@@ -293,7 +296,7 @@ class MessagesController extends Controller
                     'conteudo' => $validated['conteudo'],
                     'tipo' => $validated['tipo'] ?? 'outro',
                     'prioridade' => $validated['prioridade'] ?? 'normal',
-                    'anexo_url' => $validated['anexo_url'] ?? null,
+                    'anexo_url' => $anexoUrl,
                     'lida' => false,
                 ]);
                 $notify->queue($created);
@@ -310,10 +313,16 @@ class MessagesController extends Controller
 
         // Comportamento normal: mensagem para um aluno específico
         $message = Message::create([
-            ...$validated,
             'tenant_id' => $tenant->id,
             'remetente_id' => $user->id,
+            'aluno_id' => $validated['aluno_id'],
             'conversa_id' => (string) Str::uuid(),
+            'titulo' => $validated['titulo'],
+            'conteudo' => $validated['conteudo'],
+            'tipo' => $validated['tipo'] ?? 'outro',
+            'prioridade' => $validated['prioridade'] ?? 'normal',
+            'anexo_url' => $anexoUrl,
+            'lida' => false,
         ]);
 
         app(NotifyMessagePushRecipients::class)->queue($message);
@@ -476,8 +485,16 @@ class MessagesController extends Controller
         }
 
         $validated = $request->validated();
+        $anexoUrl = $this->resolveMessageAnexoUrl($request, $message->anexo_url);
 
-        $message->update($validated);
+        $message->update([
+            'aluno_id' => $validated['aluno_id'],
+            'titulo' => $validated['titulo'],
+            'conteudo' => $validated['conteudo'],
+            'tipo' => $validated['tipo'] ?? $message->tipo,
+            'prioridade' => $validated['prioridade'] ?? $message->prioridade,
+            'anexo_url' => $anexoUrl,
+        ]);
 
         return redirect()
             ->route('school.messages.edit', $message)
@@ -486,6 +503,52 @@ class MessagesController extends Controller
                 'title' => 'Recado atualizado',
                 'message' => 'As alterações foram salvas com sucesso.',
             ]);
+    }
+
+    /**
+     * Resolve anexo_url from uploaded file or keep the current value.
+     */
+    protected function resolveMessageAnexoUrl(Request $request, ?string $currentUrl = null): ?string
+    {
+        if ($request->hasFile('anexo')) {
+            $this->deleteStoredMessageAnexo($currentUrl);
+
+            return $this->storeMessageAnexo($request->file('anexo'));
+        }
+
+        if ($request->exists('anexo_url') && blank($request->input('anexo_url'))) {
+            $this->deleteStoredMessageAnexo($currentUrl);
+
+            return null;
+        }
+
+        $validatedUrl = $request->validated('anexo_url') ?? null;
+
+        return filled($validatedUrl) ? $validatedUrl : $currentUrl;
+    }
+
+    protected function storeMessageAnexo(UploadedFile $anexo): string
+    {
+        $anexoPath = $anexo->store('mensagens/anexos', 'public');
+
+        return asset('storage/'.$anexoPath);
+    }
+
+    protected function deleteStoredMessageAnexo(?string $anexoUrl): void
+    {
+        if (! $anexoUrl) {
+            return;
+        }
+
+        $storageBaseUrl = asset('storage/');
+        if (! str_starts_with($anexoUrl, $storageBaseUrl)) {
+            return;
+        }
+
+        $relativePath = str_replace($storageBaseUrl, '', $anexoUrl);
+        if ($relativePath !== '' && Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->delete($relativePath);
+        }
     }
 
     /**
