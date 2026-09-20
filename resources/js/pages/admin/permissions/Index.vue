@@ -91,8 +91,13 @@ function getSubgroupName(permissionName: string): string {
 function getSubgroupLabel(subgroupName: string): string {
     const labels: Record<string, string> = {
         alunos: 'Alunos',
+        avisos: 'Comunicados',
         disciplinas: 'Disciplinas',
+        documentos: 'Documentos',
         exercicios: 'Exercícios',
+        financeiro: 'Financeiro',
+        mensagens: 'Recados',
+        notas: 'Notas',
         perfil: 'Perfil',
         professores: 'Professores',
         provas: 'Provas',

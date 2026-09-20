@@ -48,18 +48,20 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 function getPrioridadeLabel(prioridade: string): string {
     const labels: Record<string, string> = {
+        baixa: 'Baixa',
         normal: 'Normal',
         alta: 'Alta',
-        media: 'Média',
+        urgente: 'Urgente',
     };
     return labels[prioridade] || prioridade;
 }
 
 function getPrioridadeVariant(prioridade: string): string {
     const variants: Record<string, string> = {
+        baixa: 'secondary',
         normal: 'default',
         alta: 'destructive',
-        media: 'secondary',
+        urgente: 'destructive',
     };
     return variants[prioridade] || 'default';
 }
@@ -67,9 +69,9 @@ function getPrioridadeVariant(prioridade: string): string {
 function getPublicoAlvoLabel(publicoAlvo: string): string {
     const labels: Record<string, string> = {
         todos: 'Todos',
-        alunos: 'Alunos',
         professores: 'Professores',
         responsaveis: 'Responsáveis',
+        alunos: 'Alunos', // legado
     };
     return labels[publicoAlvo] || publicoAlvo;
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -99,6 +100,22 @@ class Aviso extends Model
     public function criadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'criado_por');
+    }
+
+    /**
+     * Filter avisos visible to the given app user (teacher or responsavel).
+     */
+    public function scopeVisibleToAudience(Builder $query, User $user): Builder
+    {
+        if ($user->isTeacher()) {
+            return $query->whereIn('publico_alvo', ['todos', 'professores']);
+        }
+
+        if ($user->isResponsavel()) {
+            return $query->whereIn('publico_alvo', ['todos', 'responsaveis']);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     /**

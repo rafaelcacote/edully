@@ -100,7 +100,7 @@ it('creates an aviso with publication dates and keeps them on edit', function ()
     $response = $this->actingAs($authUser)->post('/school/avisos', [
         'titulo' => 'Aviso com datas',
         'conteudo' => 'Conteúdo com datas',
-        'prioridade' => 'media',
+        'prioridade' => 'baixa',
         'publico_alvo' => 'professores',
         'publicado' => '1',
         'publicado_em' => $publicadoEm,
@@ -126,6 +126,40 @@ it('creates an aviso with publication dates and keeps them on edit', function ()
     );
 });
 
+it('rejects invalid prioridade values and accepts nivel_prioridade enum values', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $this->actingAs($authUser)->post('/school/avisos', [
+        'titulo' => 'Prioridade inválida',
+        'conteudo' => 'Conteúdo',
+        'prioridade' => 'media',
+        'publico_alvo' => 'todos',
+        'publicado' => '0',
+    ])->assertSessionHasErrors('prioridade');
+
+    $this->actingAs($authUser)->post('/school/avisos', [
+        'titulo' => 'Prioridade válida',
+        'conteudo' => 'Conteúdo',
+        'prioridade' => 'urgente',
+        'publico_alvo' => 'todos',
+        'publicado' => '0',
+    ])->assertRedirect(route('school.avisos.index', absolute: false));
+
+    $aviso = Aviso::query()->where('titulo', 'Prioridade válida')->first();
+
+    expect($aviso)->not->toBeNull();
+    expect($aviso->prioridade)->toBe('urgente');
+});
+
 it('creates an aviso with pdf attachment', function () {
     $this->withoutMiddleware([
         HandleInertiaRequests::class,
@@ -144,7 +178,7 @@ it('creates an aviso with pdf attachment', function () {
         'titulo' => 'Aviso com anexo',
         'conteudo' => 'Conteúdo do aviso com anexo PDF',
         'prioridade' => 'normal',
-        'publico_alvo' => 'alunos',
+        'publico_alvo' => 'responsaveis',
         'anexo' => $pdf,
         'publicado' => false,
     ];
@@ -165,7 +199,7 @@ it('creates an aviso with pdf attachment', function () {
     Storage::disk('public')->assertExists($filePath);
 });
 
-it('validates pdf file type on store', function () {
+it('validates attachment file type on store', function () {
     $this->withoutMiddleware([
         HandleInertiaRequests::class,
         PermissionMiddleware::class,
@@ -188,6 +222,45 @@ it('validates pdf file type on store', function () {
     $response = $this->actingAs($authUser)->post('/school/avisos', $payload);
 
     $response->assertSessionHasErrors(['anexo']);
+});
+
+it('creates an aviso with image attachment', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    Storage::fake('public');
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $image = UploadedFile::fake()->image('aviso.jpg', 800, 600);
+
+    $payload = [
+        'titulo' => 'Aviso com imagem',
+        'conteudo' => 'Conteúdo do aviso com imagem',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'responsaveis',
+        'anexo' => $image,
+        'publicado' => false,
+    ];
+
+    $response = $this->actingAs($authUser)->post('/school/avisos', $payload);
+
+    $response->assertRedirect(route('school.avisos.index', absolute: false));
+
+    $aviso = Aviso::where('titulo', 'Aviso com imagem')->first();
+
+    expect($aviso)->not->toBeNull();
+    expect($aviso->anexo_url)->not->toBeNull();
+    expect($aviso->anexo_url)->toContain('storage/avisos/anexos');
+
+    $filePath = str_replace(asset('storage/'), '', $aviso->anexo_url);
+    Storage::disk('public')->assertExists($filePath);
 });
 
 it('validates pdf file size on store', function () {

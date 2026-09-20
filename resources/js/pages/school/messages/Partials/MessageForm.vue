@@ -54,6 +54,7 @@ const alunoDropdownRef = ref<HTMLElement | null>(null);
 const turmaDropdownRef = ref<HTMLElement | null>(null);
 const alunoSearchInputRef = ref<HTMLInputElement | null>(null);
 const turmaSearchInputRef = ref<HTMLInputElement | null>(null);
+const anexoInputRef = ref<HTMLInputElement | null>(null);
 
 const isEdit = computed(() => !!props.messageData?.id);
 const isImageAnexo = computed(() => {
@@ -91,9 +92,8 @@ function removeAnexo() {
     anexoPreview.value = null;
     anexoUrl.value = '';
     anexoRemoved.value = true;
-    const input = document.querySelector('input[name="anexo"]') as HTMLInputElement | null;
-    if (input) {
-        input.value = '';
+    if (anexoInputRef.value) {
+        anexoInputRef.value.value = '';
     }
 }
 
@@ -462,15 +462,27 @@ watch(turmaId, () => {
                     name="prioridade"
                     class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                    <option value="baixa">Baixa</option>
                     <option value="normal">Normal</option>
                     <option value="alta">Alta</option>
-                    <option value="media">Média</option>
+                    <option value="urgente">Urgente</option>
                 </select>
                 <InputError :message="errors.prioridade" />
             </div>
 
             <div class="grid gap-2 sm:col-span-2 xl:col-span-1">
                 <Label for="anexo">Anexo (opcional)</Label>
+
+                <!-- Input único e sempre montado: se for destruído no v-if, o arquivo some do FormData -->
+                <input
+                    id="anexo"
+                    ref="anexoInputRef"
+                    name="anexo"
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
+                    class="hidden"
+                    @change="handleAnexoChange"
+                />
 
                 <div v-if="!anexoPreview && !anexoFile" class="space-y-2">
                     <label
@@ -480,14 +492,6 @@ watch(turmaId, () => {
                         <Upload class="h-4 w-4" />
                         <span>Selecionar PDF ou imagem</span>
                     </label>
-                    <input
-                        id="anexo"
-                        name="anexo"
-                        type="file"
-                        accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
-                        class="hidden"
-                        @change="handleAnexoChange"
-                    />
                     <p class="text-xs text-muted-foreground">
                         PDF, JPG, PNG ou WEBP. Máx. 10MB.
                     </p>
@@ -535,14 +539,6 @@ watch(turmaId, () => {
                         <Upload class="h-4 w-4" />
                         <span>Alterar arquivo</span>
                     </label>
-                    <input
-                        id="anexo"
-                        name="anexo"
-                        type="file"
-                        accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
-                        class="hidden"
-                        @change="handleAnexoChange"
-                    />
                 </div>
 
                 <InputError :message="errors.anexo" />

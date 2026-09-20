@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\School;
 
+use App\Actions\Api\NotifyAvisoPushRecipients;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreAvisoRequest;
 use App\Http\Requests\School\UpdateAvisoRequest;
@@ -137,6 +138,10 @@ class AvisosController extends Controller
 
         $aviso->save();
 
+        if ($aviso->publicado) {
+            app(NotifyAvisoPushRecipients::class)->queue($aviso);
+        }
+
         return redirect()
             ->route('school.avisos.index')
             ->with('toast', [
@@ -245,6 +250,8 @@ class AvisosController extends Controller
             $anexoUrl = null;
         }
 
+        $wasPublished = (bool) $aviso->publicado;
+
         $aviso->titulo = $validated['titulo'];
         $aviso->conteudo = $validated['conteudo'];
         $aviso->prioridade = $validated['prioridade'] ?? 'normal';
@@ -259,6 +266,10 @@ class AvisosController extends Controller
         }
 
         $aviso->save();
+
+        if ($aviso->publicado && ! $wasPublished) {
+            app(NotifyAvisoPushRecipients::class)->queue($aviso);
+        }
 
         return redirect()
             ->route('school.avisos.edit', $aviso)

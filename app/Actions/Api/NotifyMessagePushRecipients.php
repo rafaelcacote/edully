@@ -49,7 +49,7 @@ class NotifyMessagePushRecipients
 
             $senderName = $message->remetente?->nome_completo
                 ?? $message->remetente()->value('nome_completo')
-                ?? 'Eduly';
+                ?? 'Edully';
 
             $title = 'Nova mensagem';
             $body = trim(($message->titulo ?: 'Você recebeu uma nova mensagem').' · '.$senderName);

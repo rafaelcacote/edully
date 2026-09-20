@@ -265,3 +265,41 @@ it('stores turma_id when creating a recado for an entire class', function () {
         'titulo' => 'Recado turma schema',
     ], 'shared');
 });
+
+it('copies anexo_url to every aluno when creating a turma recado with file', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    Storage::fake('public');
+    Http::fake();
+
+    $ctx = setupSchoolMessagePushContext();
+    $anexo = UploadedFile::fake()->create('circular.pdf', 180, 'application/pdf');
+
+    $response = $this->actingAs($ctx['teacherUser'])->post('/school/messages', [
+        'turma_id' => $ctx['turma']->id,
+        'titulo' => 'Recado turma com anexo',
+        'conteudo' => 'Segue o documento para a turma.',
+        'tipo' => 'outro',
+        'prioridade' => 'normal',
+        'anexo' => $anexo,
+    ]);
+
+    $response->assertRedirect(route('school.messages.index', absolute: false));
+
+    $messages = DB::connection('shared')
+        ->table('mensagens')
+        ->where('tenant_id', $ctx['tenant']->id)
+        ->where('turma_id', $ctx['turma']->id)
+        ->where('titulo', 'Recado turma com anexo')
+        ->get();
+
+    expect($messages)->not->toBeEmpty();
+    expect($messages->every(fn ($message) => filled($message->anexo_url)))->toBeTrue();
+    expect($messages->pluck('anexo_url')->unique()->count())->toBe(1);
+    expect($messages->first()->anexo_url)->toContain('mensagens/anexos');
+});

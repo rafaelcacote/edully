@@ -58,14 +58,14 @@ function toDateTimeLocalValue(value?: string | null): string {
 }
 
 const prioridadeOptions = [
+    { value: 'baixa', label: 'Baixa' },
     { value: 'normal', label: 'Normal' },
-    { value: 'media', label: 'Média' },
     { value: 'alta', label: 'Alta' },
+    { value: 'urgente', label: 'Urgente' },
 ];
 
 const publicoAlvoOptions = [
     { value: 'todos', label: 'Toda a escola' },
-    { value: 'alunos', label: 'Somente alunos' },
     { value: 'professores', label: 'Somente professores' },
     { value: 'responsaveis', label: 'Somente responsáveis' },
 ];
@@ -81,6 +81,7 @@ const expiraEm = ref(toDateTimeLocalValue(props.aviso?.expira_em));
 const conteudo = ref(props.aviso?.conteudo ?? '');
 const anexoFile = ref<File | null>(null);
 const anexoPreview = ref<string | null>(props.aviso?.anexo_url ?? null);
+const anexoInputRef = ref<HTMLInputElement | null>(null);
 
 watch(
     () => props.aviso,
@@ -109,9 +110,8 @@ function handleAnexoChange(event: Event) {
 function removeAnexo() {
     anexoFile.value = null;
     anexoPreview.value = null;
-    const input = document.querySelector('input[name="anexo"]') as HTMLInputElement;
-    if (input) {
-        input.value = '';
+    if (anexoInputRef.value) {
+        anexoInputRef.value.value = '';
     }
 }
 </script>
@@ -213,7 +213,18 @@ function removeAnexo() {
         </div>
 
         <div class="grid gap-2">
-            <Label for="anexo">Anexo (PDF)</Label>
+            <Label for="anexo">Anexo (opcional)</Label>
+
+            <!-- Input único e sempre montado: se for destruído no v-if, o arquivo some do FormData -->
+            <input
+                id="anexo"
+                ref="anexoInputRef"
+                name="anexo"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
+                class="hidden"
+                @change="handleAnexoChange"
+            />
 
             <div v-if="!anexoPreview && !anexoFile" class="space-y-2">
                 <label
@@ -221,18 +232,10 @@ function removeAnexo() {
                     class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
                 >
                     <Upload class="h-4 w-4" />
-                    <span>Selecionar arquivo PDF</span>
+                    <span>Selecionar PDF ou imagem</span>
                 </label>
-                <input
-                    id="anexo"
-                    name="anexo"
-                    type="file"
-                    accept="application/pdf"
-                    class="hidden"
-                    @change="handleAnexoChange"
-                />
                 <p class="text-xs text-muted-foreground">
-                    Formato aceito: PDF. Tamanho máximo: 10MB.
+                    PDF, JPG, PNG ou WEBP. Máx. 10MB.
                 </p>
             </div>
 
@@ -264,14 +267,6 @@ function removeAnexo() {
                     <Upload class="h-4 w-4" />
                     <span>Alterar arquivo</span>
                 </label>
-                <input
-                    id="anexo"
-                    name="anexo"
-                    type="file"
-                    accept="application/pdf"
-                    class="hidden"
-                    @change="handleAnexoChange"
-                />
                 <input
                     v-if="!anexoFile && !anexoPreview"
                     type="hidden"

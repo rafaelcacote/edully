@@ -62,9 +62,10 @@ class AvisosController extends Controller
     }
 
     /**
-     * List published avisos for the app (students' notices).
-     * Responsaveis see avisos from tenants where their students are enrolled.
-     * Teachers see avisos from their tenant.
+     * List published avisos for the app.
+     * Responsaveis see avisos from tenants where their students are enrolled
+     * with publico_alvo todos|responsaveis.
+     * Teachers see avisos from their tenant with publico_alvo todos|professores.
      */
     public function index(Request $request): JsonResponse
     {
@@ -93,6 +94,7 @@ class AvisosController extends Controller
         $avisos = Aviso::query()
             ->whereIn('tenant_id', $tenantIds)
             ->where('publicado', true)
+            ->visibleToAudience($user)
             ->where(function ($query) {
                 $query->whereNull('expira_em')
                     ->orWhere('expira_em', '>=', now());
@@ -138,6 +140,7 @@ class AvisosController extends Controller
             ->where('id', $id)
             ->whereIn('tenant_id', $tenantIds)
             ->where('publicado', true)
+            ->visibleToAudience($user)
             ->where(function ($query) {
                 $query->whereNull('expira_em')
                     ->orWhere('expira_em', '>=', now());

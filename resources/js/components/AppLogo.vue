@@ -10,9 +10,9 @@ const appName = computed(() => {
     const user = auth.value?.user;
     const currentTenant = auth.value?.current_tenant;
 
-    // Se for administrador geral, mostrar "Eduly"
+    // Se for administrador geral, mostrar "Edully"
     if (user?.is_admin_geral) {
-        return 'Eduly';
+        return 'Edully';
     }
 
     // Se tiver tenant vinculado, mostrar nome da escola
@@ -21,14 +21,14 @@ const appName = computed(() => {
     }
 
     // Fallback
-    return 'Eduly';
+    return 'Edully';
 });
 
 const appLogo = computed(() => {
     const user = auth.value?.user;
     const currentTenant = auth.value?.current_tenant;
 
-    // Se for administrador geral, usar logo do Eduly
+    // Se for administrador geral, usar logo do Edully
     if (user?.is_admin_geral) {
         return '/images/logo.svg';
     }

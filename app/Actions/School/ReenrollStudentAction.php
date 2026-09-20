@@ -18,7 +18,7 @@ class ReenrollStudentAction
         $driver = DB::connection('shared')->getDriverName();
         $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
 
-        DB::connection('shared')->transaction(function () use ($student, $novaTurma, $tenant, $pivotTable) {
+        DB::connection('shared')->transaction(function () use ($student, $novaTurma, $tenant, $pivotTable, $driver) {
             // Verificar se a turma pertence ao tenant
             if ($novaTurma->tenant_id !== $tenant->id) {
                 throw new \Exception('Turma não pertence ao tenant');
@@ -56,12 +56,11 @@ class ReenrollStudentAction
                         'updated_at' => now(),
                     ]);
             } else {
-                // Criar nova matrícula
+                // Criar nova matrícula (id = matrícula; coluna `matricula` só existe no SQLite de testes)
                 $matriculaId = Str::uuid();
 
-                DB::connection('shared')->table($pivotTable)->insert([
+                $matriculaRow = [
                     'id' => $matriculaId,
-                    'matricula' => $matriculaId,
                     'tenant_id' => $tenant->id,
                     'aluno_id' => $student->id,
                     'turma_id' => $novaTurma->id,
@@ -69,7 +68,14 @@ class ReenrollStudentAction
                     'status' => 'ativo',
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
+
+                if ($driver === 'sqlite') {
+                    $matriculaRow['matricula'] = $matriculaId;
+                    $matriculaRow['ativo'] = true;
+                }
+
+                DB::connection('shared')->table($pivotTable)->insert($matriculaRow);
             }
         });
     }

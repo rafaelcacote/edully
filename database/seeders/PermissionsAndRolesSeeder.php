@@ -106,10 +106,18 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.avisos.criar',
             'escola.avisos.editar',
             'escola.avisos.excluir',
+            'escola.documentos.visualizar',
+            'escola.documentos.criar',
+            'escola.documentos.editar',
+            'escola.documentos.excluir',
             'escola.notas.visualizar',
             'escola.notas.criar',
             'escola.notas.editar',
             'escola.notas.excluir',
+            'escola.financeiro.visualizar',
+            'escola.financeiro.criar',
+            'escola.financeiro.editar',
+            'escola.financeiro.excluir',
         ];
 
         // Permissões para Professores

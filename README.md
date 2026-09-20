@@ -1,4 +1,4 @@
-# 🎓 Eduly - Sistema de Gestão Escolar
+# 🎓 Edully - Sistema de Gestão Escolar
 
 <div align="center">
 
@@ -19,7 +19,7 @@
 
 ## 📋 Sobre o Projeto
 
-O **Eduly** é um sistema de gestão escolar completo desenvolvido com as mais modernas tecnologias web. A plataforma oferece uma solução robusta para administração de escolas, permitindo gerenciar alunos, professores, turmas, disciplinas, provas, exercícios, mensagens e muito mais.
+O **Edully** é um sistema de gestão escolar completo desenvolvido com as mais modernas tecnologias web. A plataforma oferece uma solução robusta para administração de escolas, permitindo gerenciar alunos, professores, turmas, disciplinas, provas, exercícios, mensagens e muito mais.
 
 ### ✨ Principais Funcionalidades
 
@@ -218,7 +218,7 @@ Para mais informações, consulte o arquivo [COMANDOS_UTEIS.md](./COMANDOS_UTEIS
 
 ## 📱 API
 
-O Eduly possui uma API REST completa para integração com aplicativos móveis. A API utiliza autenticação via **Bearer Token** (Laravel Sanctum).
+O Edully possui uma API REST completa para integração com aplicativos móveis. A API utiliza autenticação via **Bearer Token** (Laravel Sanctum).
 
 ### Documentação da API
 

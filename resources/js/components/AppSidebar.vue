@@ -31,6 +31,7 @@ import {
     FileSearch,
     FileSpreadsheet,
     FileText,
+    FolderOpen,
     GraduationCap,
     KeyRound,
     LayoutGrid,
@@ -49,6 +50,13 @@ const user = computed(() => page.props.auth.user);
 const roles = computed(() => user.value?.roles ?? []);
 const permissions = computed(() => user.value?.permissions ?? []);
 const tenants = computed(() => user.value?.tenants ?? []);
+const documentosAtencao = computed(
+    () =>
+        page.props.documentos_atencao ?? {
+            count: 0,
+            has_unseen: false,
+        },
+);
 
 const hasPermission = (permission: string): boolean => permissions.value.includes(permission);
 
@@ -68,7 +76,9 @@ const canViewExercises = computed(() => hasPermission('escola.exercicios.visuali
 const canViewTests = computed(() => hasPermission('escola.provas.visualizar'));
 const canViewMessages = computed(() => hasPermission('escola.mensagens.visualizar'));
 const canViewAvisos = computed(() => hasPermission('escola.avisos.visualizar'));
+const canViewDocumentos = computed(() => hasPermission('escola.documentos.visualizar'));
 const canViewNotas = computed(() => hasPermission('escola.notas.visualizar'));
+const canViewFinanceiro = computed(() => hasPermission('escola.financeiro.visualizar'));
 
 const hasAnySchoolPermission = computed(
     () =>
@@ -82,7 +92,9 @@ const hasAnySchoolPermission = computed(
         canViewTests.value ||
         canViewMessages.value ||
         canViewAvisos.value ||
-        canViewNotas.value
+        canViewDocumentos.value ||
+        canViewNotas.value ||
+        canViewFinanceiro.value
 );
 
 const canAccessSchoolMenu = computed(
@@ -124,6 +136,40 @@ const generalNavItems = computed<NavItem[]>(() => {
     return items;
 });
 
+const academicNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [];
+
+    if (!canAccessSchoolMenu.value) {
+        return items;
+    }
+
+    if (canViewDisciplinas.value) {
+        items.push({
+            title: 'Disciplinas',
+            href: '/school/disciplinas',
+            icon: BookText,
+        });
+    }
+
+    if (canViewTeachers.value) {
+        items.push({
+            title: 'Professores',
+            href: '/school/teachers',
+            icon: UserCheck,
+        });
+    }
+
+    if (canViewClasses.value) {
+        items.push({
+            title: 'Turmas',
+            href: '/school/classes',
+            icon: BookOpen,
+        });
+    }
+
+    return items;
+});
+
 const peopleNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [];
 
@@ -144,40 +190,6 @@ const peopleNavItems = computed<NavItem[]>(() => {
             title: 'Responsáveis',
             href: '/school/parents',
             icon: Users,
-        });
-    }
-
-    if (canViewTeachers.value) {
-        items.push({
-            title: 'Professores',
-            href: '/school/teachers',
-            icon: UserCheck,
-        });
-    }
-
-    return items;
-});
-
-const academicNavItems = computed<NavItem[]>(() => {
-    const items: NavItem[] = [];
-
-    if (!canAccessSchoolMenu.value) {
-        return items;
-    }
-
-    if (canViewClasses.value) {
-        items.push({
-            title: 'Turmas',
-            href: '/school/classes',
-            icon: BookOpen,
-        });
-    }
-
-    if (canViewDisciplinas.value) {
-        items.push({
-            title: 'Disciplinas',
-            href: '/school/disciplinas',
-            icon: BookText,
         });
     }
 
@@ -246,6 +258,37 @@ const communicationNavItems = computed<NavItem[]>(() => {
         });
     }
 
+    if (canViewDocumentos.value) {
+        items.push({
+            title: 'Documentos',
+            href: '/school/documentos',
+            icon: FolderOpen,
+            badge:
+                documentosAtencao.value.count > 0
+                    ? documentosAtencao.value.count
+                    : undefined,
+            pulse: documentosAtencao.value.has_unseen,
+        });
+    }
+
+    return items;
+});
+
+const financeNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [];
+
+    if (!canAccessSchoolMenu.value) {
+        return items;
+    }
+
+    if (canViewFinanceiro.value) {
+        items.push({
+            title: 'Financeiro',
+            href: '/school/cobrancas',
+            icon: CreditCard,
+        });
+    }
+
     return items;
 });
 
@@ -311,10 +354,11 @@ const footerNavItems: NavItem[] = [];
 
         <SidebarContent>
             <NavMain label="Geral" :items="generalNavItems" />
-            <NavMain v-if="peopleNavItems.length > 0" label="Pessoas" :items="peopleNavItems" />
             <NavMain v-if="academicNavItems.length > 0" label="Acadêmico" :items="academicNavItems" />
+            <NavMain v-if="peopleNavItems.length > 0" label="Pessoas" :items="peopleNavItems" />
             <NavMain v-if="assessmentsNavItems.length > 0" label="Avaliações" :items="assessmentsNavItems" />
             <NavMain v-if="communicationNavItems.length > 0" label="Comunicação" :items="communicationNavItems" />
+            <NavMain v-if="financeNavItems.length > 0" label="Financeiro" :items="financeNavItems" />
             <NavMain
                 v-if="plansAndSubscriptionsNavItems.length > 0"
                 label="Planos e Assinaturas"

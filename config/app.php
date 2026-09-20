@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Password reset URLs
+    |--------------------------------------------------------------------------
+    |
+    | frontend_reset_url: link HTTPS do app web (ex.: https://app.../reset-password)
+    | usado no botão do e-mail. Se vazio, usa a tela Fortify em /reset-password/{token}.
+    |
+    | NÃO use deep link (edulyapp://) no botão do e-mail — Gmail e outros bloqueiam.
+    |
+    */
+    'frontend_reset_url' => env('FRONTEND_RESET_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
@@ -65,7 +78,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'America/Manaus',
 
     /*
     |--------------------------------------------------------------------------

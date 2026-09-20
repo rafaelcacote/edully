@@ -91,18 +91,20 @@ function clearFilters() {
 
 function getPrioridadeLabel(prioridade: string): string {
     const labels: Record<string, string> = {
+        baixa: 'Baixa',
         normal: 'Normal',
         alta: 'Alta',
-        media: 'Média',
+        urgente: 'Urgente',
     };
     return labels[prioridade] || prioridade;
 }
 
 function getPrioridadeVariant(prioridade: string): string {
     const variants: Record<string, string> = {
+        baixa: 'secondary',
         normal: 'default',
         alta: 'destructive',
-        media: 'secondary',
+        urgente: 'destructive',
     };
     return variants[prioridade] || 'default';
 }
@@ -110,9 +112,9 @@ function getPrioridadeVariant(prioridade: string): string {
 function getPublicoAlvoLabel(publicoAlvo: string): string {
     const labels: Record<string, string> = {
         todos: 'Todos',
-        alunos: 'Alunos',
         professores: 'Professores',
         responsaveis: 'Responsáveis',
+        alunos: 'Alunos', // legado
     };
     return labels[publicoAlvo] || publicoAlvo;
 }
@@ -199,9 +201,10 @@ function deleteAviso(avisoId: string) {
                             @change="applyFilters"
                         >
                             <option value="">Todas prioridades</option>
+                            <option value="baixa">Baixa</option>
                             <option value="normal">Normal</option>
                             <option value="alta">Alta</option>
-                            <option value="media">Média</option>
+                            <option value="urgente">Urgente</option>
                         </select>
                     </div>
 
