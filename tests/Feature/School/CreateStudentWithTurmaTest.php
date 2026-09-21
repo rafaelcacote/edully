@@ -48,11 +48,8 @@ it('creates student enrollment with matricula equal to pivot id', function () {
 
     expect($matricula)->not->toBeNull()
         ->and($matricula->status)->toBe('ativo')
-        ->and((string) $matricula->id)->not->toBeEmpty();
-
-    if ($driver === 'sqlite') {
-        expect((string) $matricula->matricula)->toBe((string) $matricula->id);
-    }
+        ->and((string) $matricula->id)->not->toBeEmpty()
+        ->and((string) $matricula->matricula)->toBe((string) $matricula->id);
 });
 
 it('stores student with turma via http without null matricula', function () {
@@ -102,10 +99,7 @@ it('stores student with turma via http without null matricula', function () {
 
     expect($matricula)->not->toBeNull()
         ->and((string) $matricula->id)->not->toBeEmpty()
-        ->and($matricula->status)->toBe('ativo');
-
-    if ($driver === 'sqlite') {
-        expect($matricula->matricula)->not->toBeNull()
-            ->and((string) $matricula->matricula)->toBe((string) $matricula->id);
-    }
+        ->and($matricula->status)->toBe('ativo')
+        ->and($matricula->matricula)->not->toBeNull()
+        ->and((string) $matricula->matricula)->toBe((string) $matricula->id);
 });

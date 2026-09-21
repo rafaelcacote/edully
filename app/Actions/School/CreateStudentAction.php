@@ -5,6 +5,7 @@ namespace App\Actions\School;
 use App\Models\Student;
 use App\Models\Tenant;
 use App\Models\Turma;
+use App\Support\MatriculaTurmaRowBuilder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
@@ -40,26 +41,13 @@ class CreateStudentAction
                 throw new \Exception('Turma não pertence ao tenant');
             }
 
-            $matriculaId = \Illuminate\Support\Str::uuid();
-
-            // A matrícula é o próprio ID da tabela matriculas_turma.
-            // Bancos legados (Postgres) não têm a coluna `matricula`; o schema de testes (SQLite) tem.
-            $matriculaRow = [
-                'id' => $matriculaId,
-                'tenant_id' => $tenant->id,
-                'aluno_id' => $student->id,
-                'turma_id' => $turma->id,
-                'data_matricula' => now()->toDateString(),
-                'status' => 'ativo',
-                'created_at' => now(),
-            ];
-
-            if ($driver === 'sqlite') {
-                $matriculaRow['matricula'] = $matriculaId;
-                $matriculaRow['ativo'] = true;
-            }
-
-            DB::connection('shared')->table($pivotTable)->insert($matriculaRow);
+            DB::connection('shared')->table($pivotTable)->insert(
+                MatriculaTurmaRowBuilder::forInsert([
+                    'tenant_id' => $tenant->id,
+                    'aluno_id' => $student->id,
+                    'turma_id' => $turma->id,
+                ])
+            );
         }
 
         return $student;
