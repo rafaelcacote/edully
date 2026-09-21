@@ -184,3 +184,35 @@ it('lists individual turma fan-out rows when filtering by aluno', function () {
         ->where('messages.data.0.turma.id', $turma->id)
     );
 });
+
+it('does not treat teacher-targeted messages as turma sends even with turma_id', function () {
+    disableMessagesIndexAuthMiddleware();
+
+    ['tenant' => $tenant, 'user' => $user, 'turma' => $turma, 'alunos' => $alunos] = setupMessagesIndexContext();
+
+    $teacherUser = User::factory()->create(['ativo' => true]);
+
+    Message::create([
+        'tenant_id' => $tenant->id,
+        'remetente_id' => $user->id,
+        'destinatario_id' => $teacherUser->id,
+        'aluno_id' => $alunos[0]->id,
+        'turma_id' => $turma->id,
+        'conversa_id' => (string) Str::uuid(),
+        'titulo' => 'Aviso ao professor',
+        'conteudo' => 'Somente para o professor',
+        'tipo' => 'aviso',
+        'prioridade' => 'alta',
+        'lida' => false,
+    ]);
+
+    $response = $this->actingAs($user)->get('/school/messages');
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('school/messages/Index')
+        ->has('messages.data', 1)
+        ->where('messages.data.0.destinatario_tipo', 'aluno')
+        ->where('messages.data.0.aluno.id', $alunos[0]->id)
+    );
+});

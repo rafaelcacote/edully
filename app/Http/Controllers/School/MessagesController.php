@@ -112,7 +112,8 @@ class MessagesController extends Controller
             ->paginate(10)
             ->withQueryString()
             ->through(function (Message $message) use ($filters) {
-                $isTurmaSend = filled($message->turma_id);
+                // turma_id + sem destinatário = fan-out para a turma; com destinatário é DM pontual.
+                $isTurmaSend = filled($message->turma_id) && blank($message->destinatario_id);
                 $collapseToTurma = $isTurmaSend && empty($filters['aluno_id']);
 
                 return [

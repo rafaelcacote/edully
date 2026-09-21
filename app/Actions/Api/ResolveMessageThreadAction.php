@@ -80,7 +80,17 @@ class ResolveMessageThreadAction
     protected function userCanAccessThreadMessage(User $user, Message $message): bool
     {
         if ($user->isResponsavel()) {
-            return $this->responsavelLinkedToAluno($user, $message->aluno_id);
+            if (! $this->responsavelLinkedToAluno($user, $message->aluno_id)) {
+                return false;
+            }
+
+            if ($message->destinatario_id
+                && $message->destinatario_id !== $user->id
+                && $message->remetente_id !== $user->id) {
+                return false;
+            }
+
+            return true;
         }
 
         if ($user->isTeacher()) {
