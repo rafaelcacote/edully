@@ -5,8 +5,8 @@ namespace App\Actions\School;
 use App\Models\Student;
 use App\Models\Tenant;
 use App\Models\Turma;
+use App\Support\MatriculaTurmaRowBuilder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ReenrollStudentAction
 {
@@ -18,7 +18,7 @@ class ReenrollStudentAction
         $driver = DB::connection('shared')->getDriverName();
         $pivotTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
 
-        DB::connection('shared')->transaction(function () use ($student, $novaTurma, $tenant, $pivotTable, $driver) {
+        DB::connection('shared')->transaction(function () use ($student, $novaTurma, $tenant, $pivotTable) {
             // Verificar se a turma pertence ao tenant
             if ($novaTurma->tenant_id !== $tenant->id) {
                 throw new \Exception('Turma não pertence ao tenant');
@@ -56,26 +56,14 @@ class ReenrollStudentAction
                         'updated_at' => now(),
                     ]);
             } else {
-                // Criar nova matrícula (id = matrícula; coluna `matricula` só existe no SQLite de testes)
-                $matriculaId = Str::uuid();
-
-                $matriculaRow = [
-                    'id' => $matriculaId,
-                    'tenant_id' => $tenant->id,
-                    'aluno_id' => $student->id,
-                    'turma_id' => $novaTurma->id,
-                    'data_matricula' => now()->toDateString(),
-                    'status' => 'ativo',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-
-                if ($driver === 'sqlite') {
-                    $matriculaRow['matricula'] = $matriculaId;
-                    $matriculaRow['ativo'] = true;
-                }
-
-                DB::connection('shared')->table($pivotTable)->insert($matriculaRow);
+                DB::connection('shared')->table($pivotTable)->insert(
+                    MatriculaTurmaRowBuilder::forInsert([
+                        'tenant_id' => $tenant->id,
+                        'aluno_id' => $student->id,
+                        'turma_id' => $novaTurma->id,
+                        'updated_at' => now(),
+                    ])
+                );
             }
         });
     }

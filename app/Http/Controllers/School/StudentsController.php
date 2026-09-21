@@ -10,6 +10,7 @@ use App\Http\Requests\School\StoreStudentRequest;
 use App\Http\Requests\School\UpdateStudentRequest;
 use App\Models\Student;
 use App\Models\Turma;
+use App\Support\MatriculaTurmaRowBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -372,19 +373,13 @@ class StudentsController extends Controller
                             'data_matricula' => now()->toDateString(),
                         ]);
                 } else {
-                    // Criar nova matrícula
-                    $matriculaId = \Illuminate\Support\Str::uuid();
-
-                    DB::connection('shared')->table($pivotTable)->insert([
-                        'id' => $matriculaId,
-                        'matricula' => $matriculaId,
-                        'tenant_id' => $tenant->id,
-                        'aluno_id' => $student->id,
-                        'turma_id' => $turma->id,
-                        'data_matricula' => now()->toDateString(),
-                        'status' => 'ativo',
-                        'created_at' => now(),
-                    ]);
+                    DB::connection('shared')->table($pivotTable)->insert(
+                        MatriculaTurmaRowBuilder::forInsert([
+                            'tenant_id' => $tenant->id,
+                            'aluno_id' => $student->id,
+                            'turma_id' => $turma->id,
+                        ])
+                    );
                 }
             }
         });
