@@ -154,6 +154,25 @@ it('generates mensalidades in batch for turma students', function () {
     expect($cobranca->boleto_url)->not->toBeNull();
 });
 
+it('accepts brazilian currency format when generating mensalidades', function () {
+    ['user' => $user, 'turma' => $turma, 'aluno' => $aluno] = setupFinanceiroContext();
+
+    $response = $this->actingAs($user)->post('/school/cobrancas/mensalidades', [
+        'turma_id' => $turma->id,
+        'ano' => 2026,
+        'mes' => 4,
+        'valor' => '1.450,75',
+        'vencimento' => '2026-04-10',
+    ]);
+
+    $response->assertRedirect();
+
+    $cobranca = Cobranca::query()->first();
+    expect($cobranca)->not->toBeNull();
+    expect($cobranca->aluno_id)->toBe($aluno->id);
+    expect((float) $cobranca->valor)->toBe(1450.75);
+});
+
 it('skips duplicate mensalidades for the same referencia', function () {
     ['tenant' => $tenant, 'user' => $user, 'turma' => $turma, 'aluno' => $aluno] = setupFinanceiroContext();
 

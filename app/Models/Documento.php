@@ -72,6 +72,9 @@ class Documento extends Model
         'anexo_url',
         'anexo_resposta_url',
         'motivo_recusa',
+        'professores_notificados_em',
+        'professores_notificados_por',
+        'professores_notificados_ids',
     ];
 
     /**
@@ -87,10 +90,25 @@ class Documento extends Model
             'categoria_declaracao' => CategoriaDeclaracao::class,
             'data_inicio' => 'date',
             'data_fim' => 'date',
+            'professores_notificados_em' => 'datetime',
+            'professores_notificados_ids' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the user who last notified teachers about this document.
+     */
+    public function professoresNotificadosPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'professores_notificados_por');
+    }
+
+    public function professoresJaNotificados(): bool
+    {
+        return $this->professores_notificados_em !== null;
     }
 
     /**

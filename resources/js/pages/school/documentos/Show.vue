@@ -54,6 +54,10 @@ interface Documento {
     updated_at: string | null;
     pode_analisar: boolean;
     pode_notificar_professores: boolean;
+    professores_ja_notificados: boolean;
+    professores_notificados_em: string | null;
+    professores_notificados_por: { id: string; nome_completo: string } | null;
+    professores_notificados_ids: string[];
 }
 
 interface Props {
@@ -111,7 +115,9 @@ const atestadoSteps = computed<StepItem[]>(() => [
     {
         id: 3,
         title: 'Notificar',
-        description: 'Avisar os professores',
+        description: props.documento.professores_ja_notificados
+            ? 'Professores já avisados'
+            : 'Avisar os professores',
     },
 ]);
 
@@ -180,6 +186,16 @@ const allProfessoresSelected = computed(
 );
 
 const step3Unlocked = computed(() => isApproved.value);
+const professoresJaNotificados = computed(
+    () => props.documento.professores_ja_notificados,
+);
+const professoresNotificadosIds = computed(
+    () => props.documento.professores_notificados_ids ?? [],
+);
+
+function professorJaNotificado(id: string): boolean {
+    return professoresNotificadosIds.value.includes(id);
+}
 
 function stepState(stepId: number): 'complete' | 'current' | 'upcoming' | 'locked' {
     if (isAtestado.value && stepId === 3 && !step3Unlocked.value) {
@@ -199,7 +215,11 @@ function stepState(stepId: number): 'complete' | 'current' | 'upcoming' | 'locke
             }
         }
         if (stepId === 3 && step3Unlocked.value) {
-            return activeStep.value === 3 ? 'current' : 'complete';
+            if (professoresJaNotificados.value) {
+                return activeStep.value === 3 ? 'current' : 'complete';
+            }
+
+            return activeStep.value === 3 ? 'current' : 'upcoming';
         }
     }
 
@@ -755,6 +775,40 @@ function toggleAllProfessores() {
                 </div>
 
                 <Can v-else permission="escola.documentos.editar">
+                    <div
+                        v-if="professoresJaNotificados"
+                        class="mb-4 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
+                    >
+                        <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0" />
+                        <div class="space-y-1">
+                            <p class="font-medium">Professores já notificados</p>
+                            <p>
+                                Enviado em
+                                {{ formatDateTime(props.documento.professores_notificados_em) }}
+                                <template
+                                    v-if="props.documento.professores_notificados_por"
+                                >
+                                    por
+                                    {{
+                                        props.documento.professores_notificados_por
+                                            .nome_completo
+                                    }}
+                                </template>
+                                .
+                                <template
+                                    v-if="professoresNotificadosIds.length > 0"
+                                >
+                                    {{ professoresNotificadosIds.length }}
+                                    professor(es) avisado(s).
+                                </template>
+                            </p>
+                            <p class="text-emerald-800/80 dark:text-emerald-200/80">
+                                Você pode enviar novamente se precisar avisar outros
+                                professores.
+                            </p>
+                        </div>
+                    </div>
+
                     <Form
                         v-if="props.professores.length > 0"
                         :action="`/school/documentos/${props.documento.id}/notificar-professores`"
@@ -798,8 +852,17 @@ function toggleAllProfessores() {
                                     :checked="selectedProfessorIds.includes(professor.id)"
                                     @change="toggleProfessor(professor.id)"
                                 />
-                                <span class="min-w-0">
-                                    <span class="font-medium">{{ professor.nome }}</span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="flex flex-wrap items-center gap-2">
+                                        <span class="font-medium">{{ professor.nome }}</span>
+                                        <Badge
+                                            v-if="professorJaNotificado(professor.id)"
+                                            variant="outline"
+                                            class="border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300"
+                                        >
+                                            Já notificado
+                                        </Badge>
+                                    </span>
                                     <span
                                         v-if="professor.disciplinas.length > 0"
                                         class="mt-0.5 block text-xs text-muted-foreground"
@@ -823,7 +886,9 @@ function toggleAllProfessores() {
                                 {{
                                     processing
                                         ? 'Notificando...'
-                                        : `Notificar selecionados (${selectedProfessorIds.length})`
+                                        : professoresJaNotificados
+                                          ? `Notificar novamente (${selectedProfessorIds.length})`
+                                          : `Notificar selecionados (${selectedProfessorIds.length})`
                                 }}
                             </Button>
                         </div>

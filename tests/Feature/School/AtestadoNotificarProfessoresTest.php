@@ -186,6 +186,8 @@ it('lists turma teachers on atestado show page', function () {
     $response->assertInertia(fn ($page) => $page
         ->component('school/documentos/Show')
         ->where('documento.pode_notificar_professores', true)
+        ->where('documento.professores_ja_notificados', false)
+        ->where('documento.professores_notificados_em', null)
         ->has('professores', 2)
         ->where('professores.0.nome', fn ($nome) => in_array($nome, ['Prof Selecionado', 'Prof Nao Selecionado'], true))
     );
@@ -222,6 +224,12 @@ it('notifies selected teachers about atestado via push', function () {
     expect($recado->prioridade)->toBe('alta');
     expect(\App\Models\Message::query()->where('destinatario_id', $professorNaoSelecionado->usuario_id)->exists())->toBeFalse();
 
+    $documento->refresh();
+    expect($documento->professores_notificados_em)->not->toBeNull();
+    expect((string) $documento->professores_notificados_por)->toBe((string) $admin->id);
+    expect($documento->professores_notificados_ids)->toContain((string) $professorSelecionado->id);
+    expect($documento->professores_notificados_ids)->not->toContain((string) $professorNaoSelecionado->id);
+
     Http::assertSent(function ($request) {
         if ($request->url() !== 'https://exp.host/--/api/v2/push/send') {
             return false;
@@ -241,6 +249,55 @@ it('notifies selected teachers about atestado via push', function () {
 
         return $hasSelected && ! $hasUnselected;
     });
+});
+
+it('shows previously notified teachers when reopening the atestado', function () {
+    [
+        'admin' => $admin,
+        'documento' => $documento,
+        'professorSelecionado' => $professorSelecionado,
+    ] = setupAtestadoTeachersContext();
+
+    $this->actingAs($admin)->post(
+        '/school/documentos/'.$documento->id.'/notificar-professores',
+        ['professor_ids' => [$professorSelecionado->id]]
+    )->assertRedirect();
+
+    $response = $this->actingAs($admin)->get('/school/documentos/'.$documento->id);
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('school/documentos/Show')
+        ->where('documento.professores_ja_notificados', true)
+        ->where('documento.professores_notificados_por.nome_completo', $admin->nome_completo)
+        ->where('documento.professores_notificados_ids', [(string) $professorSelecionado->id])
+        ->where('documento.professores_notificados_em', fn ($value) => is_string($value) && $value !== '')
+    );
+});
+
+it('accumulates notified teacher ids when notifying again', function () {
+    [
+        'admin' => $admin,
+        'documento' => $documento,
+        'professorSelecionado' => $professorSelecionado,
+        'professorNaoSelecionado' => $professorNaoSelecionado,
+    ] = setupAtestadoTeachersContext();
+
+    $this->actingAs($admin)->post(
+        '/school/documentos/'.$documento->id.'/notificar-professores',
+        ['professor_ids' => [$professorSelecionado->id]]
+    )->assertRedirect();
+
+    $this->actingAs($admin)->post(
+        '/school/documentos/'.$documento->id.'/notificar-professores',
+        ['professor_ids' => [$professorNaoSelecionado->id]]
+    )->assertRedirect();
+
+    $documento->refresh();
+
+    expect($documento->professores_notificados_ids)
+        ->toContain((string) $professorSelecionado->id)
+        ->toContain((string) $professorNaoSelecionado->id);
 });
 
 it('rejects notifying a teacher from another turma', function () {

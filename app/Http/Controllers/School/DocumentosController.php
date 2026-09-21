@@ -204,7 +204,11 @@ class DocumentosController extends Controller
             abort(404);
         }
 
-        $documento->load(['aluno:id,tenant_id,nome,nome_social', 'criadoPor:id,nome_completo']);
+        $documento->load([
+            'aluno:id,tenant_id,nome,nome_social',
+            'criadoPor:id,nome_completo',
+            'professoresNotificadosPor:id,nome_completo',
+        ]);
 
         $professores = [];
         if ($documento->tipo === TipoDocumento::Atestado && $documento->aluno) {
@@ -228,6 +232,11 @@ class DocumentosController extends Controller
                 ->values()
                 ->all();
         }
+
+        $professoresNotificadosIds = collect($documento->professores_notificados_ids ?? [])
+            ->map(fn ($id) => (string) $id)
+            ->values()
+            ->all();
 
         return Inertia::render('school/documentos/Show', [
             'documento' => [
@@ -260,6 +269,13 @@ class DocumentosController extends Controller
                     TipoDocumento::PedidoDeclaracao,
                 ], true),
                 'pode_notificar_professores' => $documento->tipo === TipoDocumento::Atestado,
+                'professores_ja_notificados' => $documento->professoresJaNotificados(),
+                'professores_notificados_em' => $documento->professores_notificados_em?->toIso8601String(),
+                'professores_notificados_por' => $documento->professoresNotificadosPor ? [
+                    'id' => $documento->professoresNotificadosPor->id,
+                    'nome_completo' => $documento->professoresNotificadosPor->nome_completo,
+                ] : null,
+                'professores_notificados_ids' => $professoresNotificadosIds,
             ],
             'professores' => $professores,
             'statusOptions' => collect(StatusDocumento::schoolUpdatableValues())->map(fn (string $value) => [

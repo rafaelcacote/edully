@@ -56,6 +56,34 @@ const meses = [
 const boletoFile = ref<File | null>(null);
 const boletoPreview = ref<string | null>(null);
 const boletoInputRef = ref<HTMLInputElement | null>(null);
+const valorDisplay = ref('');
+const valorNumerico = ref('');
+
+function formatCurrencyMask(digits: string): string {
+    const cents = Number.parseInt(digits || '0', 10);
+
+    return (cents / 100).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+}
+
+function onValorInput(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const digits = target.value.replace(/\D/g, '').slice(0, 15);
+
+    if (digits === '' || Number.parseInt(digits, 10) === 0) {
+        valorDisplay.value = '';
+        valorNumerico.value = '';
+        target.value = '';
+
+        return;
+    }
+
+    valorDisplay.value = formatCurrencyMask(digits);
+    valorNumerico.value = (Number.parseInt(digits, 10) / 100).toFixed(2);
+    target.value = valorDisplay.value;
+}
 
 function handleBoletoChange(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -163,14 +191,18 @@ function removeBoleto() {
 
                         <div class="space-y-2">
                             <Label for="valor">Valor (R$)</Label>
-                            <Input
+                            <input
                                 id="valor"
-                                name="valor"
-                                type="number"
-                                step="0.01"
-                                min="0.01"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                placeholder="0,00"
+                                :value="valorDisplay"
                                 required
+                                class="border-input bg-muted/60 selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground dark:bg-input/30 h-10 w-full min-w-0 rounded-lg border px-3 py-2 text-base shadow-sm outline-none transition-[color,box-shadow,background] focus-visible:border-ring focus-visible:bg-card focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                @input="onValorInput"
                             />
+                            <input type="hidden" name="valor" :value="valorNumerico" />
                             <InputError :message="errors.valor" />
                         </div>
 

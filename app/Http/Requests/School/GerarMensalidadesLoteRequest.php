@@ -65,9 +65,30 @@ class GerarMensalidadesLoteRequest extends FormRequest
 
         $this->merge([
             'turma_id' => $turmaId === '' || $turmaId === null ? null : $turmaId,
+            'valor' => $this->normalizeValor($this->input('valor')),
             'pix_copia_cola' => $this->filled('pix_copia_cola') ? $this->input('pix_copia_cola') : null,
             'pix_chave' => $this->filled('pix_chave') ? $this->input('pix_chave') : null,
             'descricao' => $this->filled('descricao') ? $this->input('descricao') : null,
         ]);
+    }
+
+    private function normalizeValor(mixed $valor): mixed
+    {
+        if (! is_string($valor)) {
+            return $valor;
+        }
+
+        $valor = trim($valor);
+
+        if ($valor === '') {
+            return $valor;
+        }
+
+        if (str_contains($valor, ',')) {
+            $valor = str_replace('.', '', $valor);
+            $valor = str_replace(',', '.', $valor);
+        }
+
+        return $valor;
     }
 }

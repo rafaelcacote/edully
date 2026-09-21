@@ -115,6 +115,20 @@ class NotifyAtestadoTeachersAction
                     'lida' => false,
                 ]);
             }
+
+            $idsAnteriores = collect($documento->professores_notificados_ids ?? [])
+                ->map(fn ($id) => (string) $id)
+                ->all();
+            $idsNovos = $professores->pluck('id')->map(fn ($id) => (string) $id)->all();
+
+            $documento->forceFill([
+                'professores_notificados_em' => now(),
+                'professores_notificados_por' => $remetente->id,
+                'professores_notificados_ids' => array_values(array_unique([
+                    ...$idsAnteriores,
+                    ...$idsNovos,
+                ])),
+            ])->save();
         });
 
         foreach ($createdMessages as $message) {
