@@ -23,6 +23,7 @@ interface Disciplina {
 interface Props {
     turmas: Turma[];
     disciplinas: Disciplina[];
+    defaultBimestre?: number;
 }
 
 const props = defineProps<Props>();
@@ -69,6 +70,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 <Form
                     action="/school/exercises"
                     method="post"
+                    enctype="multipart/form-data"
                     reset-on-success
                     class="space-y-6"
                     v-slot="{ errors, processing }"
@@ -76,6 +78,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     <ExerciseForm
                         :turmas="props.turmas"
                         :disciplinas="props.disciplinas"
+                        :default-bimestre="props.defaultBimestre"
                         submit-label="Criar exercício"
                         :processing="processing"
                         :errors="errors"

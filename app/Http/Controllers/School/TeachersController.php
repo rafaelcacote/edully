@@ -103,10 +103,7 @@ class TeachersController extends Controller
 
         $teachers = Teacher::query()
             ->where('tenant_id', $tenant->id)
-            ->with([
-                'usuario:id,nome_completo,cpf,email,telefone,avatar_url',
-                'disciplinas:id,nome,sigla',
-            ])
+            ->with(['usuario:id,nome_completo,cpf,email,telefone,avatar_url'])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
                 $cpfSearch = preg_replace('/[^0-9]/', '', $search);
@@ -128,38 +125,27 @@ class TeachersController extends Controller
             })
             ->orderBy('matricula')
             ->paginate(10)
-            ->withQueryString()
-            ->through(function ($teacher) {
-                try {
-                    $disciplinas = [];
-                    if ($teacher->relationLoaded('disciplinas')) {
-                        $disciplinasRelation = $teacher->getRelation('disciplinas');
-                        if (is_object($disciplinasRelation) && method_exists($disciplinasRelation, 'map')) {
-                            $disciplinas = $disciplinasRelation->map(fn ($d) => $d->nome ?? $d->sigla)->toArray();
-                        }
-                    } elseif (method_exists($teacher, 'disciplinas')) {
-                        $disciplinasRelation = $teacher->disciplinas;
-                        if (is_object($disciplinasRelation) && method_exists($disciplinasRelation, 'map')) {
-                            $disciplinas = $disciplinasRelation->map(fn ($d) => $d->nome ?? $d->sigla)->toArray();
-                        }
-                    }
-                } catch (\Exception $e) {
-                    $disciplinas = [];
-                }
+            ->withQueryString();
 
-                return [
-                    'id' => $teacher->id,
-                    'matricula' => $teacher->matricula,
-                    'disciplinas' => $disciplinas,
-                    'especializacao' => $teacher->especializacao,
-                    'ativo' => $teacher->ativo,
-                    'nome_completo' => $teacher->usuario?->nome_completo,
-                    'cpf' => $teacher->usuario?->cpf,
-                    'email' => $teacher->usuario?->email,
-                    'telefone' => $teacher->usuario?->telefone,
-                    'foto_url' => $teacher->usuario?->avatar_url,
-                ];
-            });
+        $disciplinasByTeacher = $this->disciplinasByTeacherIds(
+            $tenant->id,
+            $teachers->getCollection()->pluck('id')->all()
+        );
+
+        $teachers->through(function (Teacher $teacher) use ($disciplinasByTeacher) {
+            return [
+                'id' => $teacher->id,
+                'matricula' => $teacher->matricula,
+                'disciplinas' => $disciplinasByTeacher[$teacher->id] ?? [],
+                'especializacao' => $teacher->especializacao,
+                'ativo' => $teacher->ativo,
+                'nome_completo' => $teacher->usuario?->nome_completo,
+                'cpf' => $teacher->usuario?->cpf,
+                'email' => $teacher->usuario?->email,
+                'telefone' => $teacher->usuario?->telefone,
+                'foto_url' => $teacher->usuario?->avatar_url,
+            ];
+        });
 
         return Inertia::render('school/teachers/Index', [
             'teachers' => $teachers,
@@ -283,31 +269,15 @@ class TeachersController extends Controller
             abort(404);
         }
 
-        $teacher->load(['usuario:id,nome_completo,cpf,email,telefone,avatar_url', 'disciplinas:id,nome,sigla']);
+        $teacher->load(['usuario:id,nome_completo,cpf,email,telefone,avatar_url']);
 
-        // Get disciplinas names safely
-        $disciplinasNames = [];
-        try {
-            if ($teacher->relationLoaded('disciplinas')) {
-                $disciplinasRelation = $teacher->getRelation('disciplinas');
-                if (is_object($disciplinasRelation) && method_exists($disciplinasRelation, 'map')) {
-                    $disciplinasNames = $disciplinasRelation->map(fn ($d) => $d->nome ?? $d->sigla)->toArray();
-                }
-            } elseif (method_exists($teacher, 'disciplinas')) {
-                $disciplinasRelation = $teacher->disciplinas;
-                if (is_object($disciplinasRelation) && method_exists($disciplinasRelation, 'map')) {
-                    $disciplinasNames = $disciplinasRelation->map(fn ($d) => $d->nome ?? $d->sigla)->toArray();
-                }
-            }
-        } catch (\Exception $e) {
-            $disciplinasNames = [];
-        }
+        $disciplinas = $this->disciplinasByTeacherIds($tenant->id, [$teacher->id])[$teacher->id] ?? [];
 
         return Inertia::render('school/teachers/Show', [
             'teacher' => [
                 'id' => $teacher->id,
                 'matricula' => $teacher->matricula,
-                'disciplinas' => $disciplinasNames,
+                'disciplinas' => $disciplinas,
                 'especializacao' => $teacher->especializacao,
                 'ativo' => $teacher->ativo,
                 'nome_completo' => $teacher->usuario?->nome_completo,
@@ -464,6 +434,65 @@ class TeachersController extends Controller
         if (Storage::disk('public')->exists($oldFotoPath)) {
             Storage::disk('public')->delete($oldFotoPath);
         }
+    }
+
+    /**
+     * Map teacher IDs to their linked disciplinas for the given tenant.
+     *
+     * @param  list<string>  $teacherIds
+     * @return array<string, list<array{id: string, nome: string, sigla: string|null}>>
+     */
+    protected function disciplinasByTeacherIds(string $tenantId, array $teacherIds): array
+    {
+        if ($teacherIds === []) {
+            return [];
+        }
+
+        $pivotTable = DB::connection('shared')->getDriverName() === 'sqlite'
+            ? 'professor_disciplinas'
+            : 'escola.professor_disciplinas';
+
+        $links = DB::connection('shared')
+            ->table($pivotTable)
+            ->where('tenant_id', $tenantId)
+            ->whereIn('professor_id', $teacherIds)
+            ->get(['professor_id', 'disciplina_id']);
+
+        if ($links->isEmpty()) {
+            return [];
+        }
+
+        $disciplinas = Disciplina::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $links->pluck('disciplina_id')->unique()->all())
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'sigla'])
+            ->keyBy('id');
+
+        $byTeacher = [];
+
+        foreach ($links->groupBy('professor_id') as $teacherId => $teacherLinks) {
+            $byTeacher[$teacherId] = $teacherLinks
+                ->map(function ($link) use ($disciplinas) {
+                    $disciplina = $disciplinas->get($link->disciplina_id);
+
+                    if (! $disciplina) {
+                        return null;
+                    }
+
+                    return [
+                        'id' => $disciplina->id,
+                        'nome' => $disciplina->nome,
+                        'sigla' => $disciplina->sigla,
+                    ];
+                })
+                ->filter()
+                ->sortBy('nome')
+                ->values()
+                ->all();
+        }
+
+        return $byTeacher;
     }
 
     /**

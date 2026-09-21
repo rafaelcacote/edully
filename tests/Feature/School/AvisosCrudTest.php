@@ -17,7 +17,7 @@ beforeEach(function () {
     Storage::fake('public');
 });
 
-it('creates an aviso on store', function () {
+it('marks expired avisos as expirado on the index listing', function () {
     $this->withoutMiddleware([
         HandleInertiaRequests::class,
         PermissionMiddleware::class,
@@ -29,26 +29,135 @@ it('creates an aviso on store', function () {
     $authUser = User::factory()->create();
     $authUser->tenants()->attach($tenant->id);
 
-    $payload = [
-        'titulo' => 'Aviso importante',
-        'conteudo' => 'Conteúdo do aviso',
-        'prioridade' => 'alta',
+    $expired = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'criado_por' => $authUser->id,
+        'titulo' => 'Aviso expirado',
+        'conteudo' => 'Conteúdo expirado',
+        'prioridade' => 'normal',
         'publico_alvo' => 'todos',
         'publicado' => true,
-    ];
+        'publicado_em' => now()->subDays(10),
+        'expira_em' => now()->subDay(),
+    ]);
 
-    $response = $this->actingAs($authUser)->post('/school/avisos', $payload);
+    $active = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'criado_por' => $authUser->id,
+        'titulo' => 'Aviso ativo',
+        'conteudo' => 'Conteúdo ativo',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'todos',
+        'publicado' => true,
+        'publicado_em' => now()->subDay(),
+        'expira_em' => now()->addDays(5),
+    ]);
+
+    $draft = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'criado_por' => $authUser->id,
+        'titulo' => 'Aviso rascunho',
+        'conteudo' => 'Conteúdo rascunho',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'todos',
+        'publicado' => false,
+    ]);
+
+    $response = $this->actingAs($authUser)->get('/school/avisos');
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('school/avisos/Index')
+        ->has('avisos.data', 3)
+        ->where('avisos.data', function ($avisos) use ($expired, $active, $draft) {
+            $byId = collect($avisos)->keyBy('id');
+
+            return $byId[$expired->id]['status'] === 'expirado'
+                && $byId[$expired->id]['expirado'] === true
+                && $byId[$active->id]['status'] === 'publicado'
+                && $byId[$active->id]['expirado'] === false
+                && $byId[$draft->id]['status'] === 'rascunho'
+                && $byId[$draft->id]['expirado'] === false;
+        })
+    );
+});
+
+it('creates an aviso with publication dates and keeps them on edit', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $publicadoEm = '2026-09-17T10:30';
+    $expiraEm = '2026-09-30T18:00';
+
+    $response = $this->actingAs($authUser)->post('/school/avisos', [
+        'titulo' => 'Aviso com datas',
+        'conteudo' => 'Conteúdo com datas',
+        'prioridade' => 'baixa',
+        'publico_alvo' => 'professores',
+        'publicado' => '1',
+        'publicado_em' => $publicadoEm,
+        'expira_em' => $expiraEm,
+    ]);
 
     $response->assertRedirect(route('school.avisos.index', absolute: false));
 
-    $this->assertDatabaseHas('avisos', [
-        'tenant_id' => $tenant->id,
-        'titulo' => 'Aviso importante',
-        'conteudo' => 'Conteúdo do aviso',
-        'prioridade' => 'alta',
+    $aviso = Aviso::query()->where('titulo', 'Aviso com datas')->first();
+
+    expect($aviso)->not->toBeNull();
+    expect($aviso->publicado_em?->format('Y-m-d\TH:i'))->toBe($publicadoEm);
+    expect($aviso->expira_em?->format('Y-m-d\TH:i'))->toBe($expiraEm);
+
+    $editResponse = $this->actingAs($authUser)->get("/school/avisos/{$aviso->id}/edit");
+
+    $editResponse->assertSuccessful();
+    $editResponse->assertInertia(fn ($page) => $page
+        ->component('school/avisos/Edit')
+        ->where('aviso.publicado_em', $publicadoEm)
+        ->where('aviso.expira_em', $expiraEm)
+        ->where('aviso.publicado', true)
+    );
+});
+
+it('rejects invalid prioridade values and accepts nivel_prioridade enum values', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $this->actingAs($authUser)->post('/school/avisos', [
+        'titulo' => 'Prioridade inválida',
+        'conteudo' => 'Conteúdo',
+        'prioridade' => 'media',
         'publico_alvo' => 'todos',
-        'publicado' => true,
-    ], 'shared');
+        'publicado' => '0',
+    ])->assertSessionHasErrors('prioridade');
+
+    $this->actingAs($authUser)->post('/school/avisos', [
+        'titulo' => 'Prioridade válida',
+        'conteudo' => 'Conteúdo',
+        'prioridade' => 'urgente',
+        'publico_alvo' => 'todos',
+        'publicado' => '0',
+    ])->assertRedirect(route('school.avisos.index', absolute: false));
+
+    $aviso = Aviso::query()->where('titulo', 'Prioridade válida')->first();
+
+    expect($aviso)->not->toBeNull();
+    expect($aviso->prioridade)->toBe('urgente');
 });
 
 it('creates an aviso with pdf attachment', function () {
@@ -69,7 +178,7 @@ it('creates an aviso with pdf attachment', function () {
         'titulo' => 'Aviso com anexo',
         'conteudo' => 'Conteúdo do aviso com anexo PDF',
         'prioridade' => 'normal',
-        'publico_alvo' => 'alunos',
+        'publico_alvo' => 'responsaveis',
         'anexo' => $pdf,
         'publicado' => false,
     ];
@@ -90,7 +199,7 @@ it('creates an aviso with pdf attachment', function () {
     Storage::disk('public')->assertExists($filePath);
 });
 
-it('validates pdf file type on store', function () {
+it('validates attachment file type on store', function () {
     $this->withoutMiddleware([
         HandleInertiaRequests::class,
         PermissionMiddleware::class,
@@ -113,6 +222,45 @@ it('validates pdf file type on store', function () {
     $response = $this->actingAs($authUser)->post('/school/avisos', $payload);
 
     $response->assertSessionHasErrors(['anexo']);
+});
+
+it('creates an aviso with image attachment', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    Storage::fake('public');
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $image = UploadedFile::fake()->image('aviso.jpg', 800, 600);
+
+    $payload = [
+        'titulo' => 'Aviso com imagem',
+        'conteudo' => 'Conteúdo do aviso com imagem',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'responsaveis',
+        'anexo' => $image,
+        'publicado' => false,
+    ];
+
+    $response = $this->actingAs($authUser)->post('/school/avisos', $payload);
+
+    $response->assertRedirect(route('school.avisos.index', absolute: false));
+
+    $aviso = Aviso::where('titulo', 'Aviso com imagem')->first();
+
+    expect($aviso)->not->toBeNull();
+    expect($aviso->anexo_url)->not->toBeNull();
+    expect($aviso->anexo_url)->toContain('storage/avisos/anexos');
+
+    $filePath = str_replace(asset('storage/'), '', $aviso->anexo_url);
+    Storage::disk('public')->assertExists($filePath);
 });
 
 it('validates pdf file size on store', function () {

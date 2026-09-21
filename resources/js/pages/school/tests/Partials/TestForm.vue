@@ -10,6 +10,7 @@ interface TestData {
     disciplina_id?: string;
     titulo?: string;
     descricao?: string | null;
+    bimestre?: number | null;
     data_prova?: string;
     horario?: string | null;
     sala?: string | null;
@@ -34,6 +35,7 @@ const props = withDefaults(defineProps<{
     testData?: TestData;
     turmas?: Turma[];
     disciplinas?: Disciplina[];
+    defaultBimestre?: number;
     submitLabel: string;
     processing: boolean;
     errors: Record<string, string>;
@@ -46,13 +48,13 @@ const props = withDefaults(defineProps<{
 const disciplinaId = ref(props.testData?.disciplina_id || '');
 const titulo = ref(props.testData?.titulo || '');
 const descricao = ref(props.testData?.descricao || '');
+const bimestre = ref(props.testData?.bimestre?.toString() || props.defaultBimestre?.toString() || '');
 const dataProva = ref(props.testData?.data_prova || '');
 const horario = ref(props.testData?.horario || '');
 const sala = ref(props.testData?.sala || '');
 const duracaoMinutos = ref(props.testData?.duracao_minutos || '');
 const turmaId = ref(props.testData?.turma_id || '');
 
-// Garantir que disciplinas seja sempre um array
 const disciplinasList = computed(() => props.disciplinas || []);
 const turmasList = computed(() => props.turmas || []);
 
@@ -63,6 +65,7 @@ watch(() => props.testData, (newData) => {
         disciplinaId.value = newData.disciplina_id || '';
         titulo.value = newData.titulo || '';
         descricao.value = newData.descricao || '';
+        bimestre.value = newData.bimestre?.toString() || props.defaultBimestre?.toString() || '';
         dataProva.value = newData.data_prova || '';
         horario.value = newData.horario || '';
         sala.value = newData.sala || '';
@@ -74,7 +77,7 @@ watch(() => props.testData, (newData) => {
 
 <template>
     <div class="grid gap-6">
-        <div class="grid gap-6 sm:grid-cols-2">
+        <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             <div class="grid gap-2">
                 <Label for="disciplina_id">Disciplina</Label>
                 <select
@@ -119,6 +122,24 @@ watch(() => props.testData, (newData) => {
                 </select>
                 <InputError :message="errors.turma_id" />
             </div>
+
+            <div class="grid gap-2">
+                <Label for="bimestre">Bimestre</Label>
+                <select
+                    id="bimestre"
+                    name="bimestre"
+                    v-model="bimestre"
+                    required
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option value="">Selecione o bimestre</option>
+                    <option value="1">1º Bimestre</option>
+                    <option value="2">2º Bimestre</option>
+                    <option value="3">3º Bimestre</option>
+                    <option value="4">4º Bimestre</option>
+                </select>
+                <InputError :message="errors.bimestre" />
+            </div>
         </div>
 
         <div class="grid gap-2">
@@ -128,7 +149,7 @@ watch(() => props.testData, (newData) => {
                 name="titulo"
                 v-model="titulo"
                 type="text"
-                placeholder="Ex: Prova de Matemática - Unidade 1"
+                placeholder="Ex: Prova de Matemática - 2º bimestre"
                 required
                 maxlength="255"
                 class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
@@ -149,7 +170,7 @@ watch(() => props.testData, (newData) => {
             <InputError :message="errors.descricao" />
         </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
+        <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <div class="grid gap-2">
                 <Label for="data_prova">Data da Prova</Label>
                 <input
@@ -175,9 +196,7 @@ watch(() => props.testData, (newData) => {
                 />
                 <InputError :message="errors.horario" />
             </div>
-        </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="sala">Sala (opcional)</Label>
                 <input
@@ -193,7 +212,7 @@ watch(() => props.testData, (newData) => {
             </div>
 
             <div class="grid gap-2">
-                <Label for="duracao_minutos">Duração (minutos) (opcional)</Label>
+                <Label for="duracao_minutos">Duração (minutos)</Label>
                 <input
                     id="duracao_minutos"
                     name="duracao_minutos"
@@ -202,7 +221,7 @@ watch(() => props.testData, (newData) => {
                     placeholder="Ex: 90"
                     min="1"
                     max="1440"
-                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:bg-card"
+                    class="flex h-10 w-full min-w-0 rounded-lg border border-input bg-muted/60 px-3 py-2 text-base shadow-sm transition-[color,box-shadow,background] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:bg-card"
                 />
                 <InputError :message="errors.duracao_minutos" />
             </div>
@@ -216,4 +235,3 @@ watch(() => props.testData, (newData) => {
         </div>
     </div>
 </template>
-

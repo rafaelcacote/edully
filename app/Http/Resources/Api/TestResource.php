@@ -18,6 +18,7 @@ class TestResource extends JsonResource
             'id' => $this->id,
             'titulo' => $this->titulo,
             'descricao' => $this->descricao,
+            'bimestre' => $this->bimestre,
             'data_prova' => $this->data_prova->format('Y-m-d'),
             'data_prova_formatted' => $this->data_prova->format('d/m/Y'),
             'horario' => $this->horario,

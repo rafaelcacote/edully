@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\School;
 
+use App\Actions\Api\NotifyAvisoPushRecipients;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreAvisoRequest;
 use App\Http\Requests\School\UpdateAvisoRequest;
@@ -68,7 +69,22 @@ class AvisosController extends Controller
                 'created_at',
             ])
             ->paginate(10)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function (Aviso $aviso) {
+                return [
+                    'id' => $aviso->id,
+                    'titulo' => $aviso->titulo,
+                    'prioridade' => $aviso->prioridade,
+                    'publico_alvo' => $aviso->publico_alvo,
+                    'publicado' => (bool) $aviso->publicado,
+                    'publicado_em' => $aviso->publicado_em,
+                    'expira_em' => $aviso->expira_em,
+                    'anexo_url' => $aviso->anexo_url,
+                    'created_at' => $aviso->created_at,
+                    'expirado' => $aviso->isExpirado(),
+                    'status' => $aviso->statusPublicacao(),
+                ];
+            });
 
         return Inertia::render('school/avisos/Index', [
             'avisos' => $avisos,
@@ -122,6 +138,10 @@ class AvisosController extends Controller
 
         $aviso->save();
 
+        if ($aviso->publicado) {
+            app(NotifyAvisoPushRecipients::class)->queue($aviso);
+        }
+
         return redirect()
             ->route('school.avisos.index')
             ->with('toast', [
@@ -145,7 +165,12 @@ class AvisosController extends Controller
         $aviso->load('criadoPor');
 
         return Inertia::render('school/avisos/Show', [
-            'aviso' => $aviso,
+            'aviso' => [
+                ...$aviso->toArray(),
+                'publicado' => (bool) $aviso->publicado,
+                'expirado' => $aviso->isExpirado(),
+                'status' => $aviso->statusPublicacao(),
+            ],
         ]);
     }
 
@@ -161,7 +186,20 @@ class AvisosController extends Controller
         }
 
         return Inertia::render('school/avisos/Edit', [
-            'aviso' => $aviso,
+            'aviso' => [
+                'id' => $aviso->id,
+                'titulo' => $aviso->titulo,
+                'conteudo' => $aviso->conteudo,
+                'prioridade' => $aviso->prioridade,
+                'publico_alvo' => $aviso->publico_alvo,
+                'anexo_url' => $aviso->anexo_url,
+                'publicado' => (bool) $aviso->publicado,
+                // Formato datetime-local (sem conversão UTC via ISO) para o formulário.
+                'publicado_em' => $aviso->publicado_em?->format('Y-m-d\TH:i'),
+                'expira_em' => $aviso->expira_em?->format('Y-m-d\TH:i'),
+                'created_at' => $aviso->created_at,
+                'updated_at' => $aviso->updated_at,
+            ],
         ]);
     }
 
@@ -212,6 +250,8 @@ class AvisosController extends Controller
             $anexoUrl = null;
         }
 
+        $wasPublished = (bool) $aviso->publicado;
+
         $aviso->titulo = $validated['titulo'];
         $aviso->conteudo = $validated['conteudo'];
         $aviso->prioridade = $validated['prioridade'] ?? 'normal';
@@ -226,6 +266,10 @@ class AvisosController extends Controller
         }
 
         $aviso->save();
+
+        if ($aviso->publicado && ! $wasPublished) {
+            app(NotifyAvisoPushRecipients::class)->queue($aviso);
+        }
 
         return redirect()
             ->route('school.avisos.edit', $aviso)

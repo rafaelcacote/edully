@@ -4,9 +4,12 @@ set -e
 cd /var/www/html
 
 # Ensure runtime dirs exist and are writable
-mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
+mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache storage/app/public
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwx storage bootstrap/cache
+
+# Public disk uploads (photos, anexos) require public/storage -> storage/app/public
+php artisan storage:link --force || true
 
 if [ -n "$APP_KEY" ]; then
     php artisan config:cache || true

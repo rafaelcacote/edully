@@ -3,8 +3,12 @@
 use App\Http\Controllers\School\AvisosController;
 use App\Http\Controllers\School\BoletinsController;
 use App\Http\Controllers\School\ClassesController;
+use App\Http\Controllers\School\CobrancasController;
 use App\Http\Controllers\School\DisciplinasController;
+use App\Http\Controllers\School\DocumentosController;
+use App\Http\Controllers\School\EventosFinanceirosController;
 use App\Http\Controllers\School\ExercisesController;
+use App\Http\Controllers\School\MensalidadesController;
 use App\Http\Controllers\School\MessagesController;
 use App\Http\Controllers\School\NotasController;
 use App\Http\Controllers\School\ParentsController;
@@ -54,6 +58,12 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::get('parents', [ParentsController::class, 'index'])
         ->middleware('permission:escola.responsaveis.visualizar')
         ->name('parents.index');
+    Route::post('parents/check-cpf', [ParentsController::class, 'checkCpf'])
+        ->middleware('permission:escola.responsaveis.criar')
+        ->name('parents.check-cpf');
+    Route::post('parents/check-email', [ParentsController::class, 'checkEmail'])
+        ->middleware('permission:escola.responsaveis.criar|escola.responsaveis.editar')
+        ->name('parents.check-email');
     Route::get('parents/create', [ParentsController::class, 'create'])
         ->middleware('permission:escola.responsaveis.criar')
         ->name('parents.create');
@@ -255,6 +265,29 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
         ->middleware('permission:escola.avisos.excluir')
         ->name('avisos.destroy');
 
+    // Documentos (atestados, pedidos de declaração, envios da escola)
+    Route::get('documentos', [DocumentosController::class, 'index'])
+        ->middleware('permission:escola.documentos.visualizar')
+        ->name('documentos.index');
+    Route::get('documentos/create', [DocumentosController::class, 'create'])
+        ->middleware('permission:escola.documentos.criar')
+        ->name('documentos.create');
+    Route::post('documentos', [DocumentosController::class, 'store'])
+        ->middleware('permission:escola.documentos.criar')
+        ->name('documentos.store');
+    Route::get('documentos/{documento}', [DocumentosController::class, 'show'])
+        ->middleware('permission:escola.documentos.visualizar')
+        ->name('documentos.show');
+    Route::post('documentos/{documento}/status', [DocumentosController::class, 'updateStatus'])
+        ->middleware('permission:escola.documentos.editar')
+        ->name('documentos.status');
+    Route::post('documentos/{documento}/notificar-professores', [DocumentosController::class, 'notifyTeachers'])
+        ->middleware('permission:escola.documentos.editar')
+        ->name('documentos.notificar-professores');
+    Route::delete('documentos/{documento}', [DocumentosController::class, 'destroy'])
+        ->middleware('permission:escola.documentos.excluir')
+        ->name('documentos.destroy');
+
     // Notas
     Route::get('notas', [NotasController::class, 'index'])
         ->middleware('permission:escola.notas.visualizar')
@@ -285,4 +318,69 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
     Route::get('boletins', [BoletinsController::class, 'index'])
         ->middleware('permission:escola.notas.visualizar')
         ->name('boletins.index');
+
+    // Financeiro (cobranças / mensalidades)
+    Route::get('cobrancas', [CobrancasController::class, 'index'])
+        ->middleware('permission:escola.financeiro.visualizar')
+        ->name('cobrancas.index');
+    Route::get('cobrancas/mensalidades/gerar', [MensalidadesController::class, 'create'])
+        ->middleware('permission:escola.financeiro.criar')
+        ->name('cobrancas.mensalidades.create');
+    Route::post('cobrancas/mensalidades', [MensalidadesController::class, 'store'])
+        ->middleware('permission:escola.financeiro.criar')
+        ->name('cobrancas.mensalidades.store');
+
+    // Eventos financeiros
+    Route::get('cobrancas/eventos', [EventosFinanceirosController::class, 'index'])
+        ->middleware('permission:escola.financeiro.visualizar')
+        ->name('eventos-financeiros.index');
+    Route::get('cobrancas/eventos/create', [EventosFinanceirosController::class, 'create'])
+        ->middleware('permission:escola.financeiro.criar')
+        ->name('eventos-financeiros.create');
+    Route::post('cobrancas/eventos', [EventosFinanceirosController::class, 'store'])
+        ->middleware('permission:escola.financeiro.criar')
+        ->name('eventos-financeiros.store');
+    Route::get('cobrancas/eventos/{evento_financeiro}', [EventosFinanceirosController::class, 'show'])
+        ->middleware('permission:escola.financeiro.visualizar')
+        ->name('eventos-financeiros.show');
+    Route::get('cobrancas/eventos/{evento_financeiro}/edit', [EventosFinanceirosController::class, 'edit'])
+        ->middleware('permission:escola.financeiro.editar')
+        ->name('eventos-financeiros.edit');
+    Route::patch('cobrancas/eventos/{evento_financeiro}', [EventosFinanceirosController::class, 'update'])
+        ->middleware('permission:escola.financeiro.editar')
+        ->name('eventos-financeiros.update');
+    Route::post('cobrancas/eventos/{evento_financeiro}/publicar', [EventosFinanceirosController::class, 'publish'])
+        ->middleware('permission:escola.financeiro.criar')
+        ->name('eventos-financeiros.publicar');
+    Route::post('cobrancas/eventos/{evento_financeiro}/notificar', [EventosFinanceirosController::class, 'notify'])
+        ->middleware('permission:escola.financeiro.criar')
+        ->name('eventos-financeiros.notificar');
+    Route::patch('cobrancas/eventos/{evento_financeiro}/encerrar', [EventosFinanceirosController::class, 'encerrar'])
+        ->middleware('permission:escola.financeiro.editar')
+        ->name('eventos-financeiros.encerrar');
+    Route::delete('cobrancas/eventos/{evento_financeiro}', [EventosFinanceirosController::class, 'destroy'])
+        ->middleware('permission:escola.financeiro.excluir')
+        ->name('eventos-financeiros.destroy');
+
+    Route::get('cobrancas/{cobranca}', [CobrancasController::class, 'show'])
+        ->middleware('permission:escola.financeiro.visualizar')
+        ->name('cobrancas.show');
+    Route::get('cobrancas/{cobranca}/edit', [CobrancasController::class, 'edit'])
+        ->middleware('permission:escola.financeiro.editar')
+        ->name('cobrancas.edit');
+    Route::patch('cobrancas/{cobranca}', [CobrancasController::class, 'update'])
+        ->middleware('permission:escola.financeiro.editar')
+        ->name('cobrancas.update');
+    Route::patch('cobrancas/{cobranca}/pagar', [CobrancasController::class, 'markPaid'])
+        ->middleware('permission:escola.financeiro.editar')
+        ->name('cobrancas.pagar');
+    Route::patch('cobrancas/{cobranca}/cancelar', [CobrancasController::class, 'cancel'])
+        ->middleware('permission:escola.financeiro.editar')
+        ->name('cobrancas.cancelar');
+    Route::post('cobrancas/{cobranca}/notificar', [CobrancasController::class, 'notify'])
+        ->middleware('permission:escola.financeiro.criar')
+        ->name('cobrancas.notificar');
+    Route::delete('cobrancas/{cobranca}', [CobrancasController::class, 'destroy'])
+        ->middleware('permission:escola.financeiro.excluir')
+        ->name('cobrancas.destroy');
 });

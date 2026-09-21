@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Can from '@/components/Can.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,8 @@ interface Aviso {
     expira_em: string | null;
     anexo_url: string | null;
     created_at: string;
+    expirado: boolean;
+    status: 'rascunho' | 'publicado' | 'expirado';
 }
 
 interface Props {
@@ -88,18 +91,20 @@ function clearFilters() {
 
 function getPrioridadeLabel(prioridade: string): string {
     const labels: Record<string, string> = {
+        baixa: 'Baixa',
         normal: 'Normal',
         alta: 'Alta',
-        media: 'Média',
+        urgente: 'Urgente',
     };
     return labels[prioridade] || prioridade;
 }
 
 function getPrioridadeVariant(prioridade: string): string {
     const variants: Record<string, string> = {
+        baixa: 'secondary',
         normal: 'default',
         alta: 'destructive',
-        media: 'secondary',
+        urgente: 'destructive',
     };
     return variants[prioridade] || 'default';
 }
@@ -107,11 +112,29 @@ function getPrioridadeVariant(prioridade: string): string {
 function getPublicoAlvoLabel(publicoAlvo: string): string {
     const labels: Record<string, string> = {
         todos: 'Todos',
-        alunos: 'Alunos',
         professores: 'Professores',
         responsaveis: 'Responsáveis',
+        alunos: 'Alunos', // legado
     };
     return labels[publicoAlvo] || publicoAlvo;
+}
+
+function getStatusLabel(status: Aviso['status']): string {
+    const labels: Record<Aviso['status'], string> = {
+        rascunho: 'Rascunho',
+        publicado: 'Publicado',
+        expirado: 'Expirado',
+    };
+    return labels[status];
+}
+
+function getStatusVariant(status: Aviso['status']): 'default' | 'secondary' | 'destructive' | 'outline' {
+    const variants: Record<Aviso['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
+        rascunho: 'secondary',
+        publicado: 'default',
+        expirado: 'destructive',
+    };
+    return variants[status];
 }
 
 function deleteAviso(avisoId: string) {
@@ -138,12 +161,14 @@ function deleteAviso(avisoId: string) {
                 </div>
 
                 <div class="mt-2">
-                    <Button as-child>
-                        <Link href="/school/avisos/create" class="flex items-center gap-2">
-                            <Plus class="h-4 w-4" />
-                            Novo comunicado
-                        </Link>
-                    </Button>
+                    <Can permission="escola.avisos.criar">
+                        <Button as-child>
+                            <Link href="/school/avisos/create" class="flex items-center gap-2">
+                                <Plus class="h-4 w-4" />
+                                Novo comunicado
+                            </Link>
+                        </Button>
+                    </Can>
                 </div>
             </div>
 
@@ -176,9 +201,10 @@ function deleteAviso(avisoId: string) {
                             @change="applyFilters"
                         >
                             <option value="">Todas prioridades</option>
+                            <option value="baixa">Baixa</option>
                             <option value="normal">Normal</option>
                             <option value="alta">Alta</option>
-                            <option value="media">Média</option>
+                            <option value="urgente">Urgente</option>
                         </select>
                     </div>
 
@@ -236,11 +262,17 @@ function deleteAviso(avisoId: string) {
                                     {{ getPublicoAlvoLabel(aviso.publico_alvo) }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <Badge
-                                        :variant="aviso.publicado ? 'default' : 'secondary'"
-                                    >
-                                        {{ aviso.publicado ? 'Publicado' : 'Não publicado' }}
-                                    </Badge>
+                                    <div class="space-y-1">
+                                        <Badge :variant="getStatusVariant(aviso.status)">
+                                            {{ getStatusLabel(aviso.status) }}
+                                        </Badge>
+                                        <p
+                                            v-if="aviso.status === 'expirado'"
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Não está mais publicado
+                                        </p>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3">
                                     {{
@@ -264,40 +296,46 @@ function deleteAviso(avisoId: string) {
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center justify-end gap-2">
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/avisos/${aviso.id}`">
-                                                <Eye
-                                                    class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                        <Can permission="escola.avisos.visualizar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/avisos/${aviso.id}`">
+                                                    <Eye
+                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </Can>
+                                        <Can permission="escola.avisos.editar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/avisos/${aviso.id}/edit`">
+                                                    <Edit
+                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </Can>
+                                        <Can permission="escola.avisos.excluir">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                                @click="deleteAviso(aviso.id)"
+                                            >
+                                                <Trash2
+                                                    class="h-4 w-4 text-red-500 dark:text-red-400"
                                                 />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/avisos/${aviso.id}/edit`">
-                                                <Edit
-                                                    class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                            @click="deleteAviso(aviso.id)"
-                                        >
-                                            <Trash2
-                                                class="h-4 w-4 text-red-500 dark:text-red-400"
-                                            />
-                                        </Button>
+                                            </Button>
+                                        </Can>
                                     </div>
                                 </td>
                             </tr>

@@ -4,28 +4,28 @@ overview: Planejar um módulo Financeiro multi-tenant (mensalidades + eventos) c
 todos:
   - id: schema
     content: "Migrations/models/factories: eventos_financeiros + cobrancas (tenant, tipo, PIX, boleto_url, status)"
-    status: in_progress
+    status: completed
   - id: perms-nav
     content: Permissões escola.financeiro.* + sidebar + RoleForm
-    status: pending
+    status: completed
   - id: web-cobrancas
     content: "CRUD web cobranças: listar, editar, upload boleto/PIX, marcar pago/cancelar"
-    status: pending
+    status: completed
   - id: web-mensalidades
     content: Action + tela gerar mensalidades em lote por turma/mês
-    status: pending
+    status: completed
   - id: web-eventos
     content: CRUD eventos + publicar gerando cobrancas por aluno
-    status: pending
+    status: completed
   - id: notify-aviso
     content: Ação notificar responsáveis via Aviso existente
-    status: pending
+    status: completed
   - id: api-mobile
     content: GET cobrancas do aluno + Resource + ResolveLinkedStudentAction
-    status: pending
+    status: completed
   - id: tests
     content: "Pest Feature: School financeiro + Api cobrancas (isolamento e vínculo pai-filho)"
-    status: pending
+    status: completed
 isProject: true
 ---
 

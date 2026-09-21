@@ -22,10 +22,17 @@ interface Aluno {
     nome_social?: string | null;
 }
 
+interface Turma {
+    id: string;
+    nome: string;
+}
+
 interface Message {
     id: string;
     titulo: string;
+    destinatario_tipo: 'aluno' | 'turma';
     aluno: Aluno | null;
+    turma: Turma | null;
     tipo?: string | null;
     prioridade?: string | null;
     lida: boolean;
@@ -100,10 +107,12 @@ function clearFilters() {
 
 function getPrioridadeBadgeClass(prioridade?: string | null): string {
     switch (prioridade) {
-        case 'alta':
+        case 'urgente':
             return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-        case 'media':
-            return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        case 'alta':
+            return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+        case 'baixa':
+            return 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-400';
         case 'normal':
             return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
         default:
@@ -113,15 +122,25 @@ function getPrioridadeBadgeClass(prioridade?: string | null): string {
 
 function getPrioridadeLabel(prioridade?: string | null): string {
     switch (prioridade) {
+        case 'urgente':
+            return 'Urgente';
         case 'alta':
             return 'Alta';
-        case 'media':
-            return 'Média';
+        case 'baixa':
+            return 'Baixa';
         case 'normal':
             return 'Normal';
         default:
             return 'Normal';
     }
+}
+
+function getDestinatarioLabel(message: Message): string {
+    if (message.destinatario_tipo === 'turma') {
+        return message.turma?.nome ? `Turma ${message.turma.nome}` : 'Turma inteira';
+    }
+
+    return message.aluno?.nome || '—';
 }
 </script>
 
@@ -157,7 +176,7 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                         <div class="flex-1">
                             <Input
                                 v-model="search"
-                                placeholder="Buscar por título, conteúdo ou aluno..."
+                                placeholder="Buscar por título, conteúdo, aluno ou turma..."
                                 @keyup.enter="applyFilters"
                             />
                         </div>
@@ -216,7 +235,7 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                         >
                             <tr>
                                 <th class="px-4 py-3">Título</th>
-                                <th class="px-4 py-3">Aluno</th>
+                                <th class="px-4 py-3">Destinatário</th>
                                 <th class="px-4 py-3">Prioridade</th>
                                 <th class="px-4 py-3">Status</th>
                                 <th class="px-4 py-3">Data</th>
@@ -236,7 +255,17 @@ function getPrioridadeLabel(prioridade?: string | null): string {
                                     </div>
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ message.aluno?.nome || '—' }}
+                                    <div class="space-y-0.5">
+                                        <div class="font-medium">
+                                            {{ getDestinatarioLabel(message) }}
+                                        </div>
+                                        <p
+                                            v-if="message.destinatario_tipo === 'turma'"
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Enviado para a turma inteira
+                                        </p>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3">
                                     <span

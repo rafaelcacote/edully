@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\School;
 
+use App\Actions\Api\NotifyMessagePushRecipients;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\StoreMessageRequest;
 use App\Http\Requests\School\UpdateMessageRequest;
@@ -10,7 +11,10 @@ use App\Models\Teacher;
 use App\Models\Turma;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,6 +53,9 @@ class MessagesController extends Controller
 
     /**
      * Display a listing of the messages.
+     *
+     * Recados enviados para a turma inteira são agrupados em uma linha
+     * (uma por envio), exibindo o nome da turma em vez de cada aluno.
      */
     public function index(Request $request): Response
     {
@@ -59,14 +66,13 @@ class MessagesController extends Controller
         // Get teacher and turmas using many-to-many relationship
         $teacher = $this->getCurrentTeacher();
 
-        $messages = Message::query()
+        $baseQuery = Message::query()
             ->where('tenant_id', $tenant->id)
             ->when($teacher, function ($query) use ($user) {
                 // Se for professor, mostrar apenas mensagens que ele enviou
                 $query->where('remetente_id', $user->id);
             })
             // Se for Administrador Escola, mostrar todas as mensagens do tenant (sem filtro adicional)
-            ->with(['aluno:id,nome,nome_social'])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $search = trim($search);
                 $query->where(function ($q) use ($search) {
@@ -75,6 +81,9 @@ class MessagesController extends Controller
                         ->orWhereHas('aluno', function ($subQuery) use ($search) {
                             $subQuery->where('nome', 'ilike', "%{$search}%")
                                 ->orWhere('nome_social', 'ilike', "%{$search}%");
+                        })
+                        ->orWhereHas('turma', function ($subQuery) use ($search) {
+                            $subQuery->where('nome', 'ilike', "%{$search}%");
                         });
                 });
             })
@@ -83,19 +92,44 @@ class MessagesController extends Controller
             })
             ->when($filters['turma_id'] ?? null, function ($query, string $turmaId) {
                 $query->where('turma_id', $turmaId);
-            })
+            });
+
+        // Com filtro por aluno, listamos as linhas individuais (incluindo fan-out de turma).
+        // Sem esse filtro, agrupamos envios para turma inteira em uma única linha.
+        if (empty($filters['aluno_id'])) {
+            $representativeIds = $this->groupedMessageRepresentativeIds(clone $baseQuery);
+
+            $messagesQuery = Message::query()
+                ->whereIn('id', $representativeIds)
+                ->with(['aluno:id,nome,nome_social', 'turma:id,nome']);
+        } else {
+            $messagesQuery = (clone $baseQuery)
+                ->with(['aluno:id,nome,nome_social', 'turma:id,nome']);
+        }
+
+        $messages = $messagesQuery
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString()
-            ->through(function (Message $message) {
+            ->through(function (Message $message) use ($filters) {
+                $isTurmaSend = filled($message->turma_id);
+                $collapseToTurma = $isTurmaSend && empty($filters['aluno_id']);
+
                 return [
                     'id' => $message->id,
                     'titulo' => $message->titulo,
-                    'aluno' => $message->aluno
+                    'destinatario_tipo' => $collapseToTurma ? 'turma' : 'aluno',
+                    'aluno' => (! $collapseToTurma && $message->aluno)
                         ? [
                             'id' => $message->aluno->id,
                             'nome' => $message->aluno->nome,
                             'nome_social' => $message->aluno->nome_social,
+                        ]
+                        : null,
+                    'turma' => ($isTurmaSend && $message->turma)
+                        ? [
+                            'id' => $message->turma->id,
+                            'nome' => $message->turma->nome,
                         ]
                         : null,
                     'tipo' => $message->tipo,
@@ -176,6 +210,33 @@ class MessagesController extends Controller
             'turmas' => $turmas,
             'filters' => $filters,
         ]);
+    }
+
+    /**
+     * IDs representativos para a listagem: uma linha por envio à turma
+     * e todas as linhas de recados individuais (sem turma_id).
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Message>  $query
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    protected function groupedMessageRepresentativeIds($query)
+    {
+        $table = (new Message)->getTable();
+        $driver = DB::connection('shared')->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $groupKey = "CASE WHEN {$table}.turma_id IS NULL THEN {$table}.id ELSE ({$table}.turma_id || '|' || {$table}.remetente_id || '|' || {$table}.titulo || '|' || {$table}.conteudo || '|' || strftime('%Y-%m-%d %H:%M', {$table}.created_at)) END";
+            $minId = "MIN({$table}.id)";
+        } else {
+            // Postgres: UUID não tem MIN(); agregamos em text.
+            $groupKey = "CASE WHEN {$table}.turma_id IS NULL THEN {$table}.id::text ELSE ({$table}.turma_id::text || '|' || {$table}.remetente_id::text || '|' || {$table}.titulo || '|' || {$table}.conteudo || '|' || to_char({$table}.created_at, 'YYYY-MM-DD HH24:MI')) END";
+            $minId = "MIN({$table}.id::text)";
+        }
+
+        return $query
+            ->selectRaw("{$minId} as id")
+            ->groupByRaw($groupKey)
+            ->pluck('id');
     }
 
     /**
@@ -262,6 +323,7 @@ class MessagesController extends Controller
         $tenant = $this->getTenant();
         $user = auth()->user();
         $validated = $request->validated();
+        $anexoUrl = $this->resolveMessageAnexoUrl($request);
 
         // Se turma_id foi enviado, criar mensagem para todos os alunos da turma
         if (isset($validated['turma_id'])) {
@@ -277,19 +339,24 @@ class MessagesController extends Controller
                     ->withErrors(['turma_id' => 'Esta turma não possui alunos matriculados.']);
             }
 
+            $notify = app(NotifyMessagePushRecipients::class);
+
             foreach ($alunos as $aluno) {
-                Message::create([
+                $created = Message::create([
                     'tenant_id' => $tenant->id,
                     'remetente_id' => $user->id,
                     'aluno_id' => $aluno->id,
                     'turma_id' => $validated['turma_id'],
+                    // Fan-out por turma: cada aluno fica com conversa própria (reply 1:1 no app).
+                    'conversa_id' => (string) Str::uuid(),
                     'titulo' => $validated['titulo'],
                     'conteudo' => $validated['conteudo'],
                     'tipo' => $validated['tipo'] ?? 'outro',
                     'prioridade' => $validated['prioridade'] ?? 'normal',
-                    'anexo_url' => $validated['anexo_url'] ?? null,
+                    'anexo_url' => $anexoUrl,
                     'lida' => false,
                 ]);
+                $notify->queue($created);
             }
 
             return redirect()
@@ -302,11 +369,20 @@ class MessagesController extends Controller
         }
 
         // Comportamento normal: mensagem para um aluno específico
-        Message::create([
-            ...$validated,
+        $message = Message::create([
             'tenant_id' => $tenant->id,
             'remetente_id' => $user->id,
+            'aluno_id' => $validated['aluno_id'],
+            'conversa_id' => (string) Str::uuid(),
+            'titulo' => $validated['titulo'],
+            'conteudo' => $validated['conteudo'],
+            'tipo' => $validated['tipo'] ?? 'outro',
+            'prioridade' => $validated['prioridade'] ?? 'normal',
+            'anexo_url' => $anexoUrl,
+            'lida' => false,
         ]);
+
+        app(NotifyMessagePushRecipients::class)->queue($message);
 
         return redirect()
             ->route('school.messages.index')
@@ -466,8 +542,16 @@ class MessagesController extends Controller
         }
 
         $validated = $request->validated();
+        $anexoUrl = $this->resolveMessageAnexoUrl($request, $message->anexo_url);
 
-        $message->update($validated);
+        $message->update([
+            'aluno_id' => $validated['aluno_id'],
+            'titulo' => $validated['titulo'],
+            'conteudo' => $validated['conteudo'],
+            'tipo' => $validated['tipo'] ?? $message->tipo,
+            'prioridade' => $validated['prioridade'] ?? $message->prioridade,
+            'anexo_url' => $anexoUrl,
+        ]);
 
         return redirect()
             ->route('school.messages.edit', $message)
@@ -476,6 +560,52 @@ class MessagesController extends Controller
                 'title' => 'Recado atualizado',
                 'message' => 'As alterações foram salvas com sucesso.',
             ]);
+    }
+
+    /**
+     * Resolve anexo_url from uploaded file or keep the current value.
+     */
+    protected function resolveMessageAnexoUrl(Request $request, ?string $currentUrl = null): ?string
+    {
+        if ($request->hasFile('anexo')) {
+            $this->deleteStoredMessageAnexo($currentUrl);
+
+            return $this->storeMessageAnexo($request->file('anexo'));
+        }
+
+        if ($request->exists('anexo_url') && blank($request->input('anexo_url'))) {
+            $this->deleteStoredMessageAnexo($currentUrl);
+
+            return null;
+        }
+
+        $validatedUrl = $request->validated('anexo_url') ?? null;
+
+        return filled($validatedUrl) ? $validatedUrl : $currentUrl;
+    }
+
+    protected function storeMessageAnexo(UploadedFile $anexo): string
+    {
+        $anexoPath = $anexo->store('mensagens/anexos', 'public');
+
+        return asset('storage/'.$anexoPath);
+    }
+
+    protected function deleteStoredMessageAnexo(?string $anexoUrl): void
+    {
+        if (! $anexoUrl) {
+            return;
+        }
+
+        $storageBaseUrl = asset('storage/');
+        if (! str_starts_with($anexoUrl, $storageBaseUrl)) {
+            return;
+        }
+
+        $relativePath = str_replace($storageBaseUrl, '', $anexoUrl);
+        if ($relativePath !== '' && Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->delete($relativePath);
+        }
     }
 
     /**

@@ -1,0 +1,64 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * Ensures mensagens.turma_id exists on Postgres.
+ *
+ * The earlier migration 2026_02_13_224129 was an empty stub, and
+ * 2026_01_17 only added turma_id on SQLite. Homolog/production Postgres
+ * therefore never received the column.
+ */
+return new class extends Migration
+{
+    public function up(): void
+    {
+        $driver = DB::connection('shared')->getDriverName();
+
+        if ($driver === 'sqlite') {
+            if (! Schema::connection('shared')->hasColumn('mensagens', 'turma_id')) {
+                Schema::connection('shared')->table('mensagens', function ($table) {
+                    $table->uuid('turma_id')->nullable()->index();
+                });
+            }
+
+            return;
+        }
+
+        DB::connection('shared')->statement("
+            DO \$\$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'escola'
+                      AND table_name = 'mensagens'
+                      AND column_name = 'turma_id'
+                ) THEN
+                    ALTER TABLE escola.mensagens ADD COLUMN turma_id UUID NULL;
+                END IF;
+            END \$\$;
+        ");
+
+        DB::connection('shared')->statement('CREATE INDEX IF NOT EXISTS idx_mensagens_turma_id ON escola.mensagens(turma_id)');
+    }
+
+    public function down(): void
+    {
+        $driver = DB::connection('shared')->getDriverName();
+
+        if ($driver === 'sqlite') {
+            if (Schema::connection('shared')->hasColumn('mensagens', 'turma_id')) {
+                Schema::connection('shared')->table('mensagens', function ($table) {
+                    $table->dropColumn('turma_id');
+                });
+            }
+
+            return;
+        }
+
+        DB::connection('shared')->statement('DROP INDEX IF EXISTS escola.idx_mensagens_turma_id');
+        DB::connection('shared')->statement('ALTER TABLE escola.mensagens DROP COLUMN IF EXISTS turma_id');
+    }
+};

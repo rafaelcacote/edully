@@ -57,6 +57,7 @@ it('teacher can list their tests', function () {
         'horario' => '08:00',
         'sala' => '101',
         'duracao_minutos' => 90,
+        'bimestre' => 2,
     ]);
 
     $token = $user->createToken('mobile-app')->plainTextToken;
@@ -76,6 +77,7 @@ it('teacher can list their tests', function () {
                     'horario',
                     'sala',
                     'duracao_minutos',
+                    'bimestre',
                     'disciplina',
                     'turma',
                     'professor',
@@ -92,6 +94,7 @@ it('teacher can list their tests', function () {
 
     expect($response->json('tests'))->toHaveCount(1);
     expect($response->json('tests.0.id'))->toBe($test->id);
+    expect($response->json('tests.0.bimestre'))->toBe(2);
 });
 
 it('responsavel can list tests for their students classes', function () {
@@ -166,6 +169,7 @@ it('responsavel can list tests for their students classes', function () {
         'horario' => '10:00',
         'sala' => '202',
         'duracao_minutos' => 60,
+        'bimestre' => 1,
     ]);
 
     $token = $user->createToken('mobile-app')->plainTextToken;
@@ -181,6 +185,7 @@ it('responsavel can list tests for their students classes', function () {
 
     expect($response->json('tests'))->toHaveCount(1);
     expect($response->json('tests.0.id'))->toBe($test->id);
+    expect($response->json('tests.0.bimestre'))->toBe(1);
 });
 
 it('teacher can create a test', function () {
@@ -231,6 +236,7 @@ it('teacher can create a test', function () {
             'sala' => '301',
             'duracao_minutos' => 120,
             'turma_id' => $turma->id,
+            'bimestre' => 3,
         ]);
 
     $response->assertCreated()
@@ -244,10 +250,12 @@ it('teacher can create a test', function () {
                 'horario',
                 'sala',
                 'duracao_minutos',
+                'bimestre',
             ],
         ]);
 
     expect($response->json('test.titulo'))->toBe('Nova Prova');
+    expect($response->json('test.bimestre'))->toBe(3);
     expect(Test::count())->toBe(1);
 });
 
@@ -503,5 +511,120 @@ it('validates test creation request', function () {
         ->postJson('/api/mobile/tests', []);
 
     $response->assertUnprocessable()
-        ->assertJsonValidationErrors(['disciplina_id', 'titulo', 'data_prova', 'turma_id']);
+        ->assertJsonValidationErrors(['disciplina_id', 'titulo', 'data_prova', 'turma_id', 'bimestre']);
+});
+
+it('requires bimestre when creating a test', function () {
+    $tenant = Tenant::factory()->create();
+    $user = User::factory()->create(['ativo' => true]);
+    $teacher = Teacher::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $user->id,
+        'matricula' => 'PROF'.fake()->unique()->numberBetween(2024000, 2024999),
+        'ativo' => true,
+    ]);
+
+    $disciplina = Disciplina::create([
+        'tenant_id' => $tenant->id,
+        'nome' => 'Matemática',
+        'sigla' => 'MAT',
+        'ativo' => true,
+    ]);
+
+    $turma = Turma::create([
+        'tenant_id' => $tenant->id,
+        'professor_id' => $teacher->id,
+        'nome' => '1º Ano A',
+        'serie' => '1º Ano',
+        'ano_letivo' => 2024,
+        'ativo' => true,
+    ]);
+
+    $driver = DB::connection('shared')->getDriverName();
+    $pivotTable = $driver === 'sqlite' ? 'professor_disciplinas' : 'escola.professor_disciplinas';
+    DB::connection('shared')->table($pivotTable)->insert([
+        'id' => \Illuminate\Support\Str::uuid(),
+        'professor_id' => $teacher->id,
+        'disciplina_id' => $disciplina->id,
+        'tenant_id' => $tenant->id,
+    ]);
+
+    $token = $user->createToken('mobile-app')->plainTextToken;
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/api/mobile/tests', [
+            'disciplina_id' => $disciplina->id,
+            'titulo' => 'Prova sem bimestre',
+            'data_prova' => now()->addDays(5)->format('Y-m-d'),
+            'turma_id' => $turma->id,
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['bimestre']);
+});
+
+it('teacher can filter tests by bimestre', function () {
+    $tenant = Tenant::factory()->create();
+    $user = User::factory()->create(['ativo' => true]);
+    $teacher = Teacher::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $user->id,
+        'matricula' => 'PROF'.fake()->unique()->numberBetween(2024000, 2024999),
+        'ativo' => true,
+    ]);
+
+    $disciplina = Disciplina::create([
+        'tenant_id' => $tenant->id,
+        'nome' => 'Matemática',
+        'sigla' => 'MAT',
+        'ativo' => true,
+    ]);
+
+    $turma = Turma::create([
+        'tenant_id' => $tenant->id,
+        'professor_id' => $teacher->id,
+        'nome' => '1º Ano A',
+        'serie' => '1º Ano',
+        'ano_letivo' => 2024,
+        'ativo' => true,
+    ]);
+
+    $driver = DB::connection('shared')->getDriverName();
+    $pivotTable = $driver === 'sqlite' ? 'professor_disciplinas' : 'escola.professor_disciplinas';
+    DB::connection('shared')->table($pivotTable)->insert([
+        'id' => \Illuminate\Support\Str::uuid(),
+        'professor_id' => $teacher->id,
+        'disciplina_id' => $disciplina->id,
+        'tenant_id' => $tenant->id,
+    ]);
+
+    $testBimestre1 = Test::create([
+        'tenant_id' => $tenant->id,
+        'professor_id' => $teacher->id,
+        'turma_id' => $turma->id,
+        'disciplina_id' => $disciplina->id,
+        'titulo' => 'Prova 1º bimestre',
+        'data_prova' => now()->addDays(7),
+        'bimestre' => 1,
+    ]);
+
+    Test::create([
+        'tenant_id' => $tenant->id,
+        'professor_id' => $teacher->id,
+        'turma_id' => $turma->id,
+        'disciplina_id' => $disciplina->id,
+        'titulo' => 'Prova 2º bimestre',
+        'data_prova' => now()->addDays(14),
+        'bimestre' => 2,
+    ]);
+
+    $token = $user->createToken('mobile-app')->plainTextToken;
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->getJson('/api/mobile/tests?bimestre=1');
+
+    $response->assertSuccessful();
+    expect($response->json('tests'))->toHaveCount(1);
+    expect($response->json('tests.0.id'))->toBe($testBimestre1->id);
+    expect($response->json('tests.0.bimestre'))->toBe(1);
 });

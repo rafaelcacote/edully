@@ -18,7 +18,7 @@ class UsersController extends Controller
      */
     public function index(Request $request): Response
     {
-        $filters = $request->only(['search', 'role', 'active']);
+        $filters = $request->only(['search', 'role', 'active', 'tenant_id']);
 
         $users = User::query()
             ->with('roles:id,name', 'tenants:id,nome')
@@ -36,6 +36,11 @@ class UsersController extends Controller
             ->when($filters['role'] ?? null, function ($query, string $role) {
                 $query->whereHas('roles', function ($q) use ($role) {
                     $q->where('name', $role);
+                });
+            })
+            ->when($filters['tenant_id'] ?? null, function ($query, string $tenantId) {
+                $query->whereHas('tenants', function ($q) use ($tenantId) {
+                    $q->whereKey($tenantId);
                 });
             })
             ->when(isset($filters['active']) && $filters['active'] !== '' && $filters['active'] !== null, function ($query) use ($filters) {
@@ -59,6 +64,7 @@ class UsersController extends Controller
             // Adicionar o primeiro tenant (escola) vinculado ao usuário
             $user->tenant = $user->tenants->first();
             $user->tenant_nome = $user->tenants->first()?->nome ?? null;
+
             return $user;
         });
 
@@ -66,6 +72,10 @@ class UsersController extends Controller
             'users' => $users,
             'filters' => $filters,
             'roles' => Role::query()->orderBy('name')->pluck('name')->toArray(),
+            'tenants' => Tenant::query()->orderBy('nome')->get(['id', 'nome'])->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->nome,
+            ])->toArray(),
         ]);
     }
 
@@ -102,14 +112,14 @@ class UsersController extends Controller
         // Remove formatação do CPF (pontos, traços, espaços)
         $cpf = preg_replace('/[^0-9]/', '', $validated['cpf']);
 
-        $user = new User();
+        $user = new User;
         $user->email = $validated['email'];
         $user->nome_completo = $validated['nome_completo'];
         $user->cpf = $cpf;
         $user->telefone = $validated['telefone'] ?? null;
         $user->avatar_url = $validated['avatar_url'] ?? null;
-        $user->ativo = isset($validated['ativo']) 
-            ? filter_var($validated['ativo'], FILTER_VALIDATE_BOOLEAN) 
+        $user->ativo = isset($validated['ativo'])
+            ? filter_var($validated['ativo'], FILTER_VALIDATE_BOOLEAN)
             : true;
         // Senha padrão é o CPF do usuário
         $user->password = $cpf;
@@ -141,15 +151,15 @@ class UsersController extends Controller
     public function edit(User $user): Response
     {
         $user->load('roles:id,name', 'tenants:id,nome');
-        
+
         // Adiciona o primeiro role como role principal para compatibilidade
         $user->role = $user->roles->first()?->name ?? null;
-        
+
         // Garantir que os campos da tabela estejam presentes
         $user->nome_completo = $user->attributes['nome_completo'] ?? $user->full_name ?? '';
         $user->telefone = $user->attributes['telefone'] ?? $user->phone ?? null;
         $user->ativo = $user->attributes['ativo'] ?? $user->is_active ?? true;
-        
+
         // Adiciona o primeiro tenant como tenant_id
         // Usar array_merge para garantir que seja incluído na serialização
         $userData = $user->toArray();
@@ -190,8 +200,8 @@ class UsersController extends Controller
         $user->cpf = $cpf;
         $user->telefone = $validated['telefone'] ?? null;
         $user->avatar_url = $validated['avatar_url'] ?? null;
-        $user->ativo = isset($validated['ativo']) 
-            ? filter_var($validated['ativo'], FILTER_VALIDATE_BOOLEAN) 
+        $user->ativo = isset($validated['ativo'])
+            ? filter_var($validated['ativo'], FILTER_VALIDATE_BOOLEAN)
             : $user->ativo;
 
         $user->save();
@@ -256,6 +266,4 @@ class UsersController extends Controller
                 'message' => 'O usuário foi removido com sucesso.',
             ]);
     }
-
 }
-

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\StatusCobranca;
+use App\Enums\TipoCobranca;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -92,6 +94,8 @@ class Cobranca extends Model
     protected function casts(): array
     {
         return [
+            'tipo' => TipoCobranca::class,
+            'status' => StatusCobranca::class,
             'valor' => 'decimal:2',
             'vencimento' => 'date',
             'pago_em' => 'datetime',
@@ -118,7 +122,7 @@ class Cobranca extends Model
 
     public function getEstaAtrasadaAttribute(): bool
     {
-        return $this->status === 'pendente'
+        return $this->status === StatusCobranca::Pendente
             && $this->vencimento !== null
             && $this->vencimento->isPast()
             && ! $this->vencimento->isToday();
@@ -130,30 +134,39 @@ class Cobranca extends Model
             return 'atrasado';
         }
 
-        return $this->status;
+        return $this->status?->value ?? (string) $this->status;
+    }
+
+    public function statusLabel(): string
+    {
+        if ($this->esta_atrasada) {
+            return 'Atrasado';
+        }
+
+        return $this->status?->label() ?? (string) $this->status;
     }
 
     public function scopePendentes(Builder $query): Builder
     {
-        return $query->where('status', 'pendente');
+        return $query->where('status', StatusCobranca::Pendente);
     }
 
     public function scopePagas(Builder $query): Builder
     {
-        return $query->where('status', 'pago');
+        return $query->where('status', StatusCobranca::Pago);
     }
 
-    public function markAsPaid(?string $observacao = null): void
+    public function markAsPaid(?string $observacao = null, ?\DateTimeInterface $pagoEm = null): void
     {
-        $this->status = 'pago';
-        $this->pago_em = now();
+        $this->status = StatusCobranca::Pago;
+        $this->pago_em = $pagoEm ?? now();
         $this->pago_observacao = $observacao;
         $this->save();
     }
 
     public function markAsCancelled(?string $observacao = null): void
     {
-        $this->status = 'cancelado';
+        $this->status = StatusCobranca::Cancelado;
         $this->pago_observacao = $observacao;
         $this->save();
     }

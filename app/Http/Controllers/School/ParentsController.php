@@ -12,8 +12,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class ParentsController extends Controller
 {
@@ -30,6 +33,110 @@ class ParentsController extends Controller
         }
 
         return $tenant;
+    }
+
+    /**
+     * Resolve the "Responsável Aluno" role on the connection used by User permissions.
+     */
+    protected function resolveResponsavelAlunoRole(User $user): Role
+    {
+        $rolesTable = config('permission.table_names.roles', 'roles');
+        $connection = $user->getConnectionName();
+
+        if (! Schema::connection($connection)->hasTable($rolesTable)) {
+            $connection = config('database.default');
+        }
+
+        $role = Role::on($connection)->firstOrCreate(
+            [
+                'name' => 'Responsável Aluno',
+                'guard_name' => 'web',
+            ]
+        );
+
+        if ($role->wasRecentlyCreated) {
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        }
+
+        return $role;
+    }
+
+    /**
+     * Check if a CPF already exists and whether it is valid.
+     */
+    public function checkCpf(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'cpf' => ['required', 'string'],
+        ]);
+
+        $cpf = preg_replace('/[^0-9]/', '', $request->input('cpf'));
+
+        if (strlen($cpf) !== 11) {
+            return response()->json([
+                'exists' => false,
+                'valid' => false,
+            ]);
+        }
+
+        $exists = User::query()->where('cpf', $cpf)->exists();
+
+        return response()->json([
+            'exists' => $exists,
+            'valid' => $this->validateCpf($cpf),
+        ]);
+    }
+
+    /**
+     * Check if an email already exists.
+     */
+    public function checkEmail(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'ignore_user_id' => ['nullable', 'uuid'],
+        ]);
+
+        $email = strtolower(trim((string) $request->input('email')));
+
+        $exists = User::query()
+            ->where('email', $email)
+            ->when($request->filled('ignore_user_id'), function ($query) use ($request) {
+                $query->where('id', '!=', $request->input('ignore_user_id'));
+            })
+            ->exists();
+
+        return response()->json([
+            'exists' => $exists,
+        ]);
+    }
+
+    /**
+     * Validate CPF using Brazilian algorithm.
+     */
+    private function validateCpf(string $cpf): bool
+    {
+        $cpf = preg_replace('/[^0-9]/', '', $cpf);
+
+        if (strlen($cpf) !== 11) {
+            return false;
+        }
+
+        if (preg_match('/(\d)\1{10}/', $cpf)) {
+            return false;
+        }
+
+        for ($t = 9; $t < 11; $t++) {
+            for ($d = 0, $c = 0; $c < $t; $c++) {
+                $d += (int) $cpf[$c] * (($t + 1) - $c);
+            }
+            $d = ((10 * $d) % 11) % 10;
+            if ((int) $cpf[$c] !== $d) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -192,8 +299,11 @@ class ParentsController extends Controller
                 'ativo' => $validated['ativo'] ?? true,
             ]);
 
-            // Assign the "Responsável Aluno" role to the user
-            $user->assignRole('Responsável Aluno');
+            // Assign the "Responsável Aluno" role using the same DB connection as User.
+            // On Postgres this hits escola.roles (shared search_path) and avoids FK errors
+            // when a duplicate role exists only in another schema (e.g. laravel.roles).
+            $role = $this->resolveResponsavelAlunoRole($user);
+            $user->assignRole($role);
 
             // Link the user to the tenant
             $user->tenants()->syncWithoutDetaching([$tenant->id]);
@@ -205,6 +315,8 @@ class ParentsController extends Controller
                 'parentesco' => $validated['parentesco'] ?? null,
                 'cpf' => $validated['cpf'] ?? null,
                 'profissao' => $validated['profissao'] ?? null,
+                'data_nascimento' => $validated['data_nascimento'] ?? null,
+                'observacoes' => $validated['observacoes'] ?? null,
             ]);
         });
 
@@ -270,6 +382,8 @@ class ParentsController extends Controller
                 'telefone' => $parent->user?->telefone,
                 'parentesco' => $parent->parentesco,
                 'profissao' => $parent->profissao,
+                'data_nascimento' => optional($parent->data_nascimento)->toDateString(),
+                'observacoes' => $parent->observacoes,
                 'ativo' => $parent->user?->ativo ?? false,
                 'students' => $parent->students->map(function ($student) use ($matriculasMap, $turmasMap) {
                     $turmaId = $matriculasMap->get($student->id);
@@ -312,12 +426,15 @@ class ParentsController extends Controller
         return Inertia::render('school/parents/Edit', [
             'parent' => [
                 'id' => $parent->id,
+                'usuario_id' => $parent->usuario_id,
                 'nome_completo' => $parent->user?->nome_completo,
                 'cpf' => $parent->cpf ?? $parent->user?->cpf ?? null,
                 'email' => $parent->user?->email,
                 'telefone' => $parent->user?->telefone,
                 'parentesco' => $parent->parentesco,
                 'profissao' => $parent->profissao,
+                'data_nascimento' => optional($parent->data_nascimento)->toDateString(),
+                'observacoes' => $parent->observacoes,
                 'ativo' => $parent->user?->ativo ?? false,
             ],
         ]);
@@ -356,6 +473,8 @@ class ParentsController extends Controller
             $parent->update([
                 'parentesco' => $validated['parentesco'] ?? null,
                 'profissao' => $validated['profissao'] ?? null,
+                'data_nascimento' => $validated['data_nascimento'] ?? null,
+                'observacoes' => $validated['observacoes'] ?? null,
             ]);
         });
 

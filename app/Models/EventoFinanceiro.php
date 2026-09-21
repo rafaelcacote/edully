@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\PublicoEventoFinanceiro;
+use App\Enums\StatusEventoFinanceiro;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -88,6 +90,8 @@ class EventoFinanceiro extends Model
     protected function casts(): array
     {
         return [
+            'publico' => PublicoEventoFinanceiro::class,
+            'status' => StatusEventoFinanceiro::class,
             'valor' => 'decimal:2',
             'vencimento' => 'date',
             'publicado_em' => 'datetime',
@@ -146,5 +150,15 @@ class EventoFinanceiro extends Model
                 'created_at' => $now,
             ]);
         }
+    }
+
+    public function isRascunho(): bool
+    {
+        return $this->status === StatusEventoFinanceiro::Rascunho;
+    }
+
+    public function isPublicado(): bool
+    {
+        return $this->status === StatusEventoFinanceiro::Publicado;
     }
 }

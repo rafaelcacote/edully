@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvisosController;
 use App\Http\Controllers\Api\BoletinsController;
+use App\Http\Controllers\Api\CobrancasController;
+use App\Http\Controllers\Api\DocumentosController;
 use App\Http\Controllers\Api\ExercisesController;
 use App\Http\Controllers\Api\MessagesController;
 use App\Http\Controllers\Api\NotasController;
@@ -15,11 +17,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('mobile')->name('mobile.')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('login');
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('reset-password');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('me', [AuthController::class, 'me'])->name('me');
         Route::post('me/foto', [AuthController::class, 'updateFoto'])->name('me.foto');
+        Route::put('me/password', [AuthController::class, 'changePassword'])->name('me.password');
 
         // Push tokens (Expo)
         Route::post('push-tokens', [PushTokensController::class, 'store'])->name('push-tokens.store');
@@ -31,10 +36,18 @@ Route::prefix('mobile')->name('mobile.')->group(function () {
         Route::get('students/{id}/boletim', [BoletinsController::class, 'show'])->name('students.boletim');
         Route::get('students/{id}/notas', [NotasController::class, 'index'])->name('students.notas');
         Route::get('students/{id}/professores', [ProfessoresController::class, 'index'])->name('students.professores');
+        Route::get('students/{id}/cobrancas', [CobrancasController::class, 'index'])->name('students.cobrancas');
+        Route::get('students/{id}/cobrancas/{cobrancaId}', [CobrancasController::class, 'show'])->name('students.cobrancas.show');
 
         // Avisos endpoints (school notices for students / responsaveis)
         Route::get('avisos', [AvisosController::class, 'index'])->name('avisos.index');
         Route::get('avisos/{id}', [AvisosController::class, 'show'])->name('avisos.show');
+
+        // Documentos endpoints (atestado / pedido / documentos da escola)
+        Route::get('documentos', [DocumentosController::class, 'index'])->name('documentos.index');
+        Route::get('documentos/{id}', [DocumentosController::class, 'show'])->name('documentos.show');
+        Route::post('documentos', [DocumentosController::class, 'store'])->name('documentos.store');
+        Route::post('documentos/{id}/anexo', [DocumentosController::class, 'uploadAnexo'])->name('documentos.anexo');
 
         // Messages endpoints
         Route::get('messages', [MessagesController::class, 'index'])->name('messages.index');

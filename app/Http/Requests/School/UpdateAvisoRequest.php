@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\School;
 
+use App\Enums\NivelPrioridade;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateAvisoRequest extends FormRequest
 {
@@ -16,9 +18,9 @@ class UpdateAvisoRequest extends FormRequest
         return [
             'titulo' => ['required', 'string', 'max:255'],
             'conteudo' => ['required', 'string'],
-            'prioridade' => ['nullable', 'string', 'in:normal,alta,media'],
-            'publico_alvo' => ['nullable', 'string', 'in:todos,alunos,professores,responsaveis'],
-            'anexo' => ['nullable', 'file', 'mimetypes:application/pdf', 'max:10240'], // 10MB máximo para PDFs
+            'prioridade' => ['nullable', 'string', Rule::in(NivelPrioridade::values())],
+            'publico_alvo' => ['nullable', 'string', 'in:todos,professores,responsaveis'],
+            'anexo' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
             'anexo_url' => ['nullable', 'string', 'url', 'max:2048'],
             'publicado' => ['nullable', 'boolean'],
             'publicado_em' => ['nullable', 'date'],
@@ -32,10 +34,10 @@ class UpdateAvisoRequest extends FormRequest
             'titulo.required' => 'Informe o título do comunicado.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'conteudo.required' => 'Informe o conteúdo do comunicado.',
-            'prioridade.in' => 'A prioridade deve ser: normal, alta ou media.',
-            'publico_alvo.in' => 'O público-alvo deve ser: todos, alunos, professores ou responsaveis.',
+            'prioridade.in' => 'A prioridade deve ser: baixa, normal, alta ou urgente.',
+            'publico_alvo.in' => 'O público-alvo deve ser: todos, professores ou responsaveis.',
             'anexo.file' => 'O anexo deve ser um arquivo.',
-            'anexo.mimes' => 'O anexo deve ser um arquivo PDF.',
+            'anexo.mimes' => 'O anexo deve ser PDF, JPG, PNG ou WEBP.',
             'anexo.max' => 'O anexo não pode ter mais de 10MB.',
             'anexo_url.url' => 'Informe uma URL válida para o anexo.',
             'anexo_url.max' => 'A URL do anexo não pode ter mais de 2048 caracteres.',
@@ -51,6 +53,8 @@ class UpdateAvisoRequest extends FormRequest
             'publicado' => $this->publicado ?? false,
             'prioridade' => $this->prioridade ?? 'normal',
             'publico_alvo' => $this->publico_alvo ?? 'todos',
+            'publicado_em' => $this->publicado_em === '' ? null : $this->publicado_em,
+            'expira_em' => $this->expira_em === '' ? null : $this->expira_em,
         ]);
     }
 }

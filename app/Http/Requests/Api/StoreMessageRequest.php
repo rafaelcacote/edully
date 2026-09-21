@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api;
 
 use App\Actions\Api\ListStudentTeachersAction;
+use App\Enums\NivelPrioridade;
 use App\Models\Message;
 use App\Models\Responsavel;
 use App\Models\Student;
@@ -62,7 +63,7 @@ class StoreMessageRequest extends FormRequest
             'titulo' => ['nullable', 'string', 'max:255'],
             'conteudo' => ['required', 'string'],
             'tipo' => ['nullable', 'string', Rule::in(['outro', 'informativo', 'atencao', 'aviso', 'lembrete'])],
-            'prioridade' => ['nullable', 'string', Rule::in(['normal', 'alta', 'media'])],
+            'prioridade' => ['nullable', 'string', Rule::in(NivelPrioridade::values())],
             'anexo_url' => ['nullable', 'url', 'max:2048'],
         ];
     }
@@ -217,7 +218,7 @@ class StoreMessageRequest extends FormRequest
             'titulo' => [$requiredTitulo ? 'required' : 'nullable', 'string', 'max:255'],
             'conteudo' => ['required', 'string'],
             'tipo' => ['nullable', 'string', Rule::in(['outro', 'informativo', 'atencao', 'aviso', 'lembrete'])],
-            'prioridade' => ['nullable', 'string', Rule::in(['normal', 'alta', 'media'])],
+            'prioridade' => ['nullable', 'string', Rule::in(NivelPrioridade::values())],
             'anexo_url' => ['nullable', 'url', 'max:2048'],
         ];
     }
@@ -242,7 +243,7 @@ class StoreMessageRequest extends FormRequest
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'conteudo.required' => 'O conteúdo é obrigatório.',
             'tipo.in' => 'O tipo de recado deve ser: outro, informativo, atencao, aviso ou lembrete.',
-            'prioridade.in' => 'A prioridade deve ser: normal, alta ou media.',
+            'prioridade.in' => 'A prioridade deve ser: baixa, normal, alta ou urgente.',
             'anexo_url.url' => 'A URL do anexo deve ser válida.',
             'anexo_url.max' => 'A URL do anexo não pode ter mais de 2048 caracteres.',
         ];

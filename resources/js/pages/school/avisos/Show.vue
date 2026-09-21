@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Can from '@/components/Can.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -24,6 +25,8 @@ interface Aviso {
     created_at: string;
     updated_at: string;
     criado_por?: User | null;
+    expirado?: boolean;
+    status?: 'rascunho' | 'publicado' | 'expirado';
 }
 
 interface Props {
@@ -45,18 +48,20 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 function getPrioridadeLabel(prioridade: string): string {
     const labels: Record<string, string> = {
+        baixa: 'Baixa',
         normal: 'Normal',
         alta: 'Alta',
-        media: 'Média',
+        urgente: 'Urgente',
     };
     return labels[prioridade] || prioridade;
 }
 
 function getPrioridadeVariant(prioridade: string): string {
     const variants: Record<string, string> = {
+        baixa: 'secondary',
         normal: 'default',
         alta: 'destructive',
-        media: 'secondary',
+        urgente: 'destructive',
     };
     return variants[prioridade] || 'default';
 }
@@ -64,11 +69,37 @@ function getPrioridadeVariant(prioridade: string): string {
 function getPublicoAlvoLabel(publicoAlvo: string): string {
     const labels: Record<string, string> = {
         todos: 'Todos',
-        alunos: 'Alunos',
         professores: 'Professores',
         responsaveis: 'Responsáveis',
+        alunos: 'Alunos', // legado
     };
     return labels[publicoAlvo] || publicoAlvo;
+}
+
+function getStatusLabel(status?: string): string {
+    const labels: Record<string, string> = {
+        rascunho: 'Rascunho',
+        publicado: 'Publicado',
+        expirado: 'Expirado',
+    };
+
+    if (status && labels[status]) {
+        return labels[status];
+    }
+
+    return props.aviso.publicado ? 'Publicado' : 'Rascunho';
+}
+
+function getStatusVariant(status?: string): 'default' | 'secondary' | 'destructive' {
+    if (status === 'expirado') {
+        return 'destructive';
+    }
+
+    if (status === 'publicado' || (!status && props.aviso.publicado)) {
+        return 'default';
+    }
+
+    return 'secondary';
 }
 </script>
 
@@ -101,15 +132,17 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
                             Voltar
                         </Link>
                     </Button>
-                    <Button as-child>
-                        <Link
-                            :href="`/school/avisos/${props.aviso.id}/edit`"
-                            class="flex items-center gap-2"
-                        >
-                            <Edit class="h-4 w-4" />
-                            Editar
-                        </Link>
-                    </Button>
+                    <Can permission="escola.avisos.editar">
+                        <Button as-child>
+                            <Link
+                                :href="`/school/avisos/${props.aviso.id}/edit`"
+                                class="flex items-center gap-2"
+                            >
+                                <Edit class="h-4 w-4" />
+                                Editar
+                            </Link>
+                        </Button>
+                    </Can>
                 </div>
             </div>
 
@@ -140,12 +173,16 @@ function getPublicoAlvoLabel(publicoAlvo: string): string {
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Status</p>
-                                <div class="mt-1">
-                                    <Badge
-                                        :variant="props.aviso.publicado ? 'default' : 'secondary'"
-                                    >
-                                        {{ props.aviso.publicado ? 'Publicado' : 'Não publicado' }}
+                                <div class="mt-1 space-y-1">
+                                    <Badge :variant="getStatusVariant(props.aviso.status)">
+                                        {{ getStatusLabel(props.aviso.status) }}
                                     </Badge>
+                                    <p
+                                        v-if="props.aviso.status === 'expirado'"
+                                        class="text-xs text-muted-foreground"
+                                    >
+                                        Este comunicado expirou e não está mais publicado.
+                                    </p>
                                 </div>
                             </div>
                             <div>

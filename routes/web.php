@@ -28,6 +28,11 @@ Route::get('/welcome', function () {
     ]);
 })->middleware('guest')->name('welcome');
 
+// Após redefinir senha pelo link do e-mail (uso pelo app / responsáveis)
+Route::get('/senha-redefinida', function () {
+    return Inertia::render('auth/PasswordResetSuccess');
+})->name('password.reset.success');
+
 Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');

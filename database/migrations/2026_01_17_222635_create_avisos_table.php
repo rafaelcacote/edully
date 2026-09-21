@@ -42,16 +42,30 @@ return new class extends Migration
 
         // Postgres: criação no schema `escola`.
         DB::connection('shared')->statement('CREATE SCHEMA IF NOT EXISTS escola');
+        DB::connection('shared')->statement('CREATE SCHEMA IF NOT EXISTS shared');
 
-        DB::connection('shared')->statement('
+        DB::connection('shared')->statement("
+            DO \$\$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_namespace n ON n.oid = t.typnamespace
+                    WHERE t.typname = 'nivel_prioridade' AND n.nspname = 'shared'
+                ) THEN
+                    CREATE TYPE shared.nivel_prioridade AS ENUM ('baixa', 'normal', 'alta', 'urgente');
+                END IF;
+            END \$\$;
+        ");
+
+        DB::connection('shared')->statement("
             CREATE TABLE IF NOT EXISTS escola.avisos (
                 id UUID PRIMARY KEY,
                 tenant_id UUID NOT NULL,
                 criado_por UUID,
                 titulo VARCHAR(255) NOT NULL,
                 conteudo TEXT NOT NULL,
-                prioridade VARCHAR(20) DEFAULT \'normal\',
-                publico_alvo VARCHAR(50) DEFAULT \'todos\',
+                prioridade shared.nivel_prioridade DEFAULT 'normal',
+                publico_alvo VARCHAR(50) DEFAULT 'todos',
                 anexo_url VARCHAR(2048),
                 publicado BOOLEAN DEFAULT FALSE,
                 publicado_em TIMESTAMP,
@@ -60,7 +74,7 @@ return new class extends Migration
                 updated_at TIMESTAMP,
                 deleted_at TIMESTAMP
             )
-        ');
+        ");
 
         DB::connection('shared')->statement('
             CREATE INDEX IF NOT EXISTS idx_avisos_tenant_id ON escola.avisos(tenant_id)

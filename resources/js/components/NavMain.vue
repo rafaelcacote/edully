@@ -3,6 +3,7 @@ import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
@@ -38,6 +39,30 @@ const page = usePage();
                         <span>{{ item.title }}</span>
                     </Link>
                 </SidebarMenuButton>
+
+                <SidebarMenuBadge
+                    v-if="item.pulse || item.badge"
+                    class="pointer-events-none right-2 flex items-center gap-1 bg-transparent p-0"
+                >
+                    <span
+                        v-if="item.pulse"
+                        class="relative flex h-2.5 w-2.5"
+                        aria-label="Há itens que precisam de atenção"
+                    >
+                        <span
+                            class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"
+                        />
+                        <span
+                            class="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500"
+                        />
+                    </span>
+                    <span
+                        v-if="item.badge"
+                        class="flex h-5 min-w-5 items-center justify-center rounded-md bg-amber-500 px-1 text-[10px] font-semibold text-white tabular-nums"
+                    >
+                        {{ item.badge }}
+                    </span>
+                </SidebarMenuBadge>
             </SidebarMenuItem>
         </SidebarMenu>
     </SidebarGroup>

@@ -13,6 +13,32 @@ class NotifyMessagePushRecipients
         private readonly ExpoPushService $expoPushService,
     ) {}
 
+    /**
+     * Enfileira o push após a resposta HTTP (ou executa na hora em testes).
+     */
+    public function queue(Message $message): void
+    {
+        $messageId = $message->id;
+
+        $send = function () use ($messageId): void {
+            $fresh = Message::query()->find($messageId);
+            if (! $fresh) {
+                return;
+            }
+
+            $this->execute($fresh);
+        };
+
+        // Em testes, dispara na hora (afterResponse + terminate é frágil no Pest).
+        if (app()->runningUnitTests()) {
+            $send();
+
+            return;
+        }
+
+        dispatch($send)->afterResponse();
+    }
+
     public function execute(Message $message): void
     {
         try {
@@ -23,7 +49,7 @@ class NotifyMessagePushRecipients
 
             $senderName = $message->remetente?->nome_completo
                 ?? $message->remetente()->value('nome_completo')
-                ?? 'Eduly';
+                ?? 'Edully';
 
             $title = 'Nova mensagem';
             $body = trim(($message->titulo ?: 'Você recebeu uma nova mensagem').' · '.$senderName);

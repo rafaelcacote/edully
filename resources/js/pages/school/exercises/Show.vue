@@ -25,6 +25,7 @@ interface Exercise {
     disciplina: string;
     titulo: string;
     descricao?: string | null;
+    bimestre?: number | null;
     data_entrega: string;
     data_entrega_formatted: string;
     anexo_url?: string | null;
@@ -126,6 +127,12 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Data de Entrega</p>
                                 <p class="mt-1">{{ props.exercise.data_entrega_formatted }}</p>
+                            </div>
+                            <div v-if="props.exercise.bimestre">
+                                <p class="text-sm font-medium text-muted-foreground">Bimestre</p>
+                                <p class="mt-1">
+                                    <Badge variant="secondary">{{ props.exercise.bimestre }}º Bimestre</Badge>
+                                </p>
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Tipo de Exercício</p>

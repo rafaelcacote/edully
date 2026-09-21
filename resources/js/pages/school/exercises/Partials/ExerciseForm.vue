@@ -10,6 +10,7 @@ interface ExerciseData {
     disciplina_id?: string;
     titulo?: string;
     descricao?: string | null;
+    bimestre?: number | null;
     data_entrega?: string;
     anexo_url?: string | null;
     turma_id?: string;
@@ -33,6 +34,7 @@ const props = defineProps<{
     exerciseData?: ExerciseData;
     turmas?: Turma[];
     disciplinas?: Disciplina[];
+    defaultBimestre?: number;
     submitLabel: string;
     processing: boolean;
     errors: Record<string, string>;
@@ -41,6 +43,7 @@ const props = defineProps<{
 const disciplinaId = ref(props.exerciseData?.disciplina_id || '');
 const titulo = ref(props.exerciseData?.titulo || '');
 const descricao = ref(props.exerciseData?.descricao || '');
+const bimestre = ref(props.exerciseData?.bimestre?.toString() || props.defaultBimestre?.toString() || '');
 const dataEntrega = ref(props.exerciseData?.data_entrega || '');
 const anexoFile = ref<File | null>(null);
 const anexoUrl = ref(props.exerciseData?.anexo_url || '');
@@ -54,6 +57,7 @@ watch(() => props.exerciseData, (newData) => {
         disciplinaId.value = newData.disciplina_id || '';
         titulo.value = newData.titulo || '';
         descricao.value = newData.descricao || '';
+        bimestre.value = newData.bimestre?.toString() || props.defaultBimestre?.toString() || '';
         dataEntrega.value = newData.data_entrega || '';
         anexoUrl.value = newData.anexo_url || '';
         turmaId.value = newData.turma_id || '';
@@ -82,7 +86,7 @@ const removeFile = () => {
 
 <template>
     <div class="grid gap-6">
-        <div class="grid gap-6 sm:grid-cols-2">
+        <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <div class="grid gap-2">
                 <Label for="disciplina_id">Disciplina</Label>
                 <select
@@ -127,22 +131,40 @@ const removeFile = () => {
                 </select>
                 <InputError :message="errors.turma_id" />
             </div>
-        </div>
 
-        <div class="grid gap-2">
-            <Label for="tipo_exercicio">Tipo de Exercício</Label>
-            <select
-                id="tipo_exercicio"
-                name="tipo_exercicio"
-                v-model="tipoExercicio"
-                required
-                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-                <option value="exercicio_caderno">Exercício de Caderno</option>
-                <option value="exercicio_livro">Exercício de Livro</option>
-                <option value="trabalho">Trabalho</option>
-            </select>
-            <InputError :message="errors.tipo_exercicio" />
+            <div class="grid gap-2">
+                <Label for="tipo_exercicio">Tipo de Exercício</Label>
+                <select
+                    id="tipo_exercicio"
+                    name="tipo_exercicio"
+                    v-model="tipoExercicio"
+                    required
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option value="exercicio_caderno">Exercício de Caderno</option>
+                    <option value="exercicio_livro">Exercício de Livro</option>
+                    <option value="trabalho">Trabalho</option>
+                </select>
+                <InputError :message="errors.tipo_exercicio" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="bimestre">Bimestre</Label>
+                <select
+                    id="bimestre"
+                    name="bimestre"
+                    v-model="bimestre"
+                    required
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option value="">Selecione o bimestre</option>
+                    <option value="1">1º Bimestre</option>
+                    <option value="2">2º Bimestre</option>
+                    <option value="3">3º Bimestre</option>
+                    <option value="4">4º Bimestre</option>
+                </select>
+                <InputError :message="errors.bimestre" />
+            </div>
         </div>
 
         <div class="grid gap-2">

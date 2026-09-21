@@ -25,6 +25,7 @@ interface Class {
     nome: string;
     serie?: string | null;
     turma_letra?: string | null;
+    turno?: string | null;
     ano_letivo?: number | null;
     capacidade?: number | null;
     ativo: boolean;
@@ -38,6 +39,20 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const turnoLabels: Record<string, string> = {
+    matutino: 'Matutino',
+    vespertino: 'Vespertino',
+    integral: 'Integral',
+};
+
+function formatTurno(turno?: string | null): string {
+    if (!turno) {
+        return '—';
+    }
+
+    return turnoLabels[turno] ?? turno;
+}
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -122,6 +137,10 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Turma (Letra)</p>
                                 <p class="mt-1">{{ props.turma.turma_letra || '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-muted-foreground">Turno</p>
+                                <p class="mt-1">{{ formatTurno(props.turma.turno) }}</p>
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-muted-foreground">Ano letivo</p>

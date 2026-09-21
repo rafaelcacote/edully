@@ -15,6 +15,8 @@ export interface NavItem {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon;
     isActive?: boolean;
+    badge?: number | string;
+    pulse?: boolean;
 }
 
 export type AppPageProps<
@@ -24,6 +26,10 @@ export type AppPageProps<
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    documentos_atencao?: {
+        count: number;
+        has_unseen: boolean;
+    };
     toast?: {
         type: 'success' | 'error' | 'info';
         message: string;

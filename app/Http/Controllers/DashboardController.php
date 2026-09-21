@@ -295,6 +295,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $test->id,
                     'titulo' => $test->titulo,
+                    'bimestre' => $test->bimestre,
                     'data' => $test->data_prova->format('Y-m-d'),
                     'data_formatted' => $test->data_prova->format('d/m/Y'),
                     'horario' => $test->horario,
@@ -319,6 +320,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $exercise->id,
                     'titulo' => $exercise->titulo,
+                    'bimestre' => $exercise->bimestre,
                     'data' => $exercise->data_entrega->format('Y-m-d'),
                     'data_formatted' => $exercise->data_entrega->format('d/m/Y'),
                     'turma' => $exercise->turma?->nome,
@@ -353,6 +355,17 @@ class DashboardController extends Controller
             ->where('data_entrega', '>=', now()->startOfDay())
             ->count();
 
+        $disciplinas = $teacher->disciplinas()
+            ->orderBy('nome')
+            ->get()
+            ->map(fn ($disciplina) => [
+                'id' => $disciplina->id,
+                'nome' => $disciplina->nome,
+                'sigla' => $disciplina->sigla,
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('Dashboard', [
             'dashboardType' => 'professor',
             'tenant' => $tenant ? [
@@ -360,6 +373,7 @@ class DashboardController extends Controller
                 'nome' => $tenant->nome,
                 'logo_url' => $tenant->logo_url,
             ] : null,
+            'disciplinas' => $disciplinas,
             'stats' => [
                 'total_provas' => $totalProvas,
                 'total_exercicios' => $totalExercicios,

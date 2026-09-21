@@ -4,6 +4,7 @@ namespace App\Http\Requests\School;
 
 use App\Models\Teacher;
 use App\Models\Turma;
+use App\Support\Turno;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,7 @@ class UpdateClassRequest extends FormRequest
             ],
             'serie' => ['nullable', 'string', 'max:50'],
             'turma_letra' => ['nullable', 'string', 'max:10'],
+            'turno' => ['nullable', 'string', Rule::in(Turno::values())],
             'capacidade' => ['nullable', 'integer', 'min:1'],
             'ano_letivo' => ['required', 'integer', 'min:2000', 'max:2100'],
             'professor_ids' => ['nullable', 'array'],
@@ -50,6 +52,7 @@ class UpdateClassRequest extends FormRequest
             'ano_letivo.integer' => 'O ano letivo deve ser um número.',
             'ano_letivo.min' => 'O ano letivo deve ser maior ou igual a 2000.',
             'ano_letivo.max' => 'O ano letivo deve ser menor ou igual a 2100.',
+            'turno.in' => 'Selecione um turno válido (matutino, vespertino ou integral).',
             'capacidade.min' => 'A capacidade deve ser maior que zero.',
             'professor_ids.array' => 'Os professores devem ser enviados como uma lista.',
             'professor_ids.*.exists' => 'Um ou mais professores não foram encontrados.',
@@ -61,6 +64,7 @@ class UpdateClassRequest extends FormRequest
         $this->merge([
             'professor_ids' => $this->professor_ids ?? [],
             'turma_letra' => $this->turma_letra === '' ? null : $this->turma_letra,
+            'turno' => $this->turno === '' ? null : $this->turno,
         ]);
     }
 }

@@ -66,6 +66,7 @@ class Test extends Model
         'horario',
         'sala',
         'duracao_minutos',
+        'bimestre',
     ];
 
     /**
@@ -78,6 +79,7 @@ class Test extends Model
         return [
             'data_prova' => 'date',
             'duracao_minutos' => 'integer',
+            'bimestre' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

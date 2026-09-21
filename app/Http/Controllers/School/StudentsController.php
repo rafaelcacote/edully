@@ -377,6 +377,7 @@ class StudentsController extends Controller
 
                     DB::connection('shared')->table($pivotTable)->insert([
                         'id' => $matriculaId,
+                        'matricula' => $matriculaId,
                         'tenant_id' => $tenant->id,
                         'aluno_id' => $student->id,
                         'turma_id' => $turma->id,

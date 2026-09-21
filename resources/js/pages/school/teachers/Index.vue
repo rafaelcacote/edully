@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Eye, Plus, UserCheck } from 'lucide-vue-next';
+import { Edit, Eye, Plus, User, UserCheck } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 function formatPhone(phone: string | null | undefined): string {
@@ -36,16 +36,23 @@ interface PaginationLink {
     active: boolean;
 }
 
+interface TeacherDisciplina {
+    id: string;
+    nome: string;
+    sigla?: string | null;
+}
+
 interface Teacher {
     id: string;
     matricula: string;
-    disciplinas?: string[] | null;
+    disciplinas?: TeacherDisciplina[] | null;
     especializacao?: string | null;
     ativo: boolean;
     nome_completo?: string;
     cpf?: string | null;
     email?: string | null;
     telefone?: string | null;
+    foto_url?: string | null;
 }
 
 interface Paginated<T> {
@@ -173,6 +180,7 @@ function clearFilters() {
                             class="border-b bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900/40 dark:text-neutral-400"
                         >
                             <tr>
+                                <th class="px-4 py-3">Foto</th>
                                 <th class="px-4 py-3">Matrícula</th>
                                 <th class="px-4 py-3">Nome</th>
                                 <th class="px-4 py-3">CPF</th>
@@ -190,6 +198,19 @@ function clearFilters() {
                                 class="border-b last:border-0"
                             >
                                 <td class="px-4 py-3">
+                                    <div
+                                        class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-input bg-muted"
+                                    >
+                                        <img
+                                            v-if="teacher.foto_url"
+                                            :src="teacher.foto_url"
+                                            :alt="`Foto de ${teacher.nome_completo || teacher.matricula}`"
+                                            class="h-full w-full object-cover"
+                                        />
+                                        <User v-else class="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
                                     <div class="font-medium">
                                         {{ teacher.matricula }}
                                     </div>
@@ -202,17 +223,21 @@ function clearFilters() {
                                 </td>
                                 <td class="px-4 py-3">{{ teacher.email || '—' }}</td>
                                 <td class="px-4 py-3">
-                                    <div v-if="teacher.disciplinas && teacher.disciplinas.length > 0" class="flex flex-wrap gap-1">
+                                    <div
+                                        v-if="teacher.disciplinas && teacher.disciplinas.length > 0"
+                                        class="flex flex-wrap gap-1"
+                                    >
                                         <span
-                                            v-for="(disciplina, idx) in teacher.disciplinas.slice(0, 2)"
-                                            :key="idx"
-                                            class="text-xs rounded bg-primary/10 px-2 py-0.5"
+                                            v-for="disciplina in teacher.disciplinas.slice(0, 2)"
+                                            :key="disciplina.id"
+                                            class="rounded bg-primary/10 px-2 py-0.5 text-xs"
                                         >
-                                            {{ disciplina }}
+                                            {{ disciplina.sigla || disciplina.nome }}
                                         </span>
                                         <span
                                             v-if="teacher.disciplinas.length > 2"
                                             class="text-xs text-muted-foreground"
+                                            :title="teacher.disciplinas.map((d) => d.nome).join(', ')"
                                         >
                                             +{{ teacher.disciplinas.length - 2 }}
                                         </span>
@@ -260,7 +285,7 @@ function clearFilters() {
 
                             <tr v-if="props.teachers.data.length === 0">
                                 <td
-                                    colspan="7"
+                                    colspan="8"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhum professor encontrado.

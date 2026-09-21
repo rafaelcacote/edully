@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Form, Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft, Search, Users } from 'lucide-vue-next';
+import { ArrowLeft, Edit, Search, Users } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import StudentForm from '../students/Partials/StudentForm.vue';
 
@@ -49,6 +49,8 @@ interface Parent {
     telefone?: string | null;
     parentesco?: string | null;
     profissao?: string | null;
+    data_nascimento?: string | null;
+    observacoes?: string | null;
     ativo: boolean;
     students?: Student[];
 }
@@ -251,12 +253,9 @@ const selectedStudentName = computed(() => {
                 </div>
 
                 <div class="flex gap-2">
-                    <Button
-                        variant="outline"
-                        as-child
-                        class="rounded-lg"
-                    >
+                    <Button as-child class="rounded-lg">
                         <Link :href="`/school/parents/${props.parent.id}/edit`" class="flex items-center gap-2">
+                            <Edit class="h-4 w-4" />
                             Editar
                         </Link>
                     </Button>
@@ -309,6 +308,12 @@ const selectedStudentName = computed(() => {
                                 <p class="mt-1">{{ props.parent.profissao || '—' }}</p>
                             </div>
                             <div>
+                                <p class="text-sm font-medium text-muted-foreground">Data de nascimento</p>
+                                <p class="mt-1">
+                                    {{ props.parent.data_nascimento ? new Date(props.parent.data_nascimento).toLocaleDateString('pt-BR') : '—' }}
+                                </p>
+                            </div>
+                            <div>
                                 <p class="text-sm font-medium text-muted-foreground">Status</p>
                                 <div class="mt-1">
                                     <Badge
@@ -317,6 +322,10 @@ const selectedStudentName = computed(() => {
                                         {{ props.parent.ativo ? 'Ativo' : 'Inativo' }}
                                     </Badge>
                                 </div>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <p class="text-sm font-medium text-muted-foreground">Observações</p>
+                                <p class="mt-1 whitespace-pre-wrap">{{ props.parent.observacoes || '—' }}</p>
                             </div>
                         </div>
                     </div>
@@ -333,7 +342,10 @@ const selectedStudentName = computed(() => {
                     </p>
                 </div>
 
-                <Dialog v-model:open="createDialogOpen">
+                <div v-if="!props.parent.ativo" class="text-sm text-muted-foreground">
+                    Responsável inativo — não é possível vincular novos alunos.
+                </div>
+                <Dialog v-else v-model:open="createDialogOpen">
                     <DialogTrigger as-child>
                         <Button>
                             Adicionar aluno
@@ -533,7 +545,12 @@ const selectedStudentName = computed(() => {
                 v-else
                 class="mt-6 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
             >
-                Nenhum aluno vinculado. Clique em "Adicionar aluno" para cadastrar o primeiro.
+                <template v-if="props.parent.ativo">
+                    Nenhum aluno vinculado. Clique em "Adicionar aluno" para cadastrar o primeiro.
+                </template>
+                <template v-else>
+                    Nenhum aluno vinculado. Reative o responsável para vincular novos alunos.
+                </template>
             </div>
         </div>
     </AppLayout>

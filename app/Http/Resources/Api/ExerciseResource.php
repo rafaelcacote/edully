@@ -18,6 +18,7 @@ class ExerciseResource extends JsonResource
             'id' => $this->id,
             'titulo' => $this->titulo,
             'descricao' => $this->descricao,
+            'bimestre' => $this->bimestre,
             'data_entrega' => $this->data_entrega->format('Y-m-d'),
             'data_entrega_formatted' => $this->data_entrega->format('d/m/Y'),
             'anexo_url' => $this->anexo_url,

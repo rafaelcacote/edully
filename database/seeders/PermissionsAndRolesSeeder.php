@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionsAndRolesSeeder extends Seeder
 {
@@ -12,6 +13,8 @@ class PermissionsAndRolesSeeder extends Seeder
     {
         // Guard padrão usado pela aplicação (Fortify/Inertia)
         $guard = 'web';
+
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Permissões de Escolas (Tenants)
         $escolasPermissions = [
@@ -103,10 +106,18 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.avisos.criar',
             'escola.avisos.editar',
             'escola.avisos.excluir',
+            'escola.documentos.visualizar',
+            'escola.documentos.criar',
+            'escola.documentos.editar',
+            'escola.documentos.excluir',
             'escola.notas.visualizar',
             'escola.notas.criar',
             'escola.notas.editar',
             'escola.notas.excluir',
+            'escola.financeiro.visualizar',
+            'escola.financeiro.criar',
+            'escola.financeiro.editar',
+            'escola.financeiro.excluir',
         ];
 
         // Permissões para Professores
@@ -123,12 +134,8 @@ class PermissionsAndRolesSeeder extends Seeder
             'escola.mensagens.criar',
             'escola.mensagens.editar',
             'escola.mensagens.excluir',
-            'escola.disciplinas.visualizar',
             'escola.turmas.alunos',
             'escola.avisos.visualizar',
-            'escola.avisos.criar',
-            'escola.avisos.editar',
-            'escola.avisos.excluir',
             'escola.notas.visualizar',
             'escola.notas.criar',
             'escola.notas.editar',
@@ -177,5 +184,10 @@ class PermissionsAndRolesSeeder extends Seeder
         // Perfil Professor
         $roleProfessor = Role::findOrCreate('Professor', $guard);
         $roleProfessor->syncPermissions($professorPermissions);
+
+        // Perfil Responsável Aluno (acesso ao app móvel; sem permissões do painel web)
+        Role::findOrCreate('Responsável Aluno', $guard);
+
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

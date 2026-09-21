@@ -178,6 +178,10 @@ class TestsController extends Controller
             ], 403);
         }
 
+        if ($request->filled('bimestre') && $request->input('bimestre') !== 'all') {
+            $query->where('bimestre', (int) $request->input('bimestre'));
+        }
+
         // Ordenar por data da prova (mais próximos primeiro) e depois por data de criação
         $tests = $query
             ->with([

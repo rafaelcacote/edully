@@ -47,6 +47,13 @@ class FortifyServiceProvider extends ServiceProvider
             \Laravel\Fortify\Contracts\LoginResponse::class,
             \App\Actions\Fortify\LoginResponse::class
         );
+
+        // Após reset de senha (link do e-mail), mostra tela de sucesso do app
+        // em vez de redirecionar para o login web.
+        $this->app->singleton(
+            \Laravel\Fortify\Contracts\PasswordResetResponse::class,
+            \App\Actions\Fortify\PasswordResetResponse::class
+        );
     }
 
     /**

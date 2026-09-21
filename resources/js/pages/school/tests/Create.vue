@@ -23,6 +23,7 @@ interface Disciplina {
 interface Props {
     turmas: Turma[];
     disciplinas: Disciplina[];
+    defaultBimestre?: number;
 }
 
 const props = defineProps<Props>();
@@ -76,6 +77,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     <TestForm
                         :turmas="props.turmas"
                         :disciplinas="props.disciplinas"
+                        :default-bimestre="props.defaultBimestre"
                         submit-label="Criar prova"
                         :processing="processing"
                         :errors="errors"

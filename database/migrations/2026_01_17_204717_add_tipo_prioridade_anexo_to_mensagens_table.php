@@ -122,19 +122,26 @@ return new class extends Migration
         ");
 
         if (empty($prioridadeExists)) {
+            DB::connection('shared')->statement('CREATE SCHEMA IF NOT EXISTS shared');
+
             DB::connection('shared')->statement("
                 DO \$\$
                 BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'prioridade_mensagem') THEN
-                        CREATE TYPE prioridade_mensagem AS ENUM ('normal', 'alta', 'media');
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_type t
+                        JOIN pg_namespace n ON n.oid = t.typnamespace
+                        WHERE t.typname = 'nivel_prioridade' AND n.nspname = 'shared'
+                    ) THEN
+                        CREATE TYPE shared.nivel_prioridade AS ENUM ('baixa', 'normal', 'alta', 'urgente');
                     END IF;
                 END
                 \$\$;
             ");
 
             DB::connection('shared')->statement('
-                ALTER TABLE escola.mensagens 
-                ADD COLUMN prioridade prioridade_mensagem
+                ALTER TABLE escola.mensagens
+                ADD COLUMN prioridade shared.nivel_prioridade
             ');
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\School;
 
+use App\Enums\NivelPrioridade;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\Turma;
@@ -98,7 +99,13 @@ class StoreMessageRequest extends FormRequest
             'titulo' => ['required', 'string', 'max:255'],
             'conteudo' => ['required', 'string'],
             'tipo' => ['nullable', 'string'],
-            'prioridade' => ['nullable', 'string'],
+            'prioridade' => ['nullable', 'string', Rule::in(NivelPrioridade::values())],
+            'anexo' => [
+                'nullable',
+                'file',
+                'mimes:pdf,jpg,jpeg,png,webp',
+                'max:10240',
+            ],
             'anexo_url' => ['nullable', 'url', 'max:2048'],
         ];
     }
@@ -113,6 +120,10 @@ class StoreMessageRequest extends FormRequest
             'titulo.required' => 'Informe o título do recado.',
             'titulo.max' => 'O título não pode ter mais de 255 caracteres.',
             'conteudo.required' => 'Informe o conteúdo do recado.',
+            'prioridade.in' => 'A prioridade deve ser: baixa, normal, alta ou urgente.',
+            'anexo.file' => 'O anexo deve ser um arquivo.',
+            'anexo.mimes' => 'O anexo deve ser PDF ou imagem (JPG, PNG ou WEBP).',
+            'anexo.max' => 'O anexo não pode ter mais de 10MB.',
             'anexo_url.url' => 'A URL do anexo deve ser válida.',
             'anexo_url.max' => 'A URL do anexo não pode ter mais de 2048 caracteres.',
         ];

@@ -263,7 +263,7 @@ class MessagesController extends Controller
             'lida' => false,
         ]);
 
-        $this->queueMessagePush($message);
+        app(NotifyMessagePushRecipients::class)->queue($message);
 
         $message->load($this->messageRelations());
 
@@ -306,7 +306,7 @@ class MessagesController extends Controller
             'lida' => false,
         ]);
 
-        $this->queueMessagePush($message);
+        app(NotifyMessagePushRecipients::class)->queue($message);
 
         $message->load($this->messageRelations());
 
@@ -360,7 +360,7 @@ class MessagesController extends Controller
                     'lida' => false,
                 ]);
                 $messages[] = $created;
-                $this->queueMessagePush($created);
+                app(NotifyMessagePushRecipients::class)->queue($created);
             }
 
             return response()->json([
@@ -383,36 +383,13 @@ class MessagesController extends Controller
             'lida' => false,
         ]);
 
-        $this->queueMessagePush($message);
+        app(NotifyMessagePushRecipients::class)->queue($message);
 
         $message->load($this->messageRelations());
 
         return response()->json([
             'message' => new MessageResource($message),
         ], 201);
-    }
-
-    protected function queueMessagePush(Message $message): void
-    {
-        $messageId = $message->id;
-
-        $send = function () use ($messageId): void {
-            $fresh = Message::query()->find($messageId);
-            if (! $fresh) {
-                return;
-            }
-
-            app(NotifyMessagePushRecipients::class)->execute($fresh);
-        };
-
-        // Em testes, dispara na hora (afterResponse + terminate é frágil no Pest).
-        if (app()->runningUnitTests()) {
-            $send();
-
-            return;
-        }
-
-        dispatch($send)->afterResponse();
     }
 
     /**

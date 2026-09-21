@@ -84,6 +84,14 @@ class User extends Authenticatable
     ];
 
     /**
+     * shared.usuarios não possui coluna remember_token.
+     * Sem isso, o Fortify quebra ao finalizar o reset de senha.
+     *
+     * @var string|null
+     */
+    protected $rememberTokenName = null;
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -259,5 +267,13 @@ class User extends Authenticatable
     public function canAccessMobileApi(): bool
     {
         return $this->isTeacher() || $this->isResponsavel();
+    }
+
+    /**
+     * Send the password reset notification (e-mail em português / link mobile).
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
     }
 }

@@ -286,3 +286,94 @@ it('requires authentication', function () {
     $response = $this->getJson('/api/mobile/avisos');
     $response->assertUnauthorized();
 });
+
+it('filters avisos by publico_alvo for responsavel and teacher', function () {
+    $tenant = Tenant::factory()->create();
+
+    $responsavelUser = User::factory()->create(['ativo' => true]);
+    $responsavel = Responsavel::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $responsavelUser->id,
+        'cpf' => $responsavelUser->cpf,
+    ]);
+
+    $student = Student::create([
+        'tenant_id' => $tenant->id,
+        'nome' => 'Aluno Filtro',
+        'ativo' => true,
+    ]);
+
+    $driver = DB::connection('shared')->getDriverName();
+    $pivotTable = $driver === 'sqlite' ? 'aluno_responsavel' : 'escola.aluno_responsavel';
+    DB::connection('shared')->table($pivotTable)->insert([
+        'id' => \Illuminate\Support\Str::uuid(),
+        'aluno_id' => $student->id,
+        'responsavel_id' => $responsavel->id,
+        'tenant_id' => $tenant->id,
+        'principal' => true,
+    ]);
+
+    $teacherUser = User::factory()->create(['ativo' => true]);
+    Teacher::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $teacherUser->id,
+        'matricula' => 'PROF'.fake()->unique()->numberBetween(2024000, 2024999),
+        'ativo' => true,
+    ]);
+
+    $avisoTodos = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'titulo' => 'Para todos',
+        'conteudo' => 'Conteúdo',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'todos',
+        'publicado' => true,
+        'publicado_em' => now(),
+    ]);
+
+    $avisoProfessores = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'titulo' => 'Só professores',
+        'conteudo' => 'Conteúdo',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'professores',
+        'publicado' => true,
+        'publicado_em' => now(),
+    ]);
+
+    $avisoResponsaveis = Aviso::create([
+        'tenant_id' => $tenant->id,
+        'titulo' => 'Só responsáveis',
+        'conteudo' => 'Conteúdo',
+        'prioridade' => 'normal',
+        'publico_alvo' => 'responsaveis',
+        'publicado' => true,
+        'publicado_em' => now(),
+    ]);
+
+    $responsavelToken = $responsavelUser->createToken('mobile-app')->plainTextToken;
+    $responsavelResponse = $this->withHeader('Authorization', "Bearer {$responsavelToken}")
+        ->getJson('/api/mobile/avisos');
+
+    $responsavelResponse->assertSuccessful();
+    $responsavelIds = collect($responsavelResponse->json('avisos'))->pluck('id')->all();
+    expect($responsavelIds)->toContain($avisoTodos->id, $avisoResponsaveis->id);
+    expect($responsavelIds)->not->toContain($avisoProfessores->id);
+
+    $teacherToken = $teacherUser->createToken('mobile-app')->plainTextToken;
+    $teacherResponse = $this->withHeader('Authorization', "Bearer {$teacherToken}")
+        ->getJson('/api/mobile/avisos');
+
+    $teacherResponse->assertSuccessful();
+    $teacherIds = collect($teacherResponse->json('avisos'))->pluck('id')->all();
+    expect($teacherIds)->toContain($avisoTodos->id, $avisoProfessores->id);
+    expect($teacherIds)->not->toContain($avisoResponsaveis->id);
+
+    $teacherShowHidden = $this->withHeader('Authorization', "Bearer {$teacherToken}")
+        ->getJson("/api/mobile/avisos/{$avisoResponsaveis->id}");
+    $teacherShowHidden->assertNotFound();
+
+    $responsavelShowHidden = $this->withHeader('Authorization', "Bearer {$responsavelToken}")
+        ->getJson("/api/mobile/avisos/{$avisoProfessores->id}");
+    $responsavelShowHidden->assertNotFound();
+});

@@ -71,6 +71,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 <Form
                     :action="`/school/messages/${props.message.id}`"
                     method="patch"
+                    enctype="multipart/form-data"
                     class="space-y-6"
                     v-slot="{ errors, processing }"
                 >

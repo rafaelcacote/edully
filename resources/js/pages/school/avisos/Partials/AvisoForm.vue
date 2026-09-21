@@ -25,51 +25,78 @@ const props = defineProps<{
     errors: Record<string, string>;
 }>();
 
+/**
+ * Converte ISO/datetime do backend para o formato de <input type="datetime-local">
+ * sem passar por toISOString() (que desloca o horário para UTC).
+ */
+function toDateTimeLocalValue(value?: string | null): string {
+    if (!value) {
+        return '';
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+        return value;
+    }
+
+    const match = value.match(
+        /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}):(\d{2})/,
+    );
+
+    if (match) {
+        return `${match[1]}T${match[2]}:${match[3]}`;
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const pad = (n: number): string => String(n).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 const prioridadeOptions = [
+    { value: 'baixa', label: 'Baixa' },
     { value: 'normal', label: 'Normal' },
     { value: 'alta', label: 'Alta' },
-    { value: 'media', label: 'Média' },
+    { value: 'urgente', label: 'Urgente' },
 ];
 
 const publicoAlvoOptions = [
-    { value: 'todos', label: 'Todos' },
-    { value: 'alunos', label: 'Alunos' },
-    { value: 'professores', label: 'Professores' },
-    { value: 'responsaveis', label: 'Responsáveis' },
+    { value: 'todos', label: 'Toda a escola' },
+    { value: 'professores', label: 'Somente professores' },
+    { value: 'responsaveis', label: 'Somente responsáveis' },
 ];
 
-const publicado = ref(props.aviso?.publicado ?? false);
-const publicadoEm = ref(
-    props.aviso?.publicado_em
-        ? new Date(props.aviso.publicado_em).toISOString().slice(0, 16)
-        : '',
-);
-const expiraEm = ref(
-    props.aviso?.expira_em
-        ? new Date(props.aviso.expira_em).toISOString().slice(0, 16)
-        : '',
-);
+const statusPublicacaoOptions = [
+    { value: '0', label: 'Rascunho' },
+    { value: '1', label: 'Publicado' },
+];
+
+const publicado = ref(props.aviso?.publicado ? '1' : '0');
+const publicadoEm = ref(toDateTimeLocalValue(props.aviso?.publicado_em));
+const expiraEm = ref(toDateTimeLocalValue(props.aviso?.expira_em));
 const conteudo = ref(props.aviso?.conteudo ?? '');
 const anexoFile = ref<File | null>(null);
 const anexoPreview = ref<string | null>(props.aviso?.anexo_url ?? null);
+const anexoInputRef = ref<HTMLInputElement | null>(null);
 
-// Watch para atualizar o hidden input quando publicado mudar
-function updatePublicadoValue() {
-    const hiddenInput = document.querySelector('input[name="publicado"]') as HTMLInputElement;
-    if (hiddenInput) {
-        hiddenInput.value = publicado.value ? '1' : '0';
-    }
-}
-
-// Watch para atualizar o conteudo quando as props mudarem
 watch(
-    () => props.aviso?.conteudo,
-    (newValue) => {
-        if (newValue !== undefined) {
-            conteudo.value = newValue;
+    () => props.aviso,
+    (aviso) => {
+        if (!aviso) {
+            return;
         }
+
+        publicado.value = aviso.publicado ? '1' : '0';
+        publicadoEm.value = toDateTimeLocalValue(aviso.publicado_em);
+        expiraEm.value = toDateTimeLocalValue(aviso.expira_em);
+        conteudo.value = aviso.conteudo ?? '';
+        anexoPreview.value = aviso.anexo_url ?? null;
     },
-    { immediate: true }
+    { deep: true },
 );
 
 function handleAnexoChange(event: Event) {
@@ -83,9 +110,8 @@ function handleAnexoChange(event: Event) {
 function removeAnexo() {
     anexoFile.value = null;
     anexoPreview.value = null;
-    const input = document.querySelector('input[name="anexo"]') as HTMLInputElement;
-    if (input) {
-        input.value = '';
+    if (anexoInputRef.value) {
+        anexoInputRef.value.value = '';
     }
 }
 </script>
@@ -118,7 +144,7 @@ function removeAnexo() {
             <InputError :message="errors.conteudo" />
         </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
+        <div class="grid gap-6 sm:grid-cols-3">
             <div class="grid gap-2">
                 <Label for="prioridade">Prioridade</Label>
                 <select
@@ -135,6 +161,9 @@ function removeAnexo() {
                         {{ option.label }}
                     </option>
                 </select>
+                <p class="text-xs text-muted-foreground">
+                    Define o destaque do comunicado na listagem.
+                </p>
                 <InputError :message="errors.prioridade" />
             </div>
 
@@ -154,31 +183,59 @@ function removeAnexo() {
                         {{ option.label }}
                     </option>
                 </select>
+                <p class="text-xs text-muted-foreground">
+                    Quem poderá visualizar este comunicado.
+                </p>
                 <InputError :message="errors.publico_alvo" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="publicado">Visibilidade</Label>
+                <select
+                    id="publicado"
+                    name="publicado"
+                    v-model="publicado"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <option
+                        v-for="option in statusPublicacaoOptions"
+                        :key="option.value"
+                        :value="option.value"
+                    >
+                        {{ option.label }}
+                    </option>
+                </select>
+                <p class="text-xs text-muted-foreground">
+                    Rascunho fica oculto. Publicado fica visível para o público-alvo.
+                </p>
+                <InputError :message="errors.publicado" />
             </div>
         </div>
 
         <div class="grid gap-2">
-            <Label for="anexo">Anexo (PDF)</Label>
-            
+            <Label for="anexo">Anexo (opcional)</Label>
+
+            <!-- Input único e sempre montado: se for destruído no v-if, o arquivo some do FormData -->
+            <input
+                id="anexo"
+                ref="anexoInputRef"
+                name="anexo"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
+                class="hidden"
+                @change="handleAnexoChange"
+            />
+
             <div v-if="!anexoPreview && !anexoFile" class="space-y-2">
                 <label
                     for="anexo"
                     class="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-accent"
                 >
                     <Upload class="h-4 w-4" />
-                    <span>Selecionar arquivo PDF</span>
+                    <span>Selecionar PDF ou imagem</span>
                 </label>
-                <input
-                    id="anexo"
-                    name="anexo"
-                    type="file"
-                    accept="application/pdf"
-                    class="hidden"
-                    @change="handleAnexoChange"
-                />
                 <p class="text-xs text-muted-foreground">
-                    Formato aceito: PDF. Tamanho máximo: 10MB.
+                    PDF, JPG, PNG ou WEBP. Máx. 10MB.
                 </p>
             </div>
 
@@ -211,14 +268,6 @@ function removeAnexo() {
                     <span>Alterar arquivo</span>
                 </label>
                 <input
-                    id="anexo"
-                    name="anexo"
-                    type="file"
-                    accept="application/pdf"
-                    class="hidden"
-                    @change="handleAnexoChange"
-                />
-                <input
                     v-if="!anexoFile && !anexoPreview"
                     type="hidden"
                     name="anexo_url"
@@ -226,55 +275,36 @@ function removeAnexo() {
                 />
             </div>
 
-
             <InputError :message="errors.anexo" />
             <InputError :message="errors.anexo_url" />
         </div>
 
-        <div class="grid gap-2">
-            <Label for="publicado">Status de Publicação</Label>
-            <label
-                class="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm"
-            >
-                <input
-                    type="hidden"
-                    name="publicado"
-                    :value="publicado ? '1' : '0'"
-                />
-                <input
-                    id="publicado"
-                    type="checkbox"
-                    v-model="publicado"
-                    @change="updatePublicadoValue"
-                    class="h-4 w-4 rounded border border-input"
-                />
-                <span class="text-muted-foreground">
-                    {{ publicado ? 'Publicado' : 'Não publicado' }}
-                </span>
-            </label>
-            <InputError :message="errors.publicado" />
-        </div>
-
         <div class="grid gap-6 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label for="publicado_em">Data de Publicação</Label>
+                <Label for="publicado_em">Data de publicação</Label>
                 <Input
                     id="publicado_em"
                     name="publicado_em"
                     type="datetime-local"
                     v-model="publicadoEm"
                 />
+                <p class="text-xs text-muted-foreground">
+                    Quando o comunicado passa a valer. Se vazio e estiver publicado, usa a data atual.
+                </p>
                 <InputError :message="errors.publicado_em" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="expira_em">Data de Expiração</Label>
+                <Label for="expira_em">Data de expiração</Label>
                 <Input
                     id="expira_em"
                     name="expira_em"
                     type="datetime-local"
                     v-model="expiraEm"
                 />
+                <p class="text-xs text-muted-foreground">
+                    Opcional. Após esta data, o comunicado deixa de ser exibido.
+                </p>
                 <InputError :message="errors.expira_em" />
             </div>
         </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Documento;
 use App\Models\Tenant;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
@@ -95,9 +96,49 @@ class HandleInertiaRequests extends Middleware
                 'tenant_id' => $tenantId,
                 'current_tenant' => $currentTenant,
             ],
+            'documentos_atencao' => fn () => $this->documentosAtencao($request, $user, $tenantId),
             'toast' => fn () => $request->session()->get('toast'),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'csrfToken' => $request->session()->token(),
+        ];
+    }
+
+    /**
+     * Contagem de documentos que pedem atenção da secretaria/admin.
+     *
+     * @return array{count: int, has_unseen: bool}
+     */
+    protected function documentosAtencao(Request $request, mixed $user, mixed $tenantId): array
+    {
+        if (! $user || ! $tenantId || ! $user->can('escola.documentos.visualizar')) {
+            return [
+                'count' => 0,
+                'has_unseen' => false,
+            ];
+        }
+
+        $query = Documento::query()
+            ->where('tenant_id', $tenantId)
+            ->needsSchoolAttention();
+
+        $count = (clone $query)->count();
+
+        if ($count === 0) {
+            return [
+                'count' => 0,
+                'has_unseen' => false,
+            ];
+        }
+
+        $latestCreatedAt = (clone $query)->max('created_at');
+        $seenAt = $request->session()->get('documentos_atencao_seen_at');
+
+        $hasUnseen = $seenAt === null
+            || ($latestCreatedAt !== null && (string) $latestCreatedAt > (string) $seenAt);
+
+        return [
+            'count' => $count,
+            'has_unseen' => $hasUnseen,
         ];
     }
 }
