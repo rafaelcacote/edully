@@ -86,7 +86,6 @@ class NotifyAtestadoTeachersAction
             : "O aluno {$alunoNome} está de atestado médico.";
         $conteudo .= "\n\nVerifique o documento na secretaria da escola.";
 
-        $turmaId = $aluno->turmas()->first()?->id;
         $createdMessages = [];
 
         DB::connection('shared')->transaction(function () use (
@@ -94,18 +93,19 @@ class NotifyAtestadoTeachersAction
             $professores,
             $remetente,
             $aluno,
-            $turmaId,
             $titulo,
             $conteudo,
             &$createdMessages
         ) {
             foreach ($professores as $professor) {
+                // Destinatário explícito = somente o professor.
+                // Não preencher turma_id: no sistema isso significa "recado para a turma inteira".
                 $createdMessages[] = Message::create([
                     'tenant_id' => $documento->tenant_id,
                     'remetente_id' => $remetente->id,
                     'destinatario_id' => $professor->usuario_id,
                     'aluno_id' => $aluno->id,
-                    'turma_id' => $turmaId,
+                    'turma_id' => null,
                     'conversa_id' => (string) Str::uuid(),
                     'titulo' => mb_substr($titulo, 0, 255),
                     'conteudo' => $conteudo,

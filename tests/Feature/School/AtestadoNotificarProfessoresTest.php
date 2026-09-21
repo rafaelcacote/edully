@@ -222,6 +222,7 @@ it('notifies selected teachers about atestado via push', function () {
     expect($recado->titulo)->toContain('Lucas Atestado');
     expect($recado->tipo)->toBe('aviso');
     expect($recado->prioridade)->toBe('alta');
+    expect($recado->turma_id)->toBeNull();
     expect(\App\Models\Message::query()->where('destinatario_id', $professorNaoSelecionado->usuario_id)->exists())->toBeFalse();
 
     $documento->refresh();
@@ -248,6 +249,75 @@ it('notifies selected teachers about atestado via push', function () {
         );
 
         return $hasSelected && ! $hasUnselected;
+    });
+});
+
+it('does not expose atestado teacher recado to the student parent inbox', function () {
+    [
+        'admin' => $admin,
+        'documento' => $documento,
+        'aluno' => $aluno,
+        'tenant' => $tenant,
+        'professorSelecionado' => $professorSelecionado,
+    ] = setupAtestadoTeachersContext();
+
+    $parentUser = User::factory()->create(['ativo' => true, 'nome_completo' => 'Pai do Aluno']);
+    $responsavel = \App\Models\Responsavel::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $parentUser->id,
+        'cpf' => $parentUser->cpf,
+    ]);
+
+    $driver = DB::connection('shared')->getDriverName();
+    $alunoResponsavelTable = $driver === 'sqlite' ? 'aluno_responsavel' : 'escola.aluno_responsavel';
+
+    DB::connection('shared')->table($alunoResponsavelTable)->insert([
+        'id' => (string) Str::uuid(),
+        'aluno_id' => $aluno->id,
+        'responsavel_id' => $responsavel->id,
+        'tenant_id' => $tenant->id,
+        'principal' => true,
+    ]);
+
+    PushToken::create([
+        'usuario_id' => $parentUser->id,
+        'push_token' => 'ExponentPushToken[parent-should-not-receive]',
+        'platform' => 'android',
+        'last_used_at' => now(),
+    ]);
+
+    $this->actingAs($admin)->post(
+        '/school/documentos/'.$documento->id.'/notificar-professores',
+        ['professor_ids' => [$professorSelecionado->id]]
+    )->assertRedirect();
+
+    $recado = \App\Models\Message::query()
+        ->where('destinatario_id', $professorSelecionado->usuario_id)
+        ->where('aluno_id', $aluno->id)
+        ->first();
+
+    expect($recado)->not->toBeNull();
+    expect($recado->turma_id)->toBeNull();
+
+    $listConversations = app(\App\Actions\Api\ListConversationsAction::class);
+    expect($parentUser->fresh()->isResponsavel())->toBeTrue();
+    expect($listConversations->userCanAccessMessage($parentUser->fresh(), $recado))->toBeFalse();
+
+    $accessible = $listConversations->accessibleMessagesQuery($parentUser->fresh());
+    expect($accessible)->not->toBeNull();
+    expect($accessible->where('id', $recado->id)->exists())->toBeFalse();
+
+    Http::assertNotSent(function ($request) {
+        if ($request->url() !== 'https://exp.host/--/api/v2/push/send') {
+            return false;
+        }
+
+        $payload = $request->data();
+        $messages = is_array($payload[0] ?? null) ? $payload : [$payload];
+
+        return collect($messages)->contains(
+            fn ($msg) => ($msg['to'] ?? null) === 'ExponentPushToken[parent-should-not-receive]'
+        );
     });
 });
 

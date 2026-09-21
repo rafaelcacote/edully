@@ -1,4 +1,4 @@
-# Layout de deploy do Edully (homologação + produção)
+# Layout de deploy do Edully (homologação + produção + demo)
 # Modo: Nginx do host + containers Docker + Postgres 18
 
 > Registro detalhado do primeiro deploy na Hostinger (problemas, fixes e checklist):
@@ -10,6 +10,7 @@
 |----------|---------|--------|-------------|
 | Homologação | http://homolog.agendaedully.com.br/ | `develop` | `127.0.0.1:8081` |
 | Produção | http://app.agendaedully.com.br/ | `master` | `127.0.0.1:8082` |
+| Demo | http://demo.agendaedully.com.br/ | `develop` | `127.0.0.1:8083` |
 
 Repo: https://github.com/rafaelcacote/edully.git
 
@@ -22,14 +23,16 @@ Internet
 Nginx do host (80/443)          ← já existe com cerberus/visaosis
    │
    ├── homolog.agendaedully.com.br  → 127.0.0.1:8081  (branch develop)
-   └── app.agendaedully.com.br      → 127.0.0.1:8082  (branch master)
+   ├── app.agendaedully.com.br      → 127.0.0.1:8082  (branch master)
+   └── demo.agendaedully.com.br     → 127.0.0.1:8083  (branch develop)
 
 /opt/apps/edully/
 ├── staging/     # clone -b develop  + postgres:18
-└── production/  # clone -b master   + postgres:18
+├── production/  # clone -b master   + postgres:18
+└── demo/        # clone -b develop  + postgres:18
 ```
 
-Homolog e prod **não compartilham** volume nem banco.
+Homolog, prod e demo **não compartilham** volume nem banco.
 O Postgres **18 do host** continua para os outros projetos; o Edully usa
 **Postgres 18 em container** por ambiente (sem mexer no `pg_hba` do host).
 
@@ -44,6 +47,10 @@ deploy/
 │   └── init-db.sql
 ├── production/
 │   ├── docker-compose.yml          # porta 127.0.0.1:8082 + postgres:18
+│   ├── .env.example
+│   └── init-db.sql
+├── demo/
+│   ├── docker-compose.yml          # porta 127.0.0.1:8083 + postgres:18
 │   ├── .env.example
 │   └── init-db.sql
 └── proxy/
@@ -85,7 +92,23 @@ Em produção, `RUN_MIGRATIONS=false`. Migre sob controle:
 docker compose exec app php artisan migrate --force
 ```
 
-### 3) Nginx do host
+### 3) Demo (`develop`)
+
+Cópia do layout de homologação, com porta/banco/volumes próprios:
+
+```bash
+git clone -b develop https://github.com/rafaelcacote/edully.git /opt/apps/edully/demo
+cd /opt/apps/edully/demo
+
+cp deploy/demo/.env.example deploy/demo/.env
+# preencha APP_KEY, DB_PASSWORD
+# APP_URL=https://demo.agendaedully.com.br
+
+cd deploy/demo
+docker compose up -d --build
+```
+
+### 4) Nginx do host
 
 ```bash
 # Neste servidor (CloudPanel) o include é *.conf — use essa extensão.
@@ -97,8 +120,12 @@ sudo nginx -t && sudo systemctl reload nginx
 # SSL (quando HTTP já responder)
 # sudo apt install -y certbot python3-certbot-nginx
 # sudo certbot --nginx -d app.agendaedully.com.br
-# Depois: APP_URL=https://app.agendaedully.com.br no .env e recreate do container
+# sudo certbot --nginx -d homolog.agendaedully.com.br
+# sudo certbot --nginx -d demo.agendaedully.com.br
+# Depois: APP_URL=https://... no .env e recreate do container
 ```
+
+**Importante:** se o `edully.conf` do servidor já tiver SSL do certbot, **não sobrescreva** o arquivo inteiro. Adicione só o bloco `demo` (porta `8083`) no final, no mesmo padrão do homolog.
 
 ## Deploy do dia a dia
 
@@ -107,6 +134,12 @@ sudo nginx -t && sudo systemctl reload nginx
 cd /opt/apps/edully/staging
 git pull origin develop
 cd deploy/staging
+docker compose up -d --build
+
+# Demo
+cd /opt/apps/edully/demo
+git pull origin develop
+cd deploy/demo
 docker compose up -d --build
 
 # Produção
@@ -122,6 +155,7 @@ docker compose up -d --build
 - Volume montado em `/var/lib/postgresql` (layout novo do Postgres 18)
 - Staging: `edully_staging`
 - Prod: `edully_production`
+- Demo: `edully_demo`
 - Schemas no first boot: `shared`, `escola`, `laravel`, `saas`
 
 Backup:
@@ -140,4 +174,4 @@ no compose**, isolado e sem risco para os outros projetos.
 ## Convivendo com `/home`
 
 `cerberus*`, `visaosis*`, etc. continuam como estão.
-Só o Edully entra via Docker + estes dois `server` blocks no Nginx.
+Só o Edully entra via Docker + estes `server` blocks no Nginx.

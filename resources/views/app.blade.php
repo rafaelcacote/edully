@@ -52,6 +52,15 @@
             </div>
         @endif
 
+        @if (app()->environment('demo'))
+            <div
+                role="status"
+                style="position: sticky; top: 0; z-index: 9999; background: #1d4ed8; color: #fff; text-align: center; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.01em;"
+            >
+                Ambiente de demonstração — dados de exemplo. Não use informações reais de alunos.
+            </div>
+        @endif
+
         @inertia
     </body>
 </html>

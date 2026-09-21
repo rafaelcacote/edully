@@ -108,7 +108,14 @@ class ListConversationsAction
                 $alunoIds = [$alunoId];
             }
 
-            return Message::query()->whereIn('aluno_id', $alunoIds);
+            return Message::query()
+                ->whereIn('aluno_id', $alunoIds)
+                ->where(function ($builder) use ($user): void {
+                    // Recados direcionados a outro usuário (ex.: professor) não aparecem no app do responsável.
+                    $builder->whereNull('destinatario_id')
+                        ->orWhere('destinatario_id', $user->id)
+                        ->orWhere('remetente_id', $user->id);
+                });
         }
 
         if ($user->isTeacher()) {
@@ -166,7 +173,17 @@ class ListConversationsAction
     public function userCanAccessMessage(User $user, Message $message): bool
     {
         if ($user->isResponsavel()) {
-            return in_array($message->aluno_id, $this->linkedAlunoIds($user), true);
+            if (! in_array($message->aluno_id, $this->linkedAlunoIds($user), true)) {
+                return false;
+            }
+
+            if ($message->destinatario_id
+                && $message->destinatario_id !== $user->id
+                && $message->remetente_id !== $user->id) {
+                return false;
+            }
+
+            return true;
         }
 
         if ($user->isTeacher()) {

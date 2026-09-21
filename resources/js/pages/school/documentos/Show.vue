@@ -755,9 +755,9 @@ function toggleAllProfessores() {
                     <div>
                         <h3 class="text-lg font-semibold">3. Notificar professores</h3>
                         <p class="text-sm text-muted-foreground">
-                            Avise a turma que
+                            Avise apenas os professores selecionados de que
                             {{ props.documento.aluno?.nome || 'o aluno' }} está de atestado.
-                            Eles recebem um recado no app (e push, se ativo).
+                            Cada um recebe um recado no app (e push, se ativo).
                         </p>
                     </div>
                 </div>
