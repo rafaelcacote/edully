@@ -30,16 +30,19 @@ Internet
 Nginx do host (CloudPanel)  :80 / :443
    │
    ├── homolog.agendaedully.com.br  → 127.0.0.1:8081  (staging / develop)
-   └── app.agendaedully.com.br      → 127.0.0.1:8082  (production / master)
+   ├── app.agendaedully.com.br      → 127.0.0.1:8082  (production / master)
+   └── demo.agendaedully.com.br     → 127.0.0.1:8083  (demo / develop)
 
 /opt/apps/edully/
 ├── staging/      # git clone -b develop
 │   └── deploy/staging/   # docker compose + .env + postgres volume
-└── production/   # git clone -b master
-    └── deploy/production/
+├── production/   # git clone -b master
+│   └── deploy/production/
+└── demo/         # git clone -b develop
+    └── deploy/demo/
 ```
 
-- Homolog e produção **não compartilham** volume nem banco.
+- Homolog, produção e demo **não compartilham** volume nem banco.
 - Outros sites do painel (`cerberus*`, `visaosis*`, `edully.cassote.com`, etc.) continuam como estavam.
 - Repo: `https://github.com/rafaelcacote/edully.git`
 
@@ -47,6 +50,7 @@ Nginx do host (CloudPanel)  :80 / :443
 |----------|---------|--------|-------|-----------------|
 | Homologação | `https://homolog.agendaedully.com.br` | `develop` | `8081` | `edully-staging` |
 | Produção | `https://app.agendaedully.com.br` | `master` | `8082` | `edully-production` |
+| Demo | `https://demo.agendaedully.com.br` | `develop` | `8083` | `edully-demo` |
 
 ---
 
@@ -76,7 +80,17 @@ docker compose up -d --build
 # staging: RUN_MIGRATIONS=true (migrate no boot)
 ```
 
-**Atenção:** não clonar em `/root/edully`. O layout correto é `/opt/apps/edully/{staging|production}`.
+```bash
+# Demo (mesma branch develop da homologação; banco/volumes próprios)
+git clone -b develop https://github.com/rafaelcacote/edully.git /opt/apps/edully/demo
+cd /opt/apps/edully/demo
+cp deploy/demo/.env.example deploy/demo/.env
+# editar .env (APP_URL=https://demo.agendaedully.com.br)
+cd deploy/demo
+docker compose up -d --build
+```
+
+**Atenção:** não clonar em `/root/edully`. O layout correto é `/opt/apps/edully/{staging|production|demo}`.
 
 ### 3.2 Nginx do host (CloudPanel)
 
@@ -95,7 +109,7 @@ sudo nginx -t && sudo systemctl reload nginx
 Validação crítica:
 
 ```bash
-sudo nginx -T 2>/dev/null | grep -n "agendaedully\|8081\|8082"
+sudo nginx -T 2>/dev/null | grep -n "agendaedully\|8081\|8082\|8083"
 ```
 
 Se o `grep` não mostrar os `server_name`, o vhost **não está carregado**.
@@ -110,6 +124,7 @@ sudo apt install -y certbot python3-certbot-nginx
 
 sudo certbot --nginx -d app.agendaedully.com.br
 sudo certbot --nginx -d homolog.agendaedully.com.br
+sudo certbot --nginx -d demo.agendaedully.com.br
 ```
 
 Após o certbot, conferir no bloco `listen 443` se permanece:
@@ -139,19 +154,20 @@ Arquivos:
 
 - Homolog: `/opt/apps/edully/staging/deploy/staging/.env`
 - Prod: `/opt/apps/edully/production/deploy/production/.env`
+- Demo: `/opt/apps/edully/demo/deploy/demo/.env`
 
-| Variável | Homolog | Produção | Notas |
-|----------|---------|----------|-------|
-| `APP_ENV` | `staging` | `production` | Homolog mostra faixa “somente para testes” |
-| `APP_DEBUG` | `true` (compose) | `false` (compose) | Compose sobrescreve debug |
-| `APP_KEY` | `base64:...` **única** | `base64:...` **única** | Não reutilizar a do PC local |
-| `APP_URL` | `https://homolog.agendaedully.com.br` | `https://app.agendaedully.com.br` | Sem isso → Mixed Content |
-| `DB_HOST` | `postgres` | `postgres` | Nome do serviço Docker |
-| `DB_DATABASE` | `edully_staging` | `edully_production` | |
-| `DB_PASSWORD` | senha forte | senha forte | |
-| `DB_SCHEMA` | `escola,laravel,saas,shared` | igual | search_path da conexão default |
-| `DB_SHARED_SEARCH_PATH` | `shared,escola,laravel,saas` | igual | **Obrigatório** — `shared` primeiro |
-| `RUN_MIGRATIONS` | `true` | `false` | Prod: migrate manual |
+| Variável | Homolog | Produção | Demo | Notas |
+|----------|---------|----------|------|-------|
+| `APP_ENV` | `staging` | `production` | `demo` | Homolog/demo mostram faixa visual |
+| `APP_DEBUG` | `true` (compose) | `false` (compose) | `true` (compose) | Compose sobrescreve debug |
+| `APP_KEY` | `base64:...` **única** | `base64:...` **única** | `base64:...` **única** | Não reutilizar a do PC local |
+| `APP_URL` | `https://homolog.agendaedully.com.br` | `https://app.agendaedully.com.br` | `https://demo.agendaedully.com.br` | Sem isso → Mixed Content |
+| `DB_HOST` | `postgres` | `postgres` | `postgres` | Nome do serviço Docker |
+| `DB_DATABASE` | `edully_staging` | `edully_production` | `edully_demo` | |
+| `DB_PASSWORD` | senha forte | senha forte | senha forte | |
+| `DB_SCHEMA` | `escola,laravel,saas,shared` | igual | igual | search_path da conexão default |
+| `DB_SHARED_SEARCH_PATH` | `shared,escola,laravel,saas` | igual | igual | **Obrigatório** — `shared` primeiro |
+| `RUN_MIGRATIONS` | `true` | `false` | `true` | Prod: migrate manual |
 
 Gerar key válida:
 
@@ -223,11 +239,12 @@ docker compose up -d --build
 docker compose exec app php artisan migrate --force
 ```
 
-### 5.7 Faixa de homologação
+### 5.7 Faixa de homologação / demo
 
-Em `resources/views/app.blade.php`, quando `APP_ENV=staging`, faixa sticky:
+Em `resources/views/app.blade.php`:
 
-> Ambiente de homologação — somente para testes. Dados podem ser apagados a qualquer momento.
+- `APP_ENV=staging` → faixa laranja de homologação
+- `APP_ENV=demo` → faixa azul de demonstração
 
 ---
 
@@ -240,6 +257,12 @@ git pull origin develop
 cd deploy/staging
 docker compose up -d --build
 docker compose exec app php artisan migrate --force   # se RUN_MIGRATIONS falhar/for false
+
+# Demo
+cd /opt/apps/edully/demo
+git pull origin develop
+cd deploy/demo
+docker compose up -d --build
 
 # Produção
 cd /opt/apps/edully/production
@@ -255,8 +278,10 @@ Health checks rápidos:
 docker compose ps
 curl -I http://127.0.0.1:8081/login   # homolog
 curl -I http://127.0.0.1:8082/login   # prod
+curl -I http://127.0.0.1:8083/login   # demo
 curl -I https://homolog.agendaedully.com.br/login
 curl -I https://app.agendaedully.com.br/login
+curl -I https://demo.agendaedully.com.br/login
 ```
 
 Backup Postgres (exemplo produção):
@@ -276,16 +301,18 @@ Marque o que já está ok / o que ainda falta:
 
 - [ ] DNS `app.agendaedully.com.br` → IP do VPS
 - [ ] DNS `homolog.agendaedully.com.br` → IP do VPS
+- [ ] DNS `demo.agendaedully.com.br` → IP do VPS
 - [ ] Containers staging Up (não `Restarting`)
 - [ ] Containers production Up
-- [ ] Postgres healthy nos dois ambientes
-- [ ] Portas só em `127.0.0.1:8081` e `127.0.0.1:8082` (não expostas publicamente)
+- [ ] Containers demo Up
+- [ ] Postgres healthy nos três ambientes
+- [ ] Portas só em `127.0.0.1:8081`, `8082` e `8083` (não expostas publicamente)
 
 ### Nginx / SSL
 
 - [ ] Arquivo `edully.conf` (com `.conf`) em `sites-enabled`
-- [ ] `nginx -T` lista homolog + app + 8081 + 8082
-- [ ] Certificados Let's Encrypt para app e homolog
+- [ ] `nginx -T` lista homolog + app + demo + 8081 + 8082 + 8083
+- [ ] Certificados Let's Encrypt para app, homolog e demo
 - [ ] `X-Forwarded-Proto` presente nos blocos 443
 - [ ] HTTP redireciona para HTTPS (comportamento do certbot)
 
@@ -301,7 +328,8 @@ Marque o que já está ok / o que ainda falta:
 - [ ] Seed de roles/permissões executado
 - [ ] Usuário admin geral criado e login ok
 - [ ] Homolog mostra faixa de ambiente de testes
-- [ ] Produção **não** mostra faixa de homolog
+- [ ] Demo mostra faixa de demonstração
+- [ ] Produção **não** mostra faixa de homolog/demo
 - [ ] Assets `/build/...` carregam em HTTPS (sem Mixed Content)
 
 ### Operação / segurança (recomendado revisar)
@@ -313,7 +341,7 @@ Marque o que já está ok / o que ainda falta:
 - [ ] Firewall (só 22/80/443 públicos, se aplicável)
 - [ ] Renovação certbot (`certbot.timer` ativo)
 - [ ] Processo de deploy documentado para o time
-- [ ] Staging e production em branches corretas (`develop` / `master`)
+- [ ] Staging, demo e production em branches corretas (`develop` / `develop` / `master`)
 
 ### Ainda não feito / opcional neste MVP
 
@@ -334,6 +362,7 @@ Marque o que já está ok / o que ainda falta:
 | `deploy/docker/*` | Imagem app (nginx+php+queue+scheduler) |
 | `deploy/staging/*` | Compose + env homolog |
 | `deploy/production/*` | Compose + env produção |
+| `deploy/demo/*` | Compose + env demo |
 | `deploy/proxy/nginx-host.conf` | Template dos vhosts |
 | `config/database.php` | `DB_SHARED_SEARCH_PATH` |
 | `bootstrap/app.php` | `trustProxies` |
