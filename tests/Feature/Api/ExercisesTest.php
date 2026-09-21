@@ -8,6 +8,7 @@ use App\Models\Teacher;
 use App\Models\Tenant;
 use App\Models\Turma;
 use App\Models\User;
+use App\Support\MatriculaTurmaRowBuilder;
 use Illuminate\Support\Facades\DB;
 
 it('teacher can list their exercises', function () {
@@ -55,11 +56,12 @@ it('teacher can list their exercises', function () {
         'tenant_id' => $tenant->id,
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
-        'disciplina' => $disciplina->nome,
+        'disciplina_id' => $disciplina->id,
         'titulo' => 'Exercício de Matemática',
         'descricao' => 'Resolver os exercícios da página 10',
         'data_entrega' => now()->addDays(7),
         'bimestre' => 2,
+        'tipo_exercicio' => 'exercicio_caderno',
     ]);
 
     $token = $user->createToken('mobile-app')->plainTextToken;
@@ -160,21 +162,19 @@ it('responsavel can list exercises for their students classes', function () {
 
     // Matricular aluno na turma
     $matriculasTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
-    DB::connection('shared')->table($matriculasTable)->insert([
-        'id' => \Illuminate\Support\Str::uuid(),
-        'aluno_id' => $student->id,
-        'turma_id' => $turma->id,
-        'tenant_id' => $tenant->id,
-        'status' => 'ativo',
-        'data_matricula' => now(),
-    ]);
+    DB::connection('shared')->table($matriculasTable)->insert(
+        MatriculaTurmaRowBuilder::forInsert([
+            'aluno_id' => $student->id,
+            'turma_id' => $turma->id,
+            'tenant_id' => $tenant->id,
+        ])
+    );
 
     $exercise = Exercise::create([
         'tenant_id' => $tenant->id,
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
         'disciplina_id' => $disciplina->id,
-        'disciplina' => $disciplina->nome,
         'titulo' => 'Exercício de Português',
         'descricao' => 'Ler o capítulo 5',
         'data_entrega' => now()->addDays(5),
@@ -306,7 +306,6 @@ it('teacher can update their exercise', function () {
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
         'disciplina_id' => $disciplina->id,
-        'disciplina' => $disciplina->nome,
         'titulo' => 'Exercício Original',
         'descricao' => 'Descrição original',
         'data_entrega' => now()->addDays(7),
@@ -373,7 +372,6 @@ it('teacher can delete their exercise', function () {
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
         'disciplina_id' => $disciplina->id,
-        'disciplina' => $disciplina->nome,
         'titulo' => 'Exercício para Deletar',
         'descricao' => 'Descrição',
         'data_entrega' => now()->addDays(7),
@@ -445,21 +443,19 @@ it('responsavel can view exercise details', function () {
 
     // Matricular aluno na turma
     $matriculasTable = $driver === 'sqlite' ? 'matriculas_turma' : 'escola.matriculas_turma';
-    DB::connection('shared')->table($matriculasTable)->insert([
-        'id' => \Illuminate\Support\Str::uuid(),
-        'aluno_id' => $student->id,
-        'turma_id' => $turma->id,
-        'tenant_id' => $tenant->id,
-        'status' => 'ativo',
-        'data_matricula' => now(),
-    ]);
+    DB::connection('shared')->table($matriculasTable)->insert(
+        MatriculaTurmaRowBuilder::forInsert([
+            'aluno_id' => $student->id,
+            'turma_id' => $turma->id,
+            'tenant_id' => $tenant->id,
+        ])
+    );
 
     $exercise = Exercise::create([
         'tenant_id' => $tenant->id,
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
         'disciplina_id' => $disciplina->id,
-        'disciplina' => $disciplina->nome,
         'titulo' => 'Exercício de Artes',
         'descricao' => 'Criar uma pintura',
         'data_entrega' => now()->addDays(3),
@@ -602,22 +598,24 @@ it('teacher can filter exercises by bimestre', function () {
         'tenant_id' => $tenant->id,
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
-        'disciplina' => $disciplina->nome,
+        'disciplina_id' => $disciplina->id,
         'titulo' => 'Exercício 1º bimestre',
         'descricao' => 'Conteúdo do 1º',
         'data_entrega' => now()->addDays(7),
         'bimestre' => 1,
+        'tipo_exercicio' => 'exercicio_caderno',
     ]);
 
     Exercise::create([
         'tenant_id' => $tenant->id,
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
-        'disciplina' => $disciplina->nome,
+        'disciplina_id' => $disciplina->id,
         'titulo' => 'Exercício 2º bimestre',
         'descricao' => 'Conteúdo do 2º',
         'data_entrega' => now()->addDays(14),
         'bimestre' => 2,
+        'tipo_exercicio' => 'exercicio_caderno',
     ]);
 
     $token = $user->createToken('mobile-app')->plainTextToken;
@@ -705,11 +703,12 @@ it('exposes anexo_url in api responses for teachers and parents', function () {
         'tenant_id' => $tenant->id,
         'professor_id' => $teacher->id,
         'turma_id' => $turma->id,
-        'disciplina' => $disciplina->nome,
+        'disciplina_id' => $disciplina->id,
         'titulo' => 'Exercício com anexo',
         'descricao' => 'Baixe o arquivo',
         'data_entrega' => now()->addDays(5),
         'bimestre' => 2,
+        'tipo_exercicio' => 'trabalho',
         'anexo_url' => $anexoUrl,
     ]);
 

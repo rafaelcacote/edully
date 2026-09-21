@@ -80,8 +80,7 @@ class ExercisesController extends Controller
                         ->orWhereHas('disciplinaRelation', function ($subQuery) use ($search) {
                             $subQuery->where('nome', 'ilike', "%{$search}%")
                                 ->orWhere('sigla', 'ilike', "%{$search}%");
-                        })
-                        ->orWhere('disciplina', 'ilike', "%{$search}%");
+                        });
                 });
             })
             ->when($filters['turma_id'] ?? null, function ($query, string $turmaId) {
@@ -107,7 +106,7 @@ class ExercisesController extends Controller
                     'bimestre' => $exercise->bimestre,
                     'disciplina' => $exercise->disciplinaRelation
                         ? ($exercise->disciplinaRelation->nome.($exercise->disciplinaRelation->sigla ? ' ('.$exercise->disciplinaRelation->sigla.')' : ''))
-                        : $exercise->disciplina,
+                        : null,
                     'data_entrega' => $exercise->data_entrega->format('d/m/Y'),
                     'tipo_exercicio' => $exercise->tipo_exercicio,
                     'anexo_url' => $exercise->anexo_url,
@@ -335,7 +334,7 @@ class ExercisesController extends Controller
                 'id' => $exercise->id,
                 'disciplina' => $exercise->disciplinaRelation
                     ? ($exercise->disciplinaRelation->nome.($exercise->disciplinaRelation->sigla ? ' ('.$exercise->disciplinaRelation->sigla.')' : ''))
-                    : $exercise->disciplina,
+                    : null,
                 'titulo' => $exercise->titulo,
                 'descricao' => $exercise->descricao,
                 'bimestre' => $exercise->bimestre,

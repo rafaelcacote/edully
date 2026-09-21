@@ -326,7 +326,7 @@ class DashboardController extends Controller
                     'turma' => $exercise->turma?->nome,
                     'disciplina' => $exercise->disciplinaRelation
                         ? ($exercise->disciplinaRelation->nome.($exercise->disciplinaRelation->sigla ? ' ('.$exercise->disciplinaRelation->sigla.')' : ''))
-                        : $exercise->disciplina,
+                        : null,
                     'tipo' => 'exercicio',
                 ];
             });

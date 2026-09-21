@@ -284,18 +284,10 @@ class ExercisesController extends Controller
 
         $tenantId = $teacher->tenant_id;
 
-        // Buscar disciplina para pegar o nome caso não tenha disciplina_id
-        $disciplinaNome = null;
-        if (isset($validated['disciplina_id'])) {
-            $disciplina = \App\Models\Disciplina::find($validated['disciplina_id']);
-            $disciplinaNome = $disciplina?->nome;
-        }
-
         $exercise = Exercise::create([
             ...$validated,
             'tenant_id' => $tenantId,
             'professor_id' => $teacher->id,
-            'disciplina' => $disciplinaNome ?? $validated['disciplina'] ?? null,
         ]);
 
         $exercise->load([
@@ -328,12 +320,6 @@ class ExercisesController extends Controller
         }
 
         $validated = $request->validated();
-
-        // Atualizar nome da disciplina se disciplina_id foi alterado
-        if (isset($validated['disciplina_id'])) {
-            $disciplina = \App\Models\Disciplina::find($validated['disciplina_id']);
-            $validated['disciplina'] = $disciplina?->nome;
-        }
 
         $exercise->update($validated);
 
