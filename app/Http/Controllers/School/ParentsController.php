@@ -16,6 +16,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Throwable;
 
 class ParentsController extends Controller
 {
@@ -276,45 +277,63 @@ class ParentsController extends Controller
         $tenant = $this->getTenant();
         $validated = $request->validated();
 
-        DB::connection('shared')->transaction(function () use ($tenant, $validated) {
-            // Remove CPF formatting
-            if (! empty($validated['cpf'])) {
-                $validated['cpf'] = preg_replace('/[^0-9]/', '', $validated['cpf']);
-            }
+        try {
+            DB::connection('shared')->transaction(function () use ($tenant, $validated) {
+                // Remove CPF formatting
+                if (! empty($validated['cpf'])) {
+                    $validated['cpf'] = preg_replace('/[^0-9]/', '', $validated['cpf']);
+                }
 
-            // Determine password: use provided password, or CPF, or default
-            $password = $validated['password'] ?? $validated['cpf'] ?? 'password';
+                // Determine password: use provided password, or CPF, or default
+                $password = $validated['password'] ?? $validated['cpf'] ?? 'password';
 
-            // Create the user first
-            $user = User::create([
-                'nome_completo' => $validated['nome_completo'],
-                'cpf' => $validated['cpf'] ?? null,
-                'email' => $validated['email'] ?? null,
-                'telefone' => $validated['telefone'] ?? null,
-                'password_hash' => Hash::make($password),
-                'ativo' => $validated['ativo'] ?? true,
-            ]);
+                // Create the user first
+                $user = User::create([
+                    'nome_completo' => $validated['nome_completo'],
+                    'cpf' => $validated['cpf'] ?? null,
+                    'email' => $validated['email'] ?? null,
+                    'telefone' => $validated['telefone'] ?? null,
+                    'password_hash' => Hash::make($password),
+                    'ativo' => $validated['ativo'] ?? true,
+                ]);
 
-            // Assign the "Responsável Aluno" role using the same DB connection as User.
-            // On Postgres this hits escola.roles (shared search_path) and avoids FK errors
-            // when a duplicate role exists only in another schema (e.g. laravel.roles).
-            $role = $this->resolveResponsavelAlunoRole($user);
-            $user->assignRole($role);
+                // Assign the "Responsável Aluno" role using the same DB connection as User.
+                // On Postgres this hits escola.roles (shared search_path) and avoids FK errors
+                // when a duplicate role exists only in another schema (e.g. laravel.roles).
+                $role = $this->resolveResponsavelAlunoRole($user);
+                $user->assignRole($role);
 
-            // Link the user to the tenant
-            $user->tenants()->syncWithoutDetaching([$tenant->id]);
+                // Link the user to the tenant
+                $user->tenants()->syncWithoutDetaching([$tenant->id]);
 
-            // Create the parent linked to the user
-            Responsavel::create([
-                'tenant_id' => $tenant->id,
-                'usuario_id' => $user->id,
-                'parentesco' => $validated['parentesco'] ?? null,
-                'cpf' => $validated['cpf'] ?? null,
-                'profissao' => $validated['profissao'] ?? null,
-                'data_nascimento' => $validated['data_nascimento'] ?? null,
-                'observacoes' => $validated['observacoes'] ?? null,
-            ]);
-        });
+                // Create the parent linked to the user
+                Responsavel::create([
+                    'tenant_id' => $tenant->id,
+                    'usuario_id' => $user->id,
+                    'parentesco' => $validated['parentesco'] ?? null,
+                    'cpf' => $validated['cpf'] ?? null,
+                    'profissao' => $validated['profissao'] ?? null,
+                    'data_nascimento' => $validated['data_nascimento'] ?? null,
+                    'observacoes' => $validated['observacoes'] ?? null,
+                ]);
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $message = 'Não foi possível cadastrar o responsável por uma falha interna. Entre em contato com o administrador do sistema.';
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors([
+                    'cadastro' => $message,
+                ])
+                ->with('toast', [
+                    'type' => 'error',
+                    'title' => 'Falha no cadastro',
+                    'message' => $message,
+                ]);
+        }
 
         return redirect()
             ->route('school.parents.index')

@@ -307,6 +307,14 @@ onMounted(() => {
 
 <template>
     <div class="grid gap-6">
+        <div
+            v-if="errors.cadastro"
+            class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-950 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-50"
+            role="alert"
+        >
+            {{ errors.cadastro }}
+        </div>
+
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div class="grid gap-2">
                 <Label for="nome_completo">Nome completo</Label>
