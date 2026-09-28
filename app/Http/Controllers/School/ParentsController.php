@@ -12,7 +12,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -36,18 +35,15 @@ class ParentsController extends Controller
     }
 
     /**
-     * Resolve the "Responsável Aluno" role on the connection used by User permissions.
+     * Resolve the "Responsável Aluno" role on the same connection as the user.
+     *
+     * User and model_has_roles live on the shared connection. Creating the role
+     * on the default connection inside another transaction leaves it invisible
+     * to the shared session, so the role_id foreign key fails on Postgres.
      */
     protected function resolveResponsavelAlunoRole(User $user): Role
     {
-        $rolesTable = config('permission.table_names.roles', 'roles');
-        $connection = $user->getConnectionName();
-
-        if (! Schema::connection($connection)->hasTable($rolesTable)) {
-            $connection = config('database.default');
-        }
-
-        $role = Role::on($connection)->firstOrCreate(
+        $role = Role::on($user->getConnectionName())->firstOrCreate(
             [
                 'name' => 'Responsável Aluno',
                 'guard_name' => 'web',
@@ -280,7 +276,7 @@ class ParentsController extends Controller
         $tenant = $this->getTenant();
         $validated = $request->validated();
 
-        DB::transaction(function () use ($tenant, $validated) {
+        DB::connection('shared')->transaction(function () use ($tenant, $validated) {
             // Remove CPF formatting
             if (! empty($validated['cpf'])) {
                 $validated['cpf'] = preg_replace('/[^0-9]/', '', $validated['cpf']);

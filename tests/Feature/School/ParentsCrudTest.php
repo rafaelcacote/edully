@@ -49,11 +49,6 @@ it('creates usuario and responsavel with role on store', function () {
 
     ensureSharedPermissionTablesForParents();
 
-    Role::on('shared')->firstOrCreate([
-        'name' => 'Responsável Aluno',
-        'guard_name' => 'web',
-    ]);
-
     $tenant = Tenant::factory()->create();
     $authUser = User::factory()->create();
     $authUser->tenants()->attach($tenant->id);
