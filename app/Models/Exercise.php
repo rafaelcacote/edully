@@ -60,7 +60,6 @@ class Exercise extends Model
         'professor_id',
         'turma_id',
         'disciplina_id',
-        'disciplina',
         'titulo',
         'descricao',
         'data_entrega',

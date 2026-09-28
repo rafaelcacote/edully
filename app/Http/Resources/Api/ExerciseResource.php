@@ -24,14 +24,14 @@ class ExerciseResource extends JsonResource
             'anexo_url' => $this->anexo_url,
             'tipo_exercicio' => $this->tipo_exercicio,
             'disciplina' => $this->whenLoaded('disciplinaRelation', function () {
+                if (! $this->disciplinaRelation) {
+                    return null;
+                }
+
                 return [
                     'id' => $this->disciplinaRelation->id,
                     'nome' => $this->disciplinaRelation->nome,
                     'sigla' => $this->disciplinaRelation->sigla,
-                ];
-            }, function () {
-                return [
-                    'nome' => $this->disciplina,
                 ];
             }),
             'turma' => $this->whenLoaded('turma', function () {
