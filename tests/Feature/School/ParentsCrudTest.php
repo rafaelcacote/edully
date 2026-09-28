@@ -49,11 +49,6 @@ it('creates usuario and responsavel with role on store', function () {
 
     ensureSharedPermissionTablesForParents();
 
-    Role::on('shared')->firstOrCreate([
-        'name' => 'Responsável Aluno',
-        'guard_name' => 'web',
-    ]);
-
     $tenant = Tenant::factory()->create();
     $authUser = User::factory()->create();
     $authUser->tenants()->attach($tenant->id);
@@ -99,6 +94,46 @@ it('creates usuario and responsavel with role on store', function () {
 
     $parent = Responsavel::query()->where('usuario_id', $user->id)->firstOrFail();
     expect(optional($parent->data_nascimento)->toDateString())->toBe('1985-03-15');
+});
+
+it('shows a contact-admin message when parent store fails', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    ensureSharedPermissionTablesForParents();
+    Schema::connection('shared')->drop('model_has_roles');
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $message = 'Não foi possível cadastrar o responsável por uma falha interna. Entre em contato com o administrador do sistema.';
+
+    $response = $this->actingAs($authUser)
+        ->from('/school/parents/create')
+        ->post('/school/parents', [
+            'nome_completo' => 'Ana Souza',
+            'cpf' => '12345678909',
+            'email' => 'ana.falha@example.com',
+            'parentesco' => 'Mãe',
+            'ativo' => '1',
+        ]);
+
+    $response->assertRedirect('/school/parents/create');
+    $response->assertSessionHasErrors(['cadastro' => $message]);
+    $response->assertSessionHas('toast', [
+        'type' => 'error',
+        'title' => 'Falha no cadastro',
+        'message' => $message,
+    ]);
+
+    $this->assertDatabaseMissing('usuarios', [
+        'cpf' => '12345678909',
+    ], 'shared');
 });
 
 it('rejects invalid parentesco on store', function () {
