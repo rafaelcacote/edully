@@ -65,6 +65,7 @@ class ParentsController extends Controller
     {
         $request->validate([
             'cpf' => ['required', 'string'],
+            'ignore_user_id' => ['nullable', 'uuid'],
         ]);
 
         $cpf = preg_replace('/[^0-9]/', '', $request->input('cpf'));
@@ -76,7 +77,12 @@ class ParentsController extends Controller
             ]);
         }
 
-        $exists = User::query()->where('cpf', $cpf)->exists();
+        $exists = User::query()
+            ->where('cpf', $cpf)
+            ->when($request->filled('ignore_user_id'), function ($query) use ($request) {
+                $query->where('id', '!=', $request->input('ignore_user_id'));
+            })
+            ->exists();
 
         return response()->json([
             'exists' => $exists,
@@ -469,13 +475,26 @@ class ParentsController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($parent, $validated) {
-            // Update the user (CPF não é atualizado no update, como solicitado)
-            $parent->user->update([
+            $userData = [
                 'nome_completo' => $validated['nome_completo'],
                 'email' => $validated['email'] ?? null,
                 'telefone' => $validated['telefone'] ?? null,
                 'ativo' => $validated['ativo'] ?? $parent->user->ativo,
-            ]);
+            ];
+
+            $parentData = [
+                'parentesco' => $validated['parentesco'] ?? null,
+                'profissao' => $validated['profissao'] ?? null,
+                'data_nascimento' => $validated['data_nascimento'] ?? null,
+                'observacoes' => $validated['observacoes'] ?? null,
+            ];
+
+            if (array_key_exists('cpf', $validated)) {
+                $userData['cpf'] = $validated['cpf'];
+                $parentData['cpf'] = $validated['cpf'];
+            }
+
+            $parent->user->update($userData);
 
             // Update password if provided
             if (! empty($validated['password'])) {
@@ -484,13 +503,7 @@ class ParentsController extends Controller
                 ]);
             }
 
-            // Update the parent
-            $parent->update([
-                'parentesco' => $validated['parentesco'] ?? null,
-                'profissao' => $validated['profissao'] ?? null,
-                'data_nascimento' => $validated['data_nascimento'] ?? null,
-                'observacoes' => $validated['observacoes'] ?? null,
-            ]);
+            $parent->update($parentData);
         });
 
         return redirect()

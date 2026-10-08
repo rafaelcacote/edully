@@ -223,6 +223,18 @@ it('checks if cpf already exists', function () {
         'exists' => false,
         'valid' => true,
     ]);
+
+    $owner = User::query()->where('cpf', '39053344705')->firstOrFail();
+
+    $ignoredResponse = $this->actingAs($authUser)->postJson('/school/parents/check-cpf', [
+        'cpf' => '39053344705',
+        'ignore_user_id' => $owner->id,
+    ]);
+
+    $ignoredResponse->assertSuccessful()->assertJson([
+        'exists' => false,
+        'valid' => true,
+    ]);
 });
 
 it('rejects duplicate email on store', function () {
@@ -347,6 +359,100 @@ it('can update parent parentesco', function () {
     ], 'shared');
 
     expect(optional($parent->fresh()->data_nascimento)->toDateString())->toBe('1980-05-20');
+});
+
+it('updates the parent cpf', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $usuario = User::factory()->create([
+        'nome_completo' => 'Carlos Lima',
+        'cpf' => '39053344705',
+        'email' => 'carlos.cpf@example.com',
+    ]);
+    $usuario->tenants()->attach($tenant->id);
+
+    $parent = Responsavel::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $usuario->id,
+        'cpf' => $usuario->cpf,
+        'parentesco' => 'Pai',
+    ]);
+
+    $response = $this->actingAs($authUser)->patch("/school/parents/{$parent->id}", [
+        'nome_completo' => 'Carlos Lima',
+        'cpf' => '529.982.247-25',
+        'email' => 'carlos.cpf@example.com',
+        'parentesco' => 'Pai',
+        'ativo' => '1',
+    ]);
+
+    $response->assertRedirect(route('school.parents.edit', $parent, absolute: false));
+    $response->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('usuarios', [
+        'id' => $usuario->id,
+        'cpf' => '52998224725',
+    ], 'shared');
+
+    $this->assertDatabaseHas('responsaveis', [
+        'id' => $parent->id,
+        'cpf' => '52998224725',
+    ], 'shared');
+});
+
+it('rejects a cpf already used by another user when updating a parent', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    User::factory()->create([
+        'cpf' => '52998224725',
+    ]);
+
+    $usuario = User::factory()->create([
+        'nome_completo' => 'Carlos Lima',
+        'cpf' => '39053344705',
+        'email' => 'carlos.duplicado@example.com',
+    ]);
+    $usuario->tenants()->attach($tenant->id);
+
+    $parent = Responsavel::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $usuario->id,
+        'cpf' => $usuario->cpf,
+        'parentesco' => 'Pai',
+    ]);
+
+    $response = $this->actingAs($authUser)->patch("/school/parents/{$parent->id}", [
+        'nome_completo' => 'Carlos Lima',
+        'cpf' => '52998224725',
+        'email' => 'carlos.duplicado@example.com',
+        'parentesco' => 'Pai',
+        'ativo' => '1',
+    ]);
+
+    $response->assertSessionHasErrors(['cpf']);
+
+    $this->assertDatabaseHas('usuarios', [
+        'id' => $usuario->id,
+        'cpf' => '39053344705',
+    ], 'shared');
 });
 
 it('includes data_nascimento and observacoes on edit page', function () {

@@ -134,22 +134,22 @@ async function handleCPFInput(value: string | number) {
     cpfValid.value = null;
     cpfExists.value = false;
 
-    if (limitedNumbers.length === 11 && !props.editMode) {
-        cpfValidating.value = true;
-
+    if (limitedNumbers.length === 11) {
         const isValid = validateCpf(limitedNumbers);
         cpfValid.value = isValid;
 
         if (!isValid) {
             cpfError.value = 'CPF inválido';
-            cpfValidating.value = false;
             return;
         }
 
+        const originalCpf = (props.parent?.cpf ?? '').replace(/\D/g, '');
+        if (props.editMode && limitedNumbers === originalCpf) {
+            return;
+        }
+
+        cpfValidating.value = true;
         checkCpfWithFetch(limitedNumbers);
-    } else if (limitedNumbers.length > 0 && limitedNumbers.length < 11 && !props.editMode) {
-        cpfError.value = null;
-        cpfValid.value = null;
     }
 }
 
@@ -176,7 +176,10 @@ async function checkCpfWithFetch(cpf: string) {
                 'X-Requested-With': 'XMLHttpRequest',
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ cpf }),
+            body: JSON.stringify({
+                cpf,
+                ignore_user_id: props.parent?.usuario_id ?? null,
+            }),
         });
 
         if (!response.ok) {
@@ -337,17 +340,14 @@ onMounted(() => {
                         :model-value="cpfDisplay"
                         placeholder="000.000.000-00"
                         autocomplete="off"
-                        :disabled="editMode"
                         maxlength="14"
                         :class="{
-                            'cursor-not-allowed opacity-60': editMode,
                             'border-destructive focus-visible:ring-destructive':
-                                cpfError || (cpfExists && !editMode),
+                                cpfError || cpfExists,
                             'border-green-500 focus-visible:ring-green-500':
                                 cpfValid &&
                                 !cpfExists &&
                                 !cpfError &&
-                                !editMode &&
                                 cpfDisplay.replace(/\D/g, '').length === 11,
                         }"
                         @update:model-value="handleCPFInput"
@@ -389,15 +389,11 @@ onMounted(() => {
                         cpfValid &&
                         !cpfExists &&
                         !cpfError &&
-                        !editMode &&
                         cpfDisplay.replace(/\D/g, '').length === 11
                     "
                     class="text-xs text-green-600 dark:text-green-400"
                 >
                     CPF válido e disponível
-                </p>
-                <p v-if="editMode" class="text-xs text-muted-foreground">
-                    O CPF não pode ser alterado após o cadastro.
                 </p>
             </div>
 

@@ -3,8 +3,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -120,13 +122,36 @@ const breadcrumbItems: BreadcrumbItem[] = [
     },
 ];
 
-function detachStudent(studentId: string) {
-    if (!confirm('Remover o vínculo deste aluno com o responsável?')) {
+const studentPendingDetach = ref<Student | null>(null);
+const isDetaching = ref(false);
+
+function askDetachStudent(student: Student): void {
+    studentPendingDetach.value = student;
+}
+
+function closeDetachDialog(): void {
+    if (isDetaching.value) {
         return;
     }
 
-    router.delete(`/school/parents/${props.parent.id}/students/${studentId}`, {
+    studentPendingDetach.value = null;
+}
+
+function confirmDetachStudent(): void {
+    if (!studentPendingDetach.value || isDetaching.value) {
+        return;
+    }
+
+    isDetaching.value = true;
+
+    router.delete(`/school/parents/${props.parent.id}/students/${studentPendingDetach.value.id}`, {
         preserveScroll: true,
+        onSuccess: () => {
+            studentPendingDetach.value = null;
+        },
+        onFinish: () => {
+            isDetaching.value = false;
+        },
     });
 }
 
@@ -722,7 +747,7 @@ const searchHint = computed(() => {
                         <Button
                             size="sm"
                             variant="destructive"
-                            @click="detachStudent(student.id)"
+                            @click="askDetachStudent(student)"
                         >
                             Remover vínculo
                         </Button>
@@ -730,8 +755,35 @@ const searchHint = computed(() => {
                 </div>
             </div>
 
+            <Dialog :open="studentPendingDetach !== null" @update:open="(open) => { if (!open) closeDetachDialog(); }">
+                <DialogContent class="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Remover vínculo</DialogTitle>
+                        <DialogDescription>
+                            <span class="font-medium text-foreground">{{ studentPendingDetach?.nome }}</span>{{ ' ' }}deixa de ficar ligado a{{ ' ' }}<span class="font-medium text-foreground">{{ props.parent.nome_completo || 'este responsável' }}</span>. O cadastro do aluno permanece na escola.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <DialogFooter>
+                        <DialogClose as-child>
+                            <Button type="button" variant="outline" :disabled="isDetaching">
+                                Cancelar
+                            </Button>
+                        </DialogClose>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            :disabled="isDetaching"
+                            @click="confirmDetachStudent"
+                        >
+                            {{ isDetaching ? 'Removendo...' : 'Remover vínculo' }}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <div
-                v-else
+                v-if="!props.parent.students || props.parent.students.length === 0"
                 class="mt-6 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
             >
                 <template v-if="props.parent.ativo">
