@@ -2,10 +2,13 @@
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Responsavel;
+use App\Models\Student;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -553,5 +556,59 @@ it('includes data_nascimento and observacoes on show page', function () {
         ->component('school/parents/Show')
         ->where('parent.data_nascimento', '1975-08-20')
         ->where('parent.observacoes', 'Disponível após as 18h')
+    );
+});
+
+it('lists linked student names on the parents index', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $usuario = User::factory()->create([
+        'nome_completo' => 'Marina Costa',
+        'cpf' => '39053344705',
+        'email' => 'marina.costa@example.com',
+    ]);
+    $usuario->tenants()->attach($tenant->id);
+
+    $parent = Responsavel::create([
+        'tenant_id' => $tenant->id,
+        'usuario_id' => $usuario->id,
+        'cpf' => $usuario->cpf,
+        'parentesco' => 'Mãe',
+    ]);
+
+    $student = Student::create([
+        'tenant_id' => $tenant->id,
+        'nome' => 'Lucas Costa',
+        'ativo' => true,
+    ]);
+
+    $driver = DB::connection('shared')->getDriverName();
+    $pivotTable = $driver === 'sqlite' ? 'aluno_responsavel' : 'escola.aluno_responsavel';
+
+    DB::connection('shared')->table($pivotTable)->insert([
+        'id' => (string) Str::uuid(),
+        'tenant_id' => $tenant->id,
+        'aluno_id' => $student->id,
+        'responsavel_id' => $parent->id,
+        'principal' => false,
+        'created_at' => now(),
+    ]);
+
+    $response = $this->actingAs($authUser)->get('/school/parents');
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn ($page) => $page
+        ->component('school/parents/Index')
+        ->where('parents.data.0.nome_completo', 'Marina Costa')
+        ->where('parents.data.0.students.0.nome', 'Lucas Costa')
     );
 });

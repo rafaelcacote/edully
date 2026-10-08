@@ -36,6 +36,12 @@ interface PaginationLink {
     active: boolean;
 }
 
+interface LinkedStudent {
+    id: string;
+    nome: string;
+    nome_social?: string | null;
+}
+
 interface Parent {
     id: string;
     nome_completo: string;
@@ -44,6 +50,7 @@ interface Parent {
     telefone?: string | null;
     parentesco?: string | null;
     ativo: boolean;
+    students?: LinkedStudent[];
 }
 
 interface Paginated<T> {
@@ -98,6 +105,16 @@ function clearFilters() {
     search.value = '';
     active.value = '';
     applyFilters();
+}
+
+function sortedStudents(students: LinkedStudent[] | undefined): LinkedStudent[] {
+    return [...(students ?? [])].sort((left, right) =>
+        left.nome.localeCompare(right.nome, 'pt-BR'),
+    );
+}
+
+function firstName(nome: string): string {
+    return nome.trim().split(/\s+/)[0] || nome;
 }
 </script>
 
@@ -172,6 +189,7 @@ function clearFilters() {
                         >
                             <tr>
                                 <th class="px-4 py-3">Nome</th>
+                                <th class="px-4 py-3">Alunos</th>
                                 <th class="px-4 py-3">CPF</th>
                                 <th class="px-4 py-3">E-mail</th>
                                 <th class="px-4 py-3">Telefone</th>
@@ -186,7 +204,7 @@ function clearFilters() {
                                 :key="parent.id"
                                 class="border-b last:border-0"
                             >
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 align-top">
                                     <div class="font-medium">
                                         {{ parent.nome_completo }}
                                     </div>
@@ -197,21 +215,42 @@ function clearFilters() {
                                         {{ parent.parentesco }}
                                     </div>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 align-top">
+                                    <p
+                                        v-if="parent.students?.length"
+                                        class="text-sm"
+                                    >
+                                        <template
+                                            v-for="(student, index) in sortedStudents(parent.students)"
+                                            :key="student.id"
+                                        >
+                                            <span v-if="index > 0">, </span>
+                                            <Link
+                                                :href="`/school/students/${student.id}`"
+                                                :title="student.nome"
+                                                class="underline-offset-2 hover:underline"
+                                            >
+                                                {{ firstName(student.nome) }}
+                                            </Link>
+                                        </template>
+                                    </p>
+                                    <span v-else class="text-muted-foreground">—</span>
+                                </td>
+                                <td class="px-4 py-3 align-top">
                                     {{ formatCPF(parent.cpf) }}
                                 </td>
-                                <td class="px-4 py-3">{{ parent.email || '—' }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 align-top">{{ parent.email || '—' }}</td>
+                                <td class="px-4 py-3 align-top">
                                     {{ formatPhone(parent.telefone) }}
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 align-top">
                                     <Badge
                                         :variant="parent.ativo ? 'default' : 'destructive'"
                                     >
                                         {{ parent.ativo ? 'Ativo' : 'Inativo' }}
                                     </Badge>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 align-top">
                                     <div
                                         class="flex items-center justify-end gap-2"
                                     >
@@ -256,7 +295,7 @@ function clearFilters() {
 
                             <tr v-if="props.parents.data.length === 0">
                                 <td
-                                    colspan="6"
+                                    colspan="7"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhum responsável encontrado.
