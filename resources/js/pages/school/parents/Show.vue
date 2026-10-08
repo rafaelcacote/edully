@@ -13,8 +13,8 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Form, Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft, Edit, Search, Users } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { ArrowLeft, Check, Edit, Search, UserPlus, Users, X } from 'lucide-vue-next';
+import { computed, nextTick, ref, watch } from 'vue';
 import StudentForm from '../students/Partials/StudentForm.vue';
 
 interface Turma {
@@ -64,11 +64,21 @@ const props = defineProps<Props>();
 const createDialogOpen = ref(false);
 const dialogMode = ref<'create' | 'attach'>('create');
 const studentSearch = ref('');
-const studentSearchResults = ref<Student[]>([]);
+const studentSearchResults = ref<SearchStudent[]>([]);
 const isSearching = ref(false);
-const selectedStudentId = ref<string | null>(null);
-const isStudentDropdownOpen = ref(false);
-const studentSearchInputRef = ref<HTMLInputElement | null>(null);
+const selectedStudent = ref<SearchStudent | null>(null);
+const highlightedIndex = ref(-1);
+const hiddenLinkedCount = ref(0);
+const isAttaching = ref(false);
+const studentSearchFieldRef = ref<HTMLElement | null>(null);
+
+interface SearchTurma {
+    id: string;
+    nome: string;
+    serie?: string | null;
+    turma_letra?: string | null;
+    ano_letivo?: string | number | null;
+}
 
 interface SearchStudent {
     id: string;
@@ -76,6 +86,7 @@ interface SearchStudent {
     nome_social?: string | null;
     foto_url?: string | null;
     ativo: boolean;
+    turma?: SearchTurma | null;
 }
 
 function formatPhone(phone: string | null | undefined): string {
@@ -120,117 +131,217 @@ function detachStudent(studentId: string) {
 }
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+let searchRequestId = 0;
 
-async function searchStudents() {
-    if (!studentSearch.value.trim()) {
+function resetAttachState(): void {
+    selectedStudent.value = null;
+    studentSearch.value = '';
+    studentSearchResults.value = [];
+    highlightedIndex.value = -1;
+    hiddenLinkedCount.value = 0;
+    isSearching.value = false;
+    isAttaching.value = false;
+    searchRequestId += 1;
+
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+        searchTimeout = null;
+    }
+}
+
+function studentInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+
+    return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
+}
+
+function turmaLabel(turma?: SearchTurma | null): string {
+    if (!turma) {
+        return '';
+    }
+
+    const details = [turma.serie, turma.turma_letra].filter(Boolean).join(' ');
+    const year = turma.ano_letivo ? String(turma.ano_letivo) : '';
+
+    return [turma.nome, details, year].filter(Boolean).join(' · ');
+}
+
+async function searchStudents(): Promise<void> {
+    const query = studentSearch.value.trim();
+
+    if (query.length < 2) {
         studentSearchResults.value = [];
-        isStudentDropdownOpen.value = false;
+        hiddenLinkedCount.value = 0;
+        isSearching.value = false;
+
         return;
     }
 
+    const requestId = ++searchRequestId;
     isSearching.value = true;
-    isStudentDropdownOpen.value = true;
 
     try {
-        const response = await fetch(`/school/students/search?search=${encodeURIComponent(studentSearch.value)}&limit=20`, {
+        const response = await fetch(`/school/students/search?search=${encodeURIComponent(query)}&limit=20`, {
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/json',
             },
             credentials: 'same-origin',
         });
+
+        if (requestId !== searchRequestId) {
+            return;
+        }
 
         if (!response.ok) {
             throw new Error(`Erro ao buscar alunos: ${response.status}`);
         }
 
         const data = await response.json();
-        
-        // Filtrar alunos já vinculados
-        const linkedStudentIds = props.parent.students?.map(s => s.id) || [];
-        studentSearchResults.value = (data.students || []).filter((s: SearchStudent) => !linkedStudentIds.includes(s.id));
+        const linkedStudentIds = new Set(props.parent.students?.map((student) => student.id) ?? []);
+        const students = (data.students || []) as SearchStudent[];
+
+        hiddenLinkedCount.value = students.filter((student) => linkedStudentIds.has(student.id)).length;
+        studentSearchResults.value = students.filter((student) => !linkedStudentIds.has(student.id));
+        highlightedIndex.value = studentSearchResults.value.length > 0 ? 0 : -1;
     } catch (error) {
+        if (requestId !== searchRequestId) {
+            return;
+        }
+
         console.error('Erro ao buscar alunos:', error);
         studentSearchResults.value = [];
+        hiddenLinkedCount.value = 0;
+        highlightedIndex.value = -1;
     } finally {
-        isSearching.value = false;
+        if (requestId === searchRequestId) {
+            isSearching.value = false;
+        }
     }
 }
 
-watch(studentSearch, (newValue) => {
+watch(studentSearch, () => {
     if (searchTimeout) {
         clearTimeout(searchTimeout);
     }
 
-    if (!newValue.trim()) {
+    highlightedIndex.value = -1;
+    const query = studentSearch.value.trim();
+
+    if (query.length < 2) {
         studentSearchResults.value = [];
-        isStudentDropdownOpen.value = false;
-        selectedStudentId.value = null;
+        hiddenLinkedCount.value = 0;
+        isSearching.value = false;
+        searchRequestId += 1;
+
         return;
     }
 
+    isSearching.value = true;
     searchTimeout = setTimeout(() => {
         searchStudents();
-    }, 300);
+    }, 250);
 });
 
-function selectStudent(student: SearchStudent) {
-    selectedStudentId.value = student.id;
-    studentSearch.value = student.nome;
-    isStudentDropdownOpen.value = false;
+function selectStudent(student: SearchStudent): void {
+    selectedStudent.value = student;
+    highlightedIndex.value = studentSearchResults.value.findIndex((item) => item.id === student.id);
 }
 
-function toggleStudentDropdown() {
-    if (!isStudentDropdownOpen.value && studentSearch.value.trim()) {
-        isStudentDropdownOpen.value = true;
-    }
+function clearSelectedStudent(): void {
+    selectedStudent.value = null;
 }
 
-function attachExistingStudent() {
-    if (!selectedStudentId.value) {
+function moveHighlight(direction: 1 | -1): void {
+    if (studentSearchResults.value.length === 0) {
         return;
     }
 
+    const lastIndex = studentSearchResults.value.length - 1;
+    const nextIndex = highlightedIndex.value < 0
+        ? (direction === 1 ? 0 : lastIndex)
+        : Math.min(lastIndex, Math.max(0, highlightedIndex.value + direction));
+
+    highlightedIndex.value = nextIndex;
+}
+
+function confirmHighlightedStudent(): void {
+    const student = studentSearchResults.value[highlightedIndex.value];
+
+    if (student) {
+        selectStudent(student);
+    }
+}
+
+function onStudentSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        moveHighlight(1);
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveHighlight(-1);
+    } else if (event.key === 'Enter') {
+        event.preventDefault();
+        confirmHighlightedStudent();
+    }
+}
+
+function attachExistingStudent(): void {
+    if (!selectedStudent.value || isAttaching.value) {
+        return;
+    }
+
+    isAttaching.value = true;
+
     router.post(`/school/parents/${props.parent.id}/students/attach`, {
-        student_id: selectedStudentId.value,
+        student_id: selectedStudent.value.id,
     }, {
         preserveScroll: true,
         onSuccess: () => {
             createDialogOpen.value = false;
             dialogMode.value = 'create';
-            selectedStudentId.value = null;
-            studentSearch.value = '';
-            studentSearchResults.value = [];
-            isStudentDropdownOpen.value = false;
+            resetAttachState();
         },
+        onFinish: () => {
+            isAttaching.value = false;
+        },
+    });
+}
+
+function focusStudentSearch(): void {
+    nextTick(() => {
+        studentSearchFieldRef.value?.querySelector('input')?.focus();
     });
 }
 
 watch(createDialogOpen, (isOpen) => {
     if (!isOpen) {
-        // Reset quando o dialog fecha
-        if (dialogMode.value === 'attach') {
-            selectedStudentId.value = null;
-            studentSearch.value = '';
-            studentSearchResults.value = [];
-            isStudentDropdownOpen.value = false;
-        }
-    } else if (dialogMode.value === 'attach') {
-        // Focar no input quando abrir no modo attach
-        setTimeout(() => {
-            studentSearchInputRef.value?.focus();
-        }, 100);
+        dialogMode.value = 'create';
+        resetAttachState();
+
+        return;
+    }
+
+    if (dialogMode.value === 'attach') {
+        focusStudentSearch();
     }
 });
 
-const selectedStudentName = computed(() => {
-    if (!selectedStudentId.value || !studentSearchResults.value.length) {
-        return '';
+watch(dialogMode, (mode) => {
+    if (mode === 'attach' && createDialogOpen.value) {
+        focusStudentSearch();
     }
-    const student = studentSearchResults.value.find(s => s.id === selectedStudentId.value);
-    return student?.nome || '';
+});
+
+const searchHint = computed(() => {
+    const query = studentSearch.value.trim();
+
+    if (query.length === 1) {
+        return 'Digite mais uma letra para buscar.';
+    }
+
+    return 'Busque pelo nome ou nome social. Alunos já vinculados a este responsável ficam de fora.';
 });
 </script>
 
@@ -357,26 +468,30 @@ const selectedStudentName = computed(() => {
                                 {{ dialogMode === 'create' ? 'Novo aluno para este responsável' : 'Vincular aluno existente' }}
                             </DialogTitle>
                             <DialogDescription>
-                                {{ dialogMode === 'create' ? 'Crie o aluno e o vínculo será feito automaticamente.' : 'Pesquise e selecione um aluno já cadastrado para vincular ao responsável.' }}
+                                {{ dialogMode === 'create' ? 'Crie o aluno e o vínculo será feito automaticamente.' : 'Busque pelo nome, escolha o aluno na lista e confirme o vínculo. A seleção permanece mesmo se você continuar pesquisando.' }}
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div class="mt-4">
-                            <div class="flex gap-2 mb-4">
-                                <Button
-                                    :variant="dialogMode === 'create' ? 'default' : 'outline'"
+                        <div class="mt-2">
+                            <div class="mb-5 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                                    :class="dialogMode === 'create' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                                     @click="dialogMode = 'create'"
-                                    class="flex-1"
                                 >
+                                    <UserPlus class="h-4 w-4" />
                                     Criar novo aluno
-                                </Button>
-                                <Button
-                                    :variant="dialogMode === 'attach' ? 'default' : 'outline'"
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                                    :class="dialogMode === 'attach' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                                     @click="dialogMode = 'attach'"
-                                    class="flex-1"
                                 >
-                                    Vincular aluno existente
-                                </Button>
+                                    <Users class="h-4 w-4" />
+                                    Vincular existente
+                                </button>
                             </div>
 
                             <div v-if="dialogMode === 'create'" class="space-y-6">
@@ -397,91 +512,165 @@ const selectedStudentName = computed(() => {
                             </div>
 
                             <div v-else class="space-y-4">
-                                <div class="relative">
-                                    <label class="text-sm font-medium mb-2 block">
-                                        Pesquisar aluno
+                                <div ref="studentSearchFieldRef" class="space-y-2">
+                                    <label for="existing-student-search" class="text-sm font-medium">
+                                        Buscar aluno
                                     </label>
                                     <div class="relative">
-                                        <Search class="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Search class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                         <Input
-                                            ref="studentSearchInputRef"
+                                            id="existing-student-search"
                                             v-model="studentSearch"
                                             type="text"
-                                            placeholder="Digite o nome do aluno..."
-                                            class="pl-8"
-                                            @focus="toggleStudentDropdown"
+                                            role="combobox"
+                                            autocomplete="off"
+                                            placeholder="Nome ou nome social"
+                                            class="pr-10 pl-9"
+                                            :aria-expanded="studentSearch.trim().length >= 2"
+                                            aria-controls="existing-student-results"
+                                            aria-autocomplete="list"
+                                            @keydown="onStudentSearchKeydown"
+                                        />
+                                        <button
+                                            v-if="studentSearch"
+                                            type="button"
+                                            class="absolute top-1/2 right-2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                                            aria-label="Limpar busca"
+                                            @click="studentSearch = ''"
+                                        >
+                                            <X class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground">
+                                        {{ searchHint }}
+                                    </p>
+                                </div>
+
+                                <div
+                                    v-if="selectedStudent"
+                                    class="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3"
+                                >
+                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background text-xs font-semibold">
+                                        <img
+                                            v-if="selectedStudent.foto_url"
+                                            :src="selectedStudent.foto_url"
+                                            :alt="`Foto de ${selectedStudent.nome}`"
+                                            class="h-full w-full object-cover"
+                                        />
+                                        <span v-else>{{ studentInitials(selectedStudent.nome) }}</span>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-medium">{{ selectedStudent.nome }}</p>
+                                        <p class="truncate text-xs text-muted-foreground">
+                                            {{ turmaLabel(selectedStudent.turma) || 'Sem turma ativa' }}
+                                            <template v-if="selectedStudent.nome_social">
+                                                · {{ selectedStudent.nome_social }}
+                                            </template>
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        @click="clearSelectedStudent"
+                                    >
+                                        Trocar
+                                    </Button>
+                                </div>
+
+                                <div
+                                    id="existing-student-results"
+                                    role="listbox"
+                                    aria-label="Alunos encontrados"
+                                    class="max-h-72 overflow-y-auto rounded-lg border"
+                                >
+                                    <div
+                                        v-if="studentSearch.trim().length < 2"
+                                        class="px-4 py-8 text-center text-sm text-muted-foreground"
+                                    >
+                                        A lista aparece aqui conforme você digita.
+                                    </div>
+                                    <div
+                                        v-else-if="isSearching && studentSearchResults.length === 0"
+                                        class="space-y-2 p-3"
+                                    >
+                                        <div
+                                            v-for="placeholder in 3"
+                                            :key="placeholder"
+                                            class="h-14 animate-pulse rounded-md bg-muted"
                                         />
                                     </div>
-
                                     <div
-                                        v-if="isStudentDropdownOpen"
-                                        class="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md"
+                                        v-else-if="studentSearchResults.length === 0"
+                                        class="px-4 py-8 text-center text-sm text-muted-foreground"
                                     >
-                                        <div class="max-h-[300px] overflow-y-auto p-1">
-                                            <div v-if="isSearching" class="px-2 py-4 text-sm text-muted-foreground text-center">
-                                                Buscando...
+                                        <p>Nenhum aluno disponível para este nome.</p>
+                                        <p v-if="hiddenLinkedCount > 0" class="mt-1">
+                                            {{ hiddenLinkedCount === 1 ? 'O aluno encontrado já está vinculado a este responsável.' : `${hiddenLinkedCount} alunos encontrados já estão vinculados a este responsável.` }}
+                                        </p>
+                                    </div>
+                                    <div v-else class="p-1">
+                                        <button
+                                            v-for="(student, index) in studentSearchResults"
+                                            :key="student.id"
+                                            type="button"
+                                            role="option"
+                                            :aria-selected="selectedStudent?.id === student.id"
+                                            class="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
+                                            :class="{
+                                                'bg-accent': index === highlightedIndex || selectedStudent?.id === student.id,
+                                            }"
+                                            @mouseenter="highlightedIndex = index"
+                                            @click="selectStudent(student)"
+                                        >
+                                            <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted text-xs font-semibold">
+                                                <img
+                                                    v-if="student.foto_url"
+                                                    :src="student.foto_url"
+                                                    :alt="`Foto de ${student.nome}`"
+                                                    class="h-full w-full object-cover"
+                                                />
+                                                <span v-else>{{ studentInitials(student.nome) }}</span>
                                             </div>
-                                            <button
-                                                v-else-if="studentSearchResults.length > 0"
-                                                v-for="student in studentSearchResults"
-                                                :key="student.id"
-                                                type="button"
-                                                @click="selectStudent(student)"
-                                                class="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                                                :class="{
-                                                    'bg-accent text-accent-foreground': student.id === selectedStudentId,
-                                                }"
-                                            >
+                                            <div class="min-w-0 flex-1">
                                                 <div class="flex items-center gap-2">
-                                                    <span>{{ student.nome }}</span>
+                                                    <span class="truncate text-sm font-medium">{{ student.nome }}</span>
                                                     <Badge
-                                                        v-if="student.nome_social"
-                                                        variant="secondary"
-                                                        class="text-xs"
-                                                    >
-                                                        {{ student.nome_social }}
-                                                    </Badge>
-                                                    <Badge
-                                                        :variant="student.ativo ? 'default' : 'destructive'"
-                                                        class="text-xs ml-auto"
+                                                        :variant="student.ativo ? 'secondary' : 'destructive'"
+                                                        class="shrink-0"
                                                     >
                                                         {{ student.ativo ? 'Ativo' : 'Inativo' }}
                                                     </Badge>
                                                 </div>
-                                            </button>
-                                            <div
-                                                v-else-if="studentSearch.trim() && !isSearching"
-                                                class="px-2 py-4 text-sm text-muted-foreground text-center"
-                                            >
-                                                Nenhum aluno encontrado
+                                                <p class="truncate text-xs text-muted-foreground">
+                                                    {{ turmaLabel(student.turma) || 'Sem turma ativa' }}
+                                                    <template v-if="student.nome_social">
+                                                        · Nome social: {{ student.nome_social }}
+                                                    </template>
+                                                </p>
                                             </div>
-                                            <div
-                                                v-else-if="!studentSearch.trim()"
-                                                class="px-2 py-4 text-sm text-muted-foreground text-center"
-                                            >
-                                                Digite para pesquisar...
-                                            </div>
-                                        </div>
+                                            <Check
+                                                v-if="selectedStudent?.id === student.id"
+                                                class="h-4 w-4 shrink-0 text-primary"
+                                            />
+                                        </button>
                                     </div>
-                                </div>
-
-                                <div v-if="selectedStudentId" class="rounded-lg border p-3 bg-muted/50">
-                                    <p class="text-sm font-medium">Aluno selecionado:</p>
-                                    <p class="text-sm text-muted-foreground">{{ selectedStudentName }}</p>
                                 </div>
 
                                 <div class="flex justify-end gap-2">
                                     <Button
+                                        type="button"
                                         variant="outline"
                                         @click="createDialogOpen = false"
                                     >
                                         Cancelar
                                     </Button>
                                     <Button
+                                        type="button"
+                                        :disabled="!selectedStudent || isAttaching"
                                         @click="attachExistingStudent"
-                                        :disabled="!selectedStudentId"
                                     >
-                                        Vincular aluno
+                                        {{ isAttaching ? 'Vinculando...' : 'Vincular aluno' }}
                                     </Button>
                                 </div>
                             </div>
