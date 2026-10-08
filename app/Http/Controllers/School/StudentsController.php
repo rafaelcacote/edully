@@ -485,17 +485,65 @@ class StudentsController extends Controller
             ]);
 
         $students = $query->get();
+        $turmasByStudent = $this->activeTurmasByStudent(
+            $tenant->id,
+            $students->pluck('id')->all(),
+        );
 
         return response()->json([
-            'students' => $students->map(function ($student) {
+            'students' => $students->map(function ($student) use ($turmasByStudent) {
+                $turma = $turmasByStudent->get($student->id);
+
                 return [
                     'id' => $student->id,
                     'nome' => $student->nome,
                     'nome_social' => $student->nome_social,
                     'foto_url' => $student->foto_url,
                     'ativo' => (bool) $student->ativo,
+                    'turma' => $turma ? [
+                        'id' => $turma->id,
+                        'nome' => $turma->nome,
+                        'serie' => $turma->serie,
+                        'turma_letra' => $turma->turma_letra,
+                        'ano_letivo' => $turma->ano_letivo,
+                    ] : null,
                 ];
             }),
         ]);
+    }
+
+    /**
+     * @param  list<string>  $studentIds
+     * @return \Illuminate\Support\Collection<string, Turma>
+     */
+    protected function activeTurmasByStudent(string $tenantId, array $studentIds): \Illuminate\Support\Collection
+    {
+        if ($studentIds === []) {
+            return collect();
+        }
+
+        $connection = DB::connection('shared');
+        $pivotTable = $connection->getDriverName() === 'sqlite'
+            ? 'matriculas_turma'
+            : 'escola.matriculas_turma';
+
+        $matriculas = $connection
+            ->table($pivotTable)
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'ativo')
+            ->whereIn('aluno_id', $studentIds)
+            ->get(['aluno_id', 'turma_id']);
+
+        $turmas = Turma::query()
+            ->whereIn('id', $matriculas->pluck('turma_id')->unique()->all())
+            ->get(['id', 'nome', 'serie', 'turma_letra', 'ano_letivo'])
+            ->keyBy('id');
+
+        return $matriculas
+            ->groupBy('aluno_id')
+            ->map(function ($items) use ($turmas) {
+                return $turmas->get($items->first()->turma_id);
+            })
+            ->filter();
     }
 }
