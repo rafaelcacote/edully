@@ -159,6 +159,29 @@ it('rejects invalid parentesco on store', function () {
     $response->assertSessionHasErrors(['parentesco']);
 });
 
+it('requires cpf when creating a parent', function () {
+    $this->withoutMiddleware([
+        HandleInertiaRequests::class,
+        PermissionMiddleware::class,
+        RoleMiddleware::class,
+        RoleOrPermissionMiddleware::class,
+    ]);
+
+    $tenant = Tenant::factory()->create();
+    $authUser = User::factory()->create();
+    $authUser->tenants()->attach($tenant->id);
+
+    $response = $this->actingAs($authUser)->post('/school/parents', [
+        'nome_completo' => 'Ana Souza',
+        'email' => 'ana.sem.cpf@example.com',
+        'parentesco' => 'Mãe',
+        'ativo' => '1',
+    ]);
+
+    $response->assertSessionHasErrors(['cpf']);
+    expect(session('errors')->get('cpf')[0])->toBe('Informe o CPF do responsável.');
+});
+
 it('rejects duplicate cpf on store', function () {
     $this->withoutMiddleware([
         HandleInertiaRequests::class,

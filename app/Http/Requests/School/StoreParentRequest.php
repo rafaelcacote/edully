@@ -35,7 +35,7 @@ class StoreParentRequest extends FormRequest
             // User fields
             'nome_completo' => ['required', 'string', 'max:255'],
             'cpf' => [
-                'nullable',
+                'required',
                 'string',
                 'regex:/^[0-9]{11}$/',
                 Rule::unique(User::class, 'cpf'),
@@ -64,6 +64,7 @@ class StoreParentRequest extends FormRequest
         return [
             'nome_completo.required' => 'Informe o nome completo do responsável.',
             'nome_completo.max' => 'O nome completo não pode ter mais de 255 caracteres.',
+            'cpf.required' => 'Informe o CPF do responsável.',
             'cpf.regex' => 'O CPF deve conter 11 dígitos.',
             'cpf.unique' => 'Este CPF já está cadastrado no sistema e não pode ser utilizado novamente.',
             'email.email' => 'Informe um e-mail válido.',

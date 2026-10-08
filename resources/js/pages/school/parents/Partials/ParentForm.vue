@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePage } from '@inertiajs/vue3';
 import { Save } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 interface Parent {
     id?: string;
@@ -66,6 +66,18 @@ const emailExists = ref(false);
 const dataNascimento = ref(props.parent?.data_nascimento ?? '');
 const observacoes = ref(props.parent?.observacoes ?? '');
 let emailCheckTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const cpfIsRequired = computed(() => !props.editMode);
+
+const canSubmitCpf = computed(() => {
+    if (!cpfIsRequired.value) {
+        return true;
+    }
+
+    const numbers = cpfDisplay.value.replace(/\D/g, '');
+
+    return numbers.length === 11 && cpfValid.value === true && !cpfExists.value && !cpfError.value;
+});
 
 function validateCpf(cpf: string): boolean {
     const numbers = cpf.replace(/\D/g, '');
@@ -333,7 +345,10 @@ onMounted(() => {
             </div>
 
             <div class="grid gap-2">
-                <Label for="cpf">CPF</Label>
+                <Label for="cpf">
+                    CPF
+                    <span v-if="cpfIsRequired" class="text-destructive">*</span>
+                </Label>
                 <div class="relative">
                     <Input
                         id="cpf"
@@ -341,6 +356,8 @@ onMounted(() => {
                         placeholder="000.000.000-00"
                         autocomplete="off"
                         maxlength="14"
+                        :required="cpfIsRequired"
+                        :aria-required="cpfIsRequired"
                         :class="{
                             'border-destructive focus-visible:ring-destructive':
                                 cpfError || cpfExists,
@@ -574,7 +591,7 @@ onMounted(() => {
         <div class="flex items-center justify-end gap-2">
             <Button
                 type="submit"
-                :disabled="processing || cpfExists || cpfValidating || emailExists || emailValidating"
+                :disabled="processing || cpfExists || cpfValidating || emailExists || emailValidating || !canSubmitCpf"
                 class="flex items-center gap-2"
             >
                 <Save class="h-4 w-4" />
