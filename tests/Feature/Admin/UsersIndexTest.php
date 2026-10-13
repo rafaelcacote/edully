@@ -54,7 +54,10 @@ beforeEach(function () {
 it('filters users by tenant on the admin users index', function () {
     $admin = User::factory()->create(['ativo' => true]);
 
-    $escolaA = Tenant::factory()->create(['nome' => 'Escola Alpha']);
+    $escolaA = Tenant::factory()->create([
+        'nome' => 'Escola Alpha',
+        'logo_url' => 'https://example.com/alpha.png',
+    ]);
     $escolaB = Tenant::factory()->create(['nome' => 'Escola Beta']);
 
     $professor = User::factory()->create([
@@ -89,6 +92,7 @@ it('filters users by tenant on the admin users index', function () {
             ->where('filters.tenant_id', $escolaA->id)
             ->where('selectedTenant.id', $escolaA->id)
             ->where('selectedTenant.name', 'Escola Alpha')
+            ->where('selectedTenant.logo_url', 'https://example.com/alpha.png')
             ->where('selectedTenant.users_count', 3)
             ->has('tenants')
             ->has('users.data', 3)
@@ -182,7 +186,10 @@ it('prefills the school when creating a user from a selected tenant', function (
 
 it('includes tenants options on users index', function () {
     $admin = User::factory()->create(['ativo' => true]);
-    $tenant = Tenant::factory()->create(['nome' => 'Escola Horizonte']);
+    $tenant = Tenant::factory()->create([
+        'nome' => 'Escola Horizonte',
+        'logo_url' => 'https://example.com/horizonte.png',
+    ]);
 
     $this->actingAs($admin)
         ->get(route('users.index'))
@@ -193,6 +200,7 @@ it('includes tenants options on users index', function () {
             ->has('tenants', 1)
             ->where('tenants.0.id', $tenant->id)
             ->where('tenants.0.name', 'Escola Horizonte')
+            ->where('tenants.0.logo_url', 'https://example.com/horizonte.png')
             ->where('tenants.0.users_count', 0)
         );
 });

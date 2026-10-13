@@ -89,11 +89,12 @@ class UsersController extends Controller
                 'name' => $selectedTenant->nome,
                 'subdomain' => $selectedTenant->subdominio,
                 'city' => $selectedTenant->endereco_cidade,
+                'logo_url' => $selectedTenant->logo_url,
                 'is_active' => (bool) $selectedTenant->ativo,
                 'users_count' => $selectedTenant->users_count,
             ],
             'tenants' => Tenant::query()
-                ->select(['id', 'nome', 'subdominio', 'ativo', 'endereco_cidade'])
+                ->select(['id', 'nome', 'subdominio', 'ativo', 'endereco_cidade', 'logo_url'])
                 ->withCount('users')
                 ->orderBy('nome')
                 ->get()
@@ -102,6 +103,7 @@ class UsersController extends Controller
                     'name' => $tenant->nome,
                     'subdomain' => $tenant->subdominio,
                     'city' => $tenant->endereco_cidade,
+                    'logo_url' => $tenant->logo_url,
                     'is_active' => (bool) $tenant->ativo,
                     'users_count' => $tenant->users_count,
                 ])
