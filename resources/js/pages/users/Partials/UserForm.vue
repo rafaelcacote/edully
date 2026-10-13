@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { User } from '@/types';
 import { Save } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     roles: string[];
     tenants?: Array<{ id: string; name: string }>;
+    defaultTenantId?: string | null;
     user?: User;
     submitLabel: string;
     processing: boolean;
@@ -26,7 +27,9 @@ watch(
     () => props.user,
     (u) => {
         selectedRole.value = u?.role ?? '';
-        selectedTenantId.value = ((u as any)?.tenant_id ?? '') as string;
+        selectedTenantId.value = ((u as any)?.tenant_id ??
+            props.defaultTenantId ??
+            '') as string;
     },
     { immediate: true },
 );
@@ -53,15 +56,17 @@ function formatCPF(value: string): string {
 function handleCPFInput(value: string | number) {
     // Remove caracteres não numéricos
     const numbers = String(value).replace(/\D/g, '');
-    
+
     // Limita a 11 dígitos
     const limitedNumbers = numbers.slice(0, 11);
-    
+
     // Aplica a máscara
     cpfDisplay.value = formatCPF(limitedNumbers);
-    
+
     // Atualiza o campo hidden com o valor sem máscara
-    const hiddenInput = document.querySelector('input[name="cpf"]') as HTMLInputElement;
+    const hiddenInput = document.querySelector(
+        'input[name="cpf"]',
+    ) as HTMLInputElement;
     if (hiddenInput) {
         hiddenInput.value = limitedNumbers;
     }
@@ -88,15 +93,17 @@ function formatPhone(value: string): string {
 function handlePhoneInput(value: string | number) {
     // Remove caracteres não numéricos
     const numbers = String(value).replace(/\D/g, '');
-    
+
     // Limita a 11 dígitos (celular)
     const limitedNumbers = numbers.slice(0, 11);
-    
+
     // Aplica a máscara
     phoneDisplay.value = formatPhone(limitedNumbers);
-    
+
     // Atualiza o campo hidden com o valor sem máscara
-    const hiddenInput = document.querySelector('input[name="telefone"]') as HTMLInputElement;
+    const hiddenInput = document.querySelector(
+        'input[name="telefone"]',
+    ) as HTMLInputElement;
     if (hiddenInput) {
         hiddenInput.value = limitedNumbers;
     }
@@ -121,7 +128,9 @@ onMounted(() => {
                 <Input
                     id="nome_completo"
                     name="nome_completo"
-                    :default-value="(user as any)?.nome_completo ?? user?.name ?? ''"
+                    :default-value="
+                        (user as any)?.nome_completo ?? user?.name ?? ''
+                    "
                     placeholder="Ex: Maria Silva"
                     required
                     autocomplete="name"
@@ -169,7 +178,7 @@ onMounted(() => {
                 <select
                     id="role"
                     name="role"
-                    class="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     v-model="selectedRole"
                     required
                 >
@@ -186,7 +195,7 @@ onMounted(() => {
                 <select
                     id="tenant_id"
                     name="tenant_id"
-                    class="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     v-model="selectedTenantId"
                 >
                     <option value="">Nenhuma escola</option>
@@ -253,9 +262,9 @@ onMounted(() => {
                             }
                         "
                     />
-                    <span class="text-muted-foreground"
-                        >{{ (user as any)?.ativo === false ? 'Inativo' : 'Ativo' }}</span
-                    >
+                    <span class="text-muted-foreground">{{
+                        (user as any)?.ativo === false ? 'Inativo' : 'Ativo'
+                    }}</span>
                 </label>
                 <InputError :message="errors.ativo ?? errors.is_active" />
             </div>
@@ -277,11 +286,14 @@ onMounted(() => {
         -->
 
         <div class="flex items-center justify-end gap-2">
-            <Button type="submit" :disabled="processing" class="flex items-center gap-2">
+            <Button
+                type="submit"
+                :disabled="processing"
+                class="flex items-center gap-2"
+            >
                 <Save class="h-4 w-4" />
                 {{ submitLabel }}
             </Button>
         </div>
     </div>
 </template>
-
