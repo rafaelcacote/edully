@@ -97,6 +97,7 @@ interface TenantOption {
     name: string;
     subdomain?: string | null;
     city?: string | null;
+    logo_url?: string | null;
     is_active?: boolean;
     users_count?: number;
 }
@@ -127,6 +128,18 @@ const search = ref(props.filters.search ?? '');
 const role = ref(props.filters.role ?? '');
 const active = ref(props.filters.active ?? '');
 const schoolSearch = ref('');
+const brokenLogos = ref<Record<string, boolean>>({});
+
+function showLogo(tenant: TenantOption): boolean {
+    return Boolean(tenant.logo_url) && !brokenLogos.value[tenant.id];
+}
+
+function markLogoBroken(tenantId: string): void {
+    brokenLogos.value = {
+        ...brokenLogos.value,
+        [tenantId]: true,
+    };
+}
 
 const hasListFilter = computed(
     () => !!search.value || !!role.value || active.value !== '',
@@ -262,9 +275,23 @@ function changeTenant() {
                         @click="selectTenant(tenant.id)"
                     >
                         <div
-                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary"
+                            class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl text-sm font-semibold"
+                            :class="
+                                showLogo(tenant)
+                                    ? 'border bg-white dark:bg-neutral-900'
+                                    : 'bg-primary/10 text-primary'
+                            "
                         >
-                            {{ schoolInitials(tenant.name) }}
+                            <img
+                                v-if="showLogo(tenant)"
+                                :src="tenant.logo_url ?? undefined"
+                                :alt="`Logo de ${tenant.name}`"
+                                class="h-full w-full object-contain"
+                                @error="markLogoBroken(tenant.id)"
+                            />
+                            <span v-else>{{
+                                schoolInitials(tenant.name)
+                            }}</span>
                         </div>
 
                         <div class="min-w-0 flex-1">
@@ -339,9 +366,25 @@ function changeTenant() {
                 >
                     <div class="flex min-w-0 items-center gap-4">
                         <div
-                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary"
+                            class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl text-sm font-semibold"
+                            :class="
+                                showLogo(props.selectedTenant)
+                                    ? 'border bg-white dark:bg-neutral-900'
+                                    : 'bg-primary/10 text-primary'
+                            "
                         >
-                            {{ schoolInitials(props.selectedTenant.name) }}
+                            <img
+                                v-if="showLogo(props.selectedTenant)"
+                                :src="
+                                    props.selectedTenant.logo_url ?? undefined
+                                "
+                                :alt="`Logo de ${props.selectedTenant.name}`"
+                                class="h-full w-full object-contain"
+                                @error="markLogoBroken(props.selectedTenant.id)"
+                            />
+                            <span v-else>{{
+                                schoolInitials(props.selectedTenant.name)
+                            }}</span>
                         </div>
                         <div class="min-w-0">
                             <p class="text-xs text-muted-foreground">
