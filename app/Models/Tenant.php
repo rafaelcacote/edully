@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tenant extends Model
@@ -234,5 +235,22 @@ class Tenant extends Model
     public function setTrialUntilAttribute($value): void
     {
         $this->attributes['trial_ate'] = $value;
+    }
+
+    /**
+     * Users linked to this school.
+     */
+    public function users(): BelongsToMany
+    {
+        $pivotTable = $this->getConnection()->getDriverName() === 'sqlite'
+            ? 'usuario_tenants'
+            : 'shared.usuario_tenants';
+
+        return $this->belongsToMany(
+            User::class,
+            $pivotTable,
+            'tenant_id',
+            'usuario_id',
+        );
     }
 }

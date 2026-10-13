@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { store } from '@/actions/App/Http/Controllers/UsersController';
-import { Button } from '@/components/ui/button';
 import Heading from '@/components/Heading.vue';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { index } from '@/routes/users';
 import type { BreadcrumbItem } from '@/types';
@@ -12,6 +12,7 @@ import UserForm from './Partials/UserForm.vue';
 interface Props {
     roles: string[];
     tenants?: Array<{ id: string; name: string }>;
+    defaultTenantId?: string | null;
 }
 
 const props = defineProps<Props>();
@@ -47,7 +48,10 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     as-child
                     class="mt-4 rounded-lg border border-input bg-background shadow-sm transition-all hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 >
-                    <Link :href="index()" class="flex items-center gap-2 px-4 py-2">
+                    <Link
+                        :href="index()"
+                        class="flex items-center gap-2 px-4 py-2"
+                    >
                         <ArrowLeft class="h-4 w-4" />
                         Voltar
                     </Link>
@@ -64,6 +68,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     <UserForm
                         :roles="props.roles"
                         :tenants="props.tenants"
+                        :default-tenant-id="props.defaultTenantId"
                         submit-label="Criar usuário"
                         :processing="processing"
                         :errors="errors"
@@ -74,4 +79,3 @@ const breadcrumbItems: BreadcrumbItem[] = [
         </div>
     </AppLayout>
 </template>
-

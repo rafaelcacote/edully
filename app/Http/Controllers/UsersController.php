@@ -16,76 +16,113 @@ class UsersController extends Controller
     /**
      * Display a listing of the users.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $filters = $request->only(['search', 'role', 'active', 'tenant_id']);
 
-        $users = User::query()
-            ->with('roles:id,name', 'tenants:id,nome')
-            ->when($filters['search'] ?? null, function ($query, string $search) {
-                $search = trim($search);
-                // Remove formatação do CPF para busca
-                $cpfSearch = preg_replace('/[^0-9]/', '', $search);
-                $query->where(function ($q) use ($search, $cpfSearch) {
-                    $q->where('nome_completo', 'ilike', "%{$search}%")
-                        ->orWhere('email', 'ilike', "%{$search}%")
-                        ->orWhere('telefone', 'ilike', "%{$search}%")
-                        ->orWhere('cpf', 'ilike', "%{$cpfSearch}%");
-                });
-            })
-            ->when($filters['role'] ?? null, function ($query, string $role) {
-                $query->whereHas('roles', function ($q) use ($role) {
-                    $q->where('name', $role);
-                });
-            })
-            ->when($filters['tenant_id'] ?? null, function ($query, string $tenantId) {
-                $query->whereHas('tenants', function ($q) use ($tenantId) {
-                    $q->whereKey($tenantId);
-                });
-            })
-            ->when(isset($filters['active']) && $filters['active'] !== '' && $filters['active'] !== null, function ($query) use ($filters) {
-                $active = filter_var($filters['active'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-                if ($active !== null) {
-                    $query->where('ativo', $active);
-                }
-            })
-            ->orderBy('nome_completo')
-            ->paginate(10)
-            ->withQueryString();
+        $selectedTenant = null;
 
-        // Transformar os dados para incluir o primeiro role como role principal
-        // e garantir que os campos da tabela estejam presentes
-        $users->getCollection()->transform(function ($user) {
-            $user->role = $user->roles->first()?->name ?? null;
-            // Garantir que os campos da tabela estejam presentes
-            $user->nome_completo = $user->attributes['nome_completo'] ?? $user->full_name ?? '';
-            $user->telefone = $user->attributes['telefone'] ?? $user->phone ?? null;
-            $user->ativo = $user->attributes['ativo'] ?? $user->is_active ?? true;
-            // Adicionar o primeiro tenant (escola) vinculado ao usuário
-            $user->tenant = $user->tenants->first();
-            $user->tenant_nome = $user->tenants->first()?->nome ?? null;
+        if (! empty($filters['tenant_id'])) {
+            $selectedTenant = Tenant::query()
+                ->withCount('users')
+                ->find($filters['tenant_id']);
 
-            return $user;
-        });
+            if ($selectedTenant === null) {
+                return redirect()->route('users.index');
+            }
+        }
+
+        $users = null;
+
+        if ($selectedTenant !== null) {
+            $users = User::query()
+                ->with('roles:id,name', 'tenants:id,nome')
+                ->whereHas('tenants', function ($query) use ($selectedTenant) {
+                    $query->whereKey($selectedTenant->id);
+                })
+                ->when($filters['search'] ?? null, function ($query, string $search) {
+                    $search = trim($search);
+                    $cpfSearch = preg_replace('/[^0-9]/', '', $search) ?? '';
+                    $query->where(function ($q) use ($search, $cpfSearch) {
+                        $q->where('nome_completo', 'ilike', "%{$search}%")
+                            ->orWhere('email', 'ilike', "%{$search}%")
+                            ->orWhere('telefone', 'ilike', "%{$search}%");
+
+                        if ($cpfSearch !== '') {
+                            $q->orWhere('cpf', 'ilike', "%{$cpfSearch}%");
+                        }
+                    });
+                })
+                ->when($filters['role'] ?? null, function ($query, string $role) {
+                    $query->whereHas('roles', function ($q) use ($role) {
+                        $q->where('name', $role);
+                    });
+                })
+                ->when(isset($filters['active']) && $filters['active'] !== '' && $filters['active'] !== null, function ($query) use ($filters) {
+                    $active = filter_var($filters['active'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($active !== null) {
+                        $query->where('ativo', $active);
+                    }
+                })
+                ->orderBy('nome_completo')
+                ->paginate(10)
+                ->withQueryString();
+
+            $users->getCollection()->transform(function ($user) {
+                $user->role = $user->roles->first()?->name ?? null;
+                $user->nome_completo = $user->attributes['nome_completo'] ?? $user->full_name ?? '';
+                $user->telefone = $user->attributes['telefone'] ?? $user->phone ?? null;
+                $user->ativo = $user->attributes['ativo'] ?? $user->is_active ?? true;
+                $user->tenant = $user->tenants->first();
+                $user->tenant_nome = $user->tenants->first()?->nome ?? null;
+
+                return $user;
+            });
+        }
 
         return Inertia::render('users/Index', [
             'users' => $users,
             'filters' => $filters,
             'roles' => Role::query()->orderBy('name')->pluck('name')->toArray(),
-            'tenants' => Tenant::query()->orderBy('nome')->get(['id', 'nome'])->map(fn ($t) => [
-                'id' => $t->id,
-                'name' => $t->nome,
-            ])->toArray(),
+            'selectedTenant' => $selectedTenant === null ? null : [
+                'id' => $selectedTenant->id,
+                'name' => $selectedTenant->nome,
+                'subdomain' => $selectedTenant->subdominio,
+                'city' => $selectedTenant->endereco_cidade,
+                'is_active' => (bool) $selectedTenant->ativo,
+                'users_count' => $selectedTenant->users_count,
+            ],
+            'tenants' => Tenant::query()
+                ->select(['id', 'nome', 'subdominio', 'ativo', 'endereco_cidade'])
+                ->withCount('users')
+                ->orderBy('nome')
+                ->get()
+                ->map(fn (Tenant $tenant) => [
+                    'id' => $tenant->id,
+                    'name' => $tenant->nome,
+                    'subdomain' => $tenant->subdominio,
+                    'city' => $tenant->endereco_cidade,
+                    'is_active' => (bool) $tenant->ativo,
+                    'users_count' => $tenant->users_count,
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 
     /**
      * Show the form for creating a new user.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $tenantId = $request->string('tenant_id')->toString();
+        $defaultTenantId = $tenantId !== '' && Tenant::query()->whereKey($tenantId)->exists()
+            ? $tenantId
+            : null;
+
         return Inertia::render('users/Create', [
             'roles' => Role::query()->orderBy('name')->pluck('name')->toArray(),
+            'defaultTenantId' => $defaultTenantId,
             'tenants' => Tenant::query()->orderBy('nome')->get(['id', 'nome'])->map(fn ($t) => [
                 'id' => $t->id,
                 'name' => $t->nome,
@@ -137,7 +174,9 @@ class UsersController extends Controller
         }
 
         return redirect()
-            ->route('users.index')
+            ->route('users.index', array_filter([
+                'tenant_id' => $validated['tenant_id'] ?? null,
+            ]))
             ->with('toast', [
                 'type' => 'success',
                 'title' => 'Usuário criado',
@@ -243,7 +282,7 @@ class UsersController extends Controller
         $user->save();
 
         return redirect()
-            ->route('users.index')
+            ->back(fallback: route('users.index'))
             ->with('toast', [
                 'type' => 'success',
                 'title' => 'Senha alterada',
@@ -259,7 +298,7 @@ class UsersController extends Controller
         $user->delete();
 
         return redirect()
-            ->route('users.index')
+            ->back(fallback: route('users.index'))
             ->with('toast', [
                 'type' => 'success',
                 'title' => 'Usuário excluído',
