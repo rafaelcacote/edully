@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDivisaoLetiva } from '@/composables/useDivisaoLetiva';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,12 +27,7 @@ interface DisciplinaBoletim {
     id: string;
     nome: string;
     sigla?: string | null;
-    bimestres: {
-        1: number | null;
-        2: number | null;
-        3: number | null;
-        4: number | null;
-    };
+    bimestres: Record<number, number | null>;
     media: number | null;
 }
 
@@ -40,6 +36,8 @@ interface Boletim {
     turma: Turma;
     disciplinas: DisciplinaBoletim[];
     media_geral: number | null;
+    divisao_letiva?: 'bimestral' | 'trimestral';
+    periodos?: number[];
 }
 
 interface Props {
@@ -97,6 +95,16 @@ function formatNota(valor: number | null | undefined): string {
     return Number(valor).toFixed(1);
 }
 
+const divisao = useDivisaoLetiva();
+
+const periodosBoletim = computed(() => {
+    if (props.boletim?.periodos && props.boletim.periodos.length > 0) {
+        return props.boletim.periodos;
+    }
+
+    return divisao.value.opcoes.map((opcao) => Number(opcao.value));
+});
+
 const temBoletim = computed(() => !!props.boletim);
 </script>
 
@@ -108,7 +116,7 @@ const temBoletim = computed(() => !!props.boletim);
             <div class="mt-2">
                 <Heading
                     title="Boletins"
-                    description="Consulte o boletim bimestral do aluno"
+                    :description="`Consulte o boletim do aluno por ${divisao.unidade}`"
                     :icon="FileSpreadsheet"
                 />
             </div>
@@ -207,10 +215,13 @@ const temBoletim = computed(() => !!props.boletim);
                             >
                                 <tr>
                                     <th class="px-4 py-3">Disciplina</th>
-                                    <th class="px-4 py-3 text-center">1º</th>
-                                    <th class="px-4 py-3 text-center">2º</th>
-                                    <th class="px-4 py-3 text-center">3º</th>
-                                    <th class="px-4 py-3 text-center">4º</th>
+                                    <th
+                                        v-for="periodo in periodosBoletim"
+                                        :key="periodo"
+                                        class="px-4 py-3 text-center"
+                                    >
+                                        {{ periodo }}º
+                                    </th>
                                     <th class="px-4 py-3 text-center">Média</th>
                                 </tr>
                             </thead>
@@ -229,17 +240,12 @@ const temBoletim = computed(() => !!props.boletim);
                                             {{ disciplina.sigla }}
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 text-center tabular-nums">
-                                        {{ formatNota(disciplina.bimestres[1]) }}
-                                    </td>
-                                    <td class="px-4 py-3 text-center tabular-nums">
-                                        {{ formatNota(disciplina.bimestres[2]) }}
-                                    </td>
-                                    <td class="px-4 py-3 text-center tabular-nums">
-                                        {{ formatNota(disciplina.bimestres[3]) }}
-                                    </td>
-                                    <td class="px-4 py-3 text-center tabular-nums">
-                                        {{ formatNota(disciplina.bimestres[4]) }}
+                                    <td
+                                        v-for="periodo in periodosBoletim"
+                                        :key="periodo"
+                                        class="px-4 py-3 text-center tabular-nums"
+                                    >
+                                        {{ formatNota(disciplina.bimestres[periodo]) }}
                                     </td>
                                     <td class="px-4 py-3 text-center font-semibold tabular-nums">
                                         {{ formatNota(disciplina.media) }}
@@ -248,7 +254,7 @@ const temBoletim = computed(() => !!props.boletim);
 
                                 <tr v-if="props.boletim.disciplinas.length === 0">
                                     <td
-                                        colspan="6"
+                                        :colspan="periodosBoletim.length + 2"
                                         class="px-4 py-10 text-center text-sm text-muted-foreground"
                                     >
                                         Esta turma ainda não tem grade curricular.

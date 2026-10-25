@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Documento;
 use App\Models\Tenant;
+use App\Support\Bimestre;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -77,10 +78,14 @@ class HandleInertiaRequests extends Middleware
                 if ($tenantId) {
                     $tenant = Tenant::find($tenantId);
                     if ($tenant) {
+                        $divisao = $tenant->divisaoLetiva();
                         $currentTenant = [
                             'id' => $tenant->id,
                             'nome' => $tenant->nome,
                             'logo_url' => $tenant->logo_url,
+                            'divisao_letiva' => $divisao->value,
+                            'quantidade_periodos' => Bimestre::quantidade($divisao),
+                            'unidade_periodo' => Bimestre::unidade($divisao),
                         ];
                     }
                 }

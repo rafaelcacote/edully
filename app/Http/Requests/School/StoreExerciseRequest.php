@@ -5,6 +5,7 @@ namespace App\Http\Requests\School;
 use App\Models\Disciplina;
 use App\Models\Teacher;
 use App\Models\Turma;
+use App\Support\Bimestre;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -76,7 +77,7 @@ class StoreExerciseRequest extends FormRequest
             'titulo' => ['required', 'string', 'max:255'],
             'descricao' => ['nullable', 'string'],
             'data_entrega' => ['required', 'date', 'after_or_equal:today'],
-            'bimestre' => ['required', 'integer', 'min:1', 'max:4'],
+            'bimestre' => Bimestre::rules(Bimestre::fromAuthenticatedUser()),
             'anexo' => ['nullable', 'file', 'mimes:pdf,doc,docx,xls,xlsx,txt,rtf,odt,ods', 'max:10240'],
             'turma_id' => [
                 'required',
@@ -107,9 +108,7 @@ class StoreExerciseRequest extends FormRequest
             'data_entrega.required' => 'Informe a data de entrega.',
             'data_entrega.date' => 'A data de entrega deve ser uma data válida.',
             'data_entrega.after_or_equal' => 'A data de entrega deve ser hoje ou uma data futura.',
-            'bimestre.required' => 'Selecione o bimestre.',
-            'bimestre.min' => 'O bimestre deve ser entre 1 e 4.',
-            'bimestre.max' => 'O bimestre deve ser entre 1 e 4.',
+            ...Bimestre::messages(Bimestre::fromAuthenticatedUser()),
             'anexo.file' => 'O anexo deve ser um arquivo.',
             'anexo.mimes' => 'O anexo deve ser um arquivo PDF, Word, Excel ou texto.',
             'anexo.max' => 'O anexo não pode ter mais de 10MB.',

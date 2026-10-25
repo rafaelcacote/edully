@@ -59,7 +59,7 @@ class ExercisesController extends Controller
         $filters = $request->only(['search', 'turma_id', 'disciplina_id', 'bimestre']);
 
         if (! $request->has('bimestre')) {
-            $filters['bimestre'] = (string) Bimestre::atual();
+            $filters['bimestre'] = (string) Bimestre::atual($tenant->divisaoLetiva());
         }
 
         $exercises = Exercise::query()
@@ -178,7 +178,7 @@ class ExercisesController extends Controller
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
             'filters' => $filters,
-            'defaultBimestre' => Bimestre::atual(),
+            'defaultBimestre' => Bimestre::atual($tenant->divisaoLetiva()),
         ]);
     }
 
@@ -249,7 +249,7 @@ class ExercisesController extends Controller
         return Inertia::render('school/exercises/Create', [
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
-            'defaultBimestre' => Bimestre::atual(),
+            'defaultBimestre' => Bimestre::atual($tenant->divisaoLetiva()),
         ]);
     }
 

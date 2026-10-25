@@ -5,11 +5,14 @@ import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useDivisaoLetiva } from '@/composables/useDivisaoLetiva';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ClipboardCheck, Edit, Eye, Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+
+const divisao = useDivisaoLetiva();
 
 interface PaginationLink {
     url: string | null;
@@ -184,11 +187,14 @@ function clearFilters() {
                             class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-48"
                             @change="applyFilters"
                         >
-                            <option value="">Todos os bimestres</option>
-                            <option value="1">1º Bimestre</option>
-                            <option value="2">2º Bimestre</option>
-                            <option value="3">3º Bimestre</option>
-                            <option value="4">4º Bimestre</option>
+                            <option value="">Todos os {{ divisao.unidade }}s</option>
+                            <option
+                                v-for="opcao in divisao.opcoes"
+                                :key="opcao.value"
+                                :value="opcao.value"
+                            >
+                                {{ opcao.label }}
+                            </option>
                         </select>
                     </div>
 
@@ -217,7 +223,7 @@ function clearFilters() {
                                 <th class="px-4 py-3">Título</th>
                                 <th class="px-4 py-3">Disciplina</th>
                                 <th class="px-4 py-3">Turma</th>
-                                <th class="px-4 py-3">Bimestre</th>
+                                <th class="px-4 py-3">{{ divisao.unidadeTitulo }}</th>
                                 <th class="px-4 py-3">Data da Prova</th>
                                 <th class="px-4 py-3">Horário</th>
                                 <th class="px-4 py-3 text-center">Ações</th>
@@ -246,7 +252,7 @@ function clearFilters() {
                                 </td>
                                 <td class="px-4 py-3">
                                     <span v-if="test.bimestre" class="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
-                                        {{ test.bimestre }}º Bimestre
+                                        {{ divisao.rotulo(test.bimestre) }}
                                     </span>
                                     <span v-else>—</span>
                                 </td>

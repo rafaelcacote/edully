@@ -6,6 +6,7 @@ use App\Models\Disciplina;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\Turma;
+use App\Support\Bimestre;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -46,7 +47,7 @@ class SyncLoteNotasRequest extends FormRequest
                     ->where('tenant_id', $tenantId)
                     ->where('ativo', true),
             ],
-            'bimestre' => ['required', 'integer', 'min:1', 'max:4'],
+            'bimestre' => Bimestre::rules(Bimestre::fromAuthenticatedUser()),
             'ano_letivo' => ['required', 'integer', 'min:2000', 'max:2100'],
             'notas' => ['required', 'array', 'min:1'],
             'notas.*.aluno_id' => [
@@ -69,9 +70,7 @@ class SyncLoteNotasRequest extends FormRequest
             'turma_id.required' => 'Selecione uma turma.',
             'disciplina_id.required' => 'Selecione uma disciplina.',
             'professor_id.required' => 'Selecione um professor.',
-            'bimestre.required' => 'Selecione o bimestre.',
-            'bimestre.min' => 'O bimestre deve ser entre 1 e 4.',
-            'bimestre.max' => 'O bimestre deve ser entre 1 e 4.',
+            ...Bimestre::messages(Bimestre::fromAuthenticatedUser()),
             'ano_letivo.required' => 'Informe o ano letivo.',
             'notas.required' => 'Informe as notas dos alunos.',
             'notas.*.aluno_id.required' => 'Aluno inválido na lista.',

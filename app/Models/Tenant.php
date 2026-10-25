@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DivisaoLetiva;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -76,6 +77,7 @@ class Tenant extends Model
         'plano_id',
         'ativo',
         'trial_ate',
+        'divisao_letiva',
     ];
 
     /**
@@ -102,9 +104,43 @@ class Tenant extends Model
         return [
             'ativo' => 'boolean',
             'trial_ate' => 'datetime',
+            'divisao_letiva' => DivisaoLetiva::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
+        ];
+    }
+
+    public function divisaoLetiva(): DivisaoLetiva
+    {
+        $divisao = $this->divisao_letiva;
+
+        return $divisao instanceof DivisaoLetiva
+            ? $divisao
+            : DivisaoLetiva::Bimestral;
+    }
+
+    /**
+     * @return array{
+     *     id: string,
+     *     nome: string,
+     *     logo_url: ?string,
+     *     divisao_letiva: string,
+     *     quantidade_periodos: int,
+     *     unidade_periodo: string
+     * }
+     */
+    public function schoolSummary(): array
+    {
+        $divisao = $this->divisaoLetiva();
+
+        return [
+            'id' => $this->id,
+            'nome' => $this->nome,
+            'logo_url' => $this->logo_url,
+            'divisao_letiva' => $divisao->value,
+            'quantidade_periodos' => $divisao->quantidade(),
+            'unidade_periodo' => $divisao->unidade(),
         ];
     }
 

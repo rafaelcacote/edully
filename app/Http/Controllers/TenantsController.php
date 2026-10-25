@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreTenantRequest;
+use App\Http\Requests\UpdateTenantRequest;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -69,28 +70,9 @@ class TenantsController extends Controller
     /**
      * Store a newly created tenant.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreTenantRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'nome' => ['required', 'string', 'max:255'],
-            'subdominio' => ['nullable', 'string', 'max:255', Rule::unique(Tenant::class, 'subdominio')],
-            'cnpj' => ['nullable', 'string', 'regex:/^[0-9]{14}$|^[0-9]{2}\.[0-9]{3}\.[0-9]{3}\/[0-9]{4}-[0-9]{2}$/', Rule::unique(Tenant::class, 'cnpj')],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(Tenant::class, 'email')],
-            'telefone' => ['nullable', 'string', 'max:20'],
-            'endereco' => ['nullable', 'string'],
-            'endereco_numero' => ['nullable', 'string', 'max:20'],
-            'endereco_complemento' => ['nullable', 'string', 'max:100'],
-            'endereco_bairro' => ['nullable', 'string', 'max:100'],
-            'endereco_cep' => ['nullable', 'string', 'regex:/^[0-9]{8}$|^[0-9]{5}-[0-9]{3}$/', 'max:10'],
-            'endereco_cidade' => ['nullable', 'string', 'max:100'],
-            'endereco_estado' => ['nullable', 'string', 'max:2'],
-            'endereco_pais' => ['nullable', 'string', 'max:50'],
-            'logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif', 'max:5120'], // 5MB
-            'logo_url' => ['nullable', 'string', 'max:2048'],
-            'plano_id' => ['nullable', 'uuid'],
-            'ativo' => ['nullable', 'boolean'],
-            'trial_ate' => ['nullable', 'date'],
-        ]);
+        $validated = $request->validated();
 
         // Remove formatação do CNPJ (pontos, traços, barras, espaços)
         if (! empty($validated['cnpj'])) {
@@ -128,6 +110,7 @@ class TenantsController extends Controller
             'plano_id' => $validated['plano_id'] ?? null,
             'ativo' => $validated['ativo'] ?? true,
             'trial_ate' => $validated['trial_ate'] ?? null,
+            'divisao_letiva' => $validated['divisao_letiva'],
         ]);
 
         return redirect()
@@ -152,28 +135,9 @@ class TenantsController extends Controller
     /**
      * Update the specified tenant.
      */
-    public function update(Request $request, Tenant $tenant): RedirectResponse
+    public function update(UpdateTenantRequest $request, Tenant $tenant): RedirectResponse
     {
-        $validated = $request->validate([
-            'nome' => ['required', 'string', 'max:255'],
-            'subdominio' => ['nullable', 'string', 'max:255', Rule::unique(Tenant::class, 'subdominio')->ignore($tenant->id, 'id')],
-            'cnpj' => ['nullable', 'string', 'regex:/^[0-9]{14}$|^[0-9]{2}\.[0-9]{3}\.[0-9]{3}\/[0-9]{4}-[0-9]{2}$/', Rule::unique(Tenant::class, 'cnpj')->ignore($tenant->id, 'id')],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(Tenant::class, 'email')->ignore($tenant->id, 'id')],
-            'telefone' => ['nullable', 'string', 'max:20'],
-            'endereco' => ['nullable', 'string'],
-            'endereco_numero' => ['nullable', 'string', 'max:20'],
-            'endereco_complemento' => ['nullable', 'string', 'max:100'],
-            'endereco_bairro' => ['nullable', 'string', 'max:100'],
-            'endereco_cep' => ['nullable', 'string', 'regex:/^[0-9]{8}$|^[0-9]{5}-[0-9]{3}$/', 'max:10'],
-            'endereco_cidade' => ['nullable', 'string', 'max:100'],
-            'endereco_estado' => ['nullable', 'string', 'max:2'],
-            'endereco_pais' => ['nullable', 'string', 'max:50'],
-            'logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif', 'max:5120'], // 5MB
-            'logo_url' => ['nullable', 'string', 'max:2048'],
-            'plano_id' => ['nullable', 'uuid'],
-            'ativo' => ['nullable', 'boolean'],
-            'trial_ate' => ['nullable', 'date'],
-        ]);
+        $validated = $request->validated();
 
         // Remove formatação do CNPJ (pontos, traços, barras, espaços)
         if (! empty($validated['cnpj'])) {
@@ -233,6 +197,7 @@ class TenantsController extends Controller
             'plano_id' => $validated['plano_id'] ?? null,
             'ativo' => $validated['ativo'] ?? $tenant->ativo,
             'trial_ate' => $validated['trial_ate'] ?? null,
+            'divisao_letiva' => $validated['divisao_letiva'],
         ]);
 
         return redirect()

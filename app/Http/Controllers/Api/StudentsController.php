@@ -20,7 +20,7 @@ class StudentsController extends Controller
         $user = $request->user();
 
         // Verificar se o usuário é um responsável
-        if (!$user->isResponsavel()) {
+        if (! $user->isResponsavel()) {
             return response()->json([
                 'message' => 'Acesso negado. Apenas responsáveis podem acessar esta funcionalidade.',
             ], 403);
@@ -28,7 +28,7 @@ class StudentsController extends Controller
 
         // Buscar todos os registros de responsável do usuário (pode ter múltiplos tenants)
         $responsaveis = Responsavel::where('usuario_id', $user->id)
-            ->with(['tenant:id,nome,logo_url'])
+            ->with(['tenant:id,nome,logo_url,divisao_letiva'])
             ->get();
 
         if ($responsaveis->isEmpty()) {
@@ -61,7 +61,7 @@ class StudentsController extends Controller
         // Buscar alunos com seus dados
         $students = Student::whereIn('id', $studentIds)
             ->where('ativo', true)
-            ->with(['tenant:id,nome,logo_url'])
+            ->with(['tenant:id,nome,logo_url,divisao_letiva'])
             ->get([
                 'id',
                 'tenant_id',
@@ -101,7 +101,7 @@ class StudentsController extends Controller
             $studentMatriculas = $matriculas->where('aluno_id', $student->id);
             $studentTurmas = $studentMatriculas->map(function ($matricula) use ($turmas) {
                 $turma = $turmas->get($matricula->turma_id);
-                if (!$turma) {
+                if (! $turma) {
                     return null;
                 }
 
@@ -126,11 +126,7 @@ class StudentsController extends Controller
                 'foto_url' => $student->foto_url,
                 'data_nascimento' => $student->data_nascimento?->format('Y-m-d'),
                 'is_principal' => $isPrincipal,
-                'school' => $tenant ? [
-                    'id' => $tenant->id,
-                    'nome' => $tenant->nome,
-                    'logo_url' => $tenant->logo_url,
-                ] : null,
+                'school' => $tenant?->schoolSummary(),
                 'turmas' => $studentTurmas,
             ];
         })->values();
@@ -148,7 +144,7 @@ class StudentsController extends Controller
         $user = $request->user();
 
         // Verificar se o usuário é um responsável
-        if (!$user->isResponsavel()) {
+        if (! $user->isResponsavel()) {
             return response()->json([
                 'message' => 'Acesso negado. Apenas responsáveis podem acessar esta funcionalidade.',
             ], 403);
@@ -169,7 +165,7 @@ class StudentsController extends Controller
             ->where('aluno_id', $id)
             ->exists();
 
-        if (!$isLinked) {
+        if (! $isLinked) {
             return response()->json([
                 'message' => 'Aluno não encontrado ou você não tem permissão para acessar este aluno.',
             ], 404);
@@ -178,7 +174,7 @@ class StudentsController extends Controller
         // Buscar aluno
         $student = Student::where('id', $id)
             ->where('ativo', true)
-            ->with(['tenant:id,nome,logo_url'])
+            ->with(['tenant:id,nome,logo_url,divisao_letiva'])
             ->firstOrFail([
                 'id',
                 'tenant_id',
@@ -210,7 +206,7 @@ class StudentsController extends Controller
 
         $studentTurmas = $matriculas->map(function ($matricula) use ($turmas) {
             $turma = $turmas->firstWhere('id', $matricula->turma_id);
-            if (!$turma) {
+            if (! $turma) {
                 return null;
             }
 
@@ -240,11 +236,7 @@ class StudentsController extends Controller
                 'data_nascimento' => $student->data_nascimento?->format('Y-m-d'),
                 'informacoes_medicas' => $student->informacoes_medicas,
                 'is_principal' => $responsavelData ? (bool) $responsavelData->principal : false,
-                'school' => $student->tenant ? [
-                    'id' => $student->tenant->id,
-                    'nome' => $student->tenant->nome,
-                    'logo_url' => $student->tenant->logo_url,
-                ] : null,
+                'school' => $student->tenant?->schoolSummary(),
                 'turmas' => $studentTurmas,
             ],
         ]);

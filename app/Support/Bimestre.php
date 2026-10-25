@@ -2,32 +2,100 @@
 
 namespace App\Support;
 
+use App\Enums\DivisaoLetiva;
+use App\Models\Student;
+use App\Models\Tenant;
+
 class Bimestre
 {
-    /**
-     * Retorna o bimestre atual com base no mês do calendário.
-     * 1: Jan–Mar, 2: Abr–Jun, 3: Jul–Set, 4: Out–Dez.
-     */
-    public static function atual(): int
+    public static function atual(?DivisaoLetiva $divisao = null): int
     {
-        $mes = (int) now()->month;
-
-        return match (true) {
-            $mes <= 3 => 1,
-            $mes <= 6 => 2,
-            $mes <= 9 => 3,
-            default => 4,
-        };
+        return ($divisao ?? DivisaoLetiva::Bimestral)->atual();
     }
 
-    public static function label(int $bimestre): string
+    public static function quantidade(?DivisaoLetiva $divisao = null): int
     {
-        return match ($bimestre) {
-            1 => '1º bimestre',
-            2 => '2º bimestre',
-            3 => '3º bimestre',
-            4 => '4º bimestre',
-            default => "{$bimestre}º bimestre",
-        };
+        return ($divisao ?? DivisaoLetiva::Bimestral)->quantidade();
+    }
+
+    public static function unidade(?DivisaoLetiva $divisao = null): string
+    {
+        return ($divisao ?? DivisaoLetiva::Bimestral)->unidade();
+    }
+
+    public static function label(int $bimestre, ?DivisaoLetiva $divisao = null): string
+    {
+        return ($divisao ?? DivisaoLetiva::Bimestral)->rotulo($bimestre);
+    }
+
+    /**
+     * @return list<int>
+     */
+    public static function numeros(?DivisaoLetiva $divisao = null): array
+    {
+        return range(1, self::quantidade($divisao));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function rules(?DivisaoLetiva $divisao = null, bool $sometimes = false): array
+    {
+        $rules = ['required', 'integer', 'min:1', 'max:'.self::quantidade($divisao)];
+
+        if ($sometimes) {
+            array_unshift($rules, 'sometimes');
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function messages(?DivisaoLetiva $divisao = null): array
+    {
+        $divisao ??= DivisaoLetiva::Bimestral;
+        $unidade = $divisao->unidade();
+        $max = $divisao->quantidade();
+
+        return [
+            'bimestre.required' => "Selecione o {$unidade}.",
+            'bimestre.integer' => "O {$unidade} deve ser um número.",
+            'bimestre.min' => "O {$unidade} deve ser entre 1 e {$max}.",
+            'bimestre.max' => "O {$unidade} deve ser entre 1 e {$max}.",
+            'bimestre.in' => "O {$unidade} deve ser um valor entre 1 e {$max}.",
+        ];
+    }
+
+    public static function fromAuthenticatedUser(): DivisaoLetiva
+    {
+        $tenant = auth()->user()?->tenants()->first();
+
+        return $tenant instanceof Tenant
+            ? $tenant->divisaoLetiva()
+            : DivisaoLetiva::Bimestral;
+    }
+
+    public static function fromAuthenticatedTeacher(): DivisaoLetiva
+    {
+        $teacher = auth()->user()?->teacher()->where('ativo', true)->first();
+
+        return $teacher?->tenant instanceof Tenant
+            ? $teacher->tenant->divisaoLetiva()
+            : DivisaoLetiva::Bimestral;
+    }
+
+    public static function fromStudentId(mixed $studentId): DivisaoLetiva
+    {
+        if (! is_string($studentId) || $studentId === '') {
+            return DivisaoLetiva::Bimestral;
+        }
+
+        $student = Student::query()->with('tenant')->find($studentId);
+
+        return $student?->tenant instanceof Tenant
+            ? $student->tenant->divisaoLetiva()
+            : DivisaoLetiva::Bimestral;
     }
 }

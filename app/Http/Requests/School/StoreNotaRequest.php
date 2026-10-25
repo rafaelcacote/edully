@@ -7,6 +7,7 @@ use App\Models\Nota;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\Turma;
+use App\Support\Bimestre;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -53,7 +54,7 @@ class StoreNotaRequest extends FormRequest
                     ->where('tenant_id', $tenantId)
                     ->where('ativo', true),
             ],
-            'bimestre' => ['required', 'integer', 'min:1', 'max:4'],
+            'bimestre' => Bimestre::rules(Bimestre::fromAuthenticatedUser()),
             'nota' => ['required', 'numeric', 'min:0', 'max:10', 'regex:/^\d+(\.\d{1})?$/'],
             'comportamento' => ['nullable', 'string', 'max:50'],
             'observacoes' => ['nullable', 'string', 'max:65535'],
@@ -75,9 +76,7 @@ class StoreNotaRequest extends FormRequest
             'turma_id.exists' => 'A turma selecionada não foi encontrada.',
             'disciplina_id.required' => 'Selecione uma disciplina.',
             'disciplina_id.exists' => 'A disciplina selecionada não foi encontrada.',
-            'bimestre.required' => 'Selecione o bimestre.',
-            'bimestre.min' => 'O bimestre deve ser entre 1 e 4.',
-            'bimestre.max' => 'O bimestre deve ser entre 1 e 4.',
+            ...Bimestre::messages(Bimestre::fromAuthenticatedUser()),
             'nota.required' => 'Informe a nota.',
             'nota.min' => 'A nota deve ser entre 0 e 10.',
             'nota.max' => 'A nota deve ser entre 0 e 10.',
@@ -139,7 +138,8 @@ class StoreNotaRequest extends FormRequest
                 ->exists();
 
             if ($duplicada) {
-                $validator->errors()->add('bimestre', 'Já existe nota para este aluno nesta disciplina e bimestre.');
+                $unidade = Bimestre::unidade(Bimestre::fromAuthenticatedUser());
+                $validator->errors()->add('bimestre', "Já existe nota para este aluno nesta disciplina e {$unidade}.");
             }
         });
     }

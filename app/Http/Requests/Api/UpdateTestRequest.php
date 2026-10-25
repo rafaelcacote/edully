@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api;
 
 use App\Models\Disciplina;
 use App\Models\Turma;
+use App\Support\Bimestre;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -80,7 +81,7 @@ class UpdateTestRequest extends FormRequest
             'horario' => ['nullable', 'string', 'max:10'],
             'sala' => ['nullable', 'string', 'max:50'],
             'duracao_minutos' => ['nullable', 'integer', 'min:1', 'max:600'],
-            'bimestre' => ['sometimes', 'required', 'integer', 'min:1', 'max:4'],
+            'bimestre' => Bimestre::rules(Bimestre::fromAuthenticatedTeacher(), true),
             'turma_id' => [
                 'sometimes',
                 'required',
@@ -117,9 +118,7 @@ class UpdateTestRequest extends FormRequest
             'duracao_minutos.integer' => 'A duração deve ser um número inteiro.',
             'duracao_minutos.min' => 'A duração deve ser de pelo menos 1 minuto.',
             'duracao_minutos.max' => 'A duração não pode ser superior a 600 minutos (10 horas).',
-            'bimestre.required' => 'Selecione o bimestre.',
-            'bimestre.min' => 'O bimestre deve ser entre 1 e 4.',
-            'bimestre.max' => 'O bimestre deve ser entre 1 e 4.',
+            ...Bimestre::messages(Bimestre::fromAuthenticatedTeacher()),
             'turma_id.required' => 'Selecione uma turma.',
             'turma_id.exists' => 'Turma não encontrada.',
         ];
