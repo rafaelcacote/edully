@@ -8,6 +8,7 @@ storage/framework/sessions
 storage/framework/views
 .env
 .env.*
+!.env.example
 tests
 .phpunit.cache
 *.md
