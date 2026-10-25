@@ -45,7 +45,8 @@ RUN npm ci
 COPY . .
 
 # .env mínimo só para artisan/wayfinder no build da imagem
-RUN cp .env.example .env \
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && cp .env.example .env \
     && php artisan key:generate --force \
     && php artisan wayfinder:generate --with-form \
     && npm run build \
