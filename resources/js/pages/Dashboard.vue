@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDivisaoLetiva } from '@/composables/useDivisaoLetiva';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { index as tenantsIndex } from '@/routes/tenants';
@@ -26,6 +27,8 @@ import {
     ChevronLeft,
     ChevronRight,
 } from 'lucide-vue-next';
+
+const divisao = useDivisaoLetiva();
 
 interface AdminGeralStats {
     escolas: {
@@ -1126,7 +1129,7 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                         variant="outline"
                                         class="text-xs"
                                     >
-                                        {{ prova.bimestre }}º bimestre
+                                        {{ divisao.rotulo(prova.bimestre) }}
                                     </Badge>
                                     <Badge variant="secondary" class="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                                         Prova
@@ -1160,7 +1163,7 @@ const selectDay = (day: { events: CalendarEvent | null }) => {
                                         variant="outline"
                                         class="text-xs"
                                     >
-                                        {{ exercicio.bimestre }}º bimestre
+                                        {{ divisao.rotulo(exercicio.bimestre) }}
                                     </Badge>
                                     <Badge variant="secondary" class="bg-brand-100 text-brand-700">
                                         Exercício

@@ -3,6 +3,15 @@ import type { LucideIcon } from 'lucide-vue-next';
 
 export interface Auth {
     user: User | null;
+    tenant_id?: string | null;
+    current_tenant?: {
+        id: string;
+        nome: string;
+        logo_url?: string | null;
+        divisao_letiva: 'bimestral' | 'trimestral';
+        quantidade_periodos: number;
+        unidade_periodo: string;
+    } | null;
 }
 
 export interface BreadcrumbItem {
@@ -81,6 +90,7 @@ export interface Tenant {
     plano_id?: string | null;
     is_active: boolean; // mapped from ativo
     trial_until?: string | null; // mapped from trial_ate
+    divisao_letiva?: 'bimestral' | 'trimestral';
     created_at: string;
     updated_at: string;
     deleted_at?: string | null;

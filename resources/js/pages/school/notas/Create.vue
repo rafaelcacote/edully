@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDivisaoLetiva } from '@/composables/useDivisaoLetiva';
 import { Button } from '@/components/ui/button';
 import Heading from '@/components/Heading.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -37,6 +38,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const divisao = useDivisaoLetiva();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -59,7 +61,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 <div class="mt-2">
                     <Heading
                         title="Nova nota"
-                        description="Cadastre a nota bimestral do aluno"
+                        :description="`Cadastre a nota do ${divisao.unidade}`"
                         :icon="ClipboardList"
                     />
                 </div>

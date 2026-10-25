@@ -15,6 +15,7 @@ class TenantFactory extends Factory
             'nome' => fake()->company(),
             'subdominio' => fake()->unique()->slug(2),
             'ativo' => true,
+            'divisao_letiva' => 'bimestral',
         ];
     }
 }

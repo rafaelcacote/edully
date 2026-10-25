@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DivisaoLetiva;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Disciplina;
 use App\Models\Teacher;
@@ -7,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\Test;
 use App\Models\Turma;
 use App\Models\User;
+use App\Support\Bimestre;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -213,5 +215,22 @@ it('lists all tests when bimestre filter is all', function () {
             ->component('school/tests/Index')
             ->where('filters.bimestre', 'all')
             ->has('tests.data', 2)
+        );
+});
+
+it('defaults the tests filter to the current trimestre', function () {
+    disableTestsBimestreAuthMiddleware();
+
+    ['user' => $user, 'tenant' => $tenant] = setupTestsBimestreContext();
+    $tenant->update(['divisao_letiva' => DivisaoLetiva::Trimestral]);
+
+    $atual = (string) Bimestre::atual(DivisaoLetiva::Trimestral);
+
+    $response = $this->actingAs($user)->get('/school/tests');
+
+    $response->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.bimestre', $atual)
+            ->where('defaultBimestre', (int) $atual)
         );
 });

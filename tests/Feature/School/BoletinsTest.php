@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DivisaoLetiva;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Disciplina;
 use App\Models\Nota;
@@ -159,6 +160,47 @@ it('builds boletim grid with averages for launched bimestres only', function () 
             ->where('disciplinas.0.bimestres.4', null)
             ->where('disciplinas.0.media', 7)
             ->where('media_geral', 7)
+            ->etc()
+        )
+    );
+});
+
+it('builds a trimestral boletim with three periods', function () {
+    disableBoletimAuthMiddleware();
+
+    ['tenant' => $tenant, 'user' => $user, 'turma' => $turma, 'aluno' => $aluno, 'professor' => $professor, 'disciplina' => $disciplina] = setupBoletimContext();
+    $tenant->update(['divisao_letiva' => DivisaoLetiva::Trimestral]);
+
+    foreach ([1 => 9.0, 2 => 6.0, 3 => 3.0] as $periodo => $nota) {
+        Nota::create([
+            'tenant_id' => $tenant->id,
+            'aluno_id' => $aluno->id,
+            'professor_id' => $professor->id,
+            'turma_id' => $turma->id,
+            'disciplina' => 'Matemática',
+            'disciplina_id' => $disciplina->id,
+            'bimestre' => $periodo,
+            'nota' => $nota,
+            'ano_letivo' => 2026,
+        ]);
+    }
+
+    $response = $this->actingAs($user)->get('/school/boletins?'.http_build_query([
+        'turma_id' => $turma->id,
+        'aluno_id' => $aluno->id,
+    ]));
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('school/boletins/Index')
+        ->has('boletim', fn (Assert $boletim) => $boletim
+            ->where('divisao_letiva', 'trimestral')
+            ->where('periodos', [1, 2, 3])
+            ->where('disciplinas.0.bimestres.1', 9)
+            ->where('disciplinas.0.bimestres.2', 6)
+            ->where('disciplinas.0.bimestres.3', 3)
+            ->where('disciplinas.0.media', 6)
+            ->where('media_geral', 6)
             ->etc()
         )
     );

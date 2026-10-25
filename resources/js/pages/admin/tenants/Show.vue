@@ -98,6 +98,12 @@ const breadcrumbItems: BreadcrumbItem[] = [
                                 <p class="mt-1">{{ props.tenant.phone ?? '—' }}</p>
                             </div>
                             <div>
+                                <p class="text-sm font-medium text-muted-foreground">Divisão do ano letivo</p>
+                                <p class="mt-1">
+                                    {{ props.tenant.divisao_letiva === 'trimestral' ? 'Trimestre escolar (3 períodos)' : 'Bimestre (4 períodos)' }}
+                                </p>
+                            </div>
+                            <div>
                                 <p class="text-sm font-medium text-muted-foreground">Status</p>
                                 <div class="mt-1">
                                     <Badge

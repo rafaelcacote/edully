@@ -280,6 +280,33 @@ onMounted(() => {
             <InputError :message="errors.nome" />
         </div>
 
+        <div class="grid gap-2">
+            <Label for="divisao_letiva">Divisão do ano letivo</Label>
+            <select
+                id="divisao_letiva"
+                name="divisao_letiva"
+                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+                <option
+                    value="bimestral"
+                    :selected="(tenant?.divisao_letiva ?? 'bimestral') === 'bimestral'"
+                >
+                    Bimestre (4 períodos)
+                </option>
+                <option
+                    value="trimestral"
+                    :selected="tenant?.divisao_letiva === 'trimestral'"
+                >
+                    Trimestre escolar (3 períodos)
+                </option>
+            </select>
+            <p class="text-xs text-muted-foreground">
+                Define se notas, provas, exercícios e boletins usam 4 bimestres ou 3 trimestres.
+                A troca para trimestre fica bloqueada se já existir lançamento no 4º bimestre.
+            </p>
+            <InputError :message="errors.divisao_letiva" />
+        </div>
+
         <div class="grid gap-6 sm:grid-cols-4">
             <div class="grid gap-2">
                 <Label for="email">E-mail</Label>

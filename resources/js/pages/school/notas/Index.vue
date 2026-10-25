@@ -4,11 +4,14 @@ import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useDivisaoLetiva } from '@/composables/useDivisaoLetiva';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Edit, ListChecks, Plus, Trash2, ClipboardList } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+
+const divisao = useDivisaoLetiva();
 
 interface PaginationLink {
     url: string | null;
@@ -256,11 +259,14 @@ function deleteNota(notaId: string) {
                                 class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-44"
                                 @change="applyFilters"
                             >
-                                <option value="">Todos os bimestres</option>
-                                <option value="1">1º Bimestre</option>
-                                <option value="2">2º Bimestre</option>
-                                <option value="3">3º Bimestre</option>
-                                <option value="4">4º Bimestre</option>
+                                <option value="">Todos os {{ divisao.unidade }}s</option>
+                                <option
+                                    v-for="opcao in divisao.opcoes"
+                                    :key="opcao.value"
+                                    :value="opcao.value"
+                                >
+                                    {{ opcao.label }}
+                                </option>
                             </select>
 
                             <input
@@ -301,7 +307,7 @@ function deleteNota(notaId: string) {
                                 <th class="px-4 py-3">Disciplina</th>
                                 <th class="px-4 py-3">Professor</th>
                                 <th class="px-4 py-3">Turma</th>
-                                <th class="px-4 py-3">Bimestre</th>
+                                <th class="px-4 py-3">{{ divisao.unidadeTitulo }}</th>
                                 <th class="px-4 py-3">Nota</th>
                                 <th class="px-4 py-3">Ano Letivo</th>
                                 <th class="px-4 py-3 text-center">Ações</th>
@@ -326,7 +332,7 @@ function deleteNota(notaId: string) {
                                 <td class="px-4 py-3">{{ nota.turma?.nome || '—' }}</td>
                                 <td class="px-4 py-3">
                                     <Badge variant="secondary">
-                                        {{ nota.bimestre }}º Bimestre
+                                        {{ divisao.rotulo(nota.bimestre) }}
                                     </Badge>
                                 </td>
                                 <td class="px-4 py-3">

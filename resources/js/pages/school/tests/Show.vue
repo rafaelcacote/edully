@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { useDivisaoLetiva } from '@/composables/useDivisaoLetiva';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, ClipboardCheck, Edit } from 'lucide-vue-next';
+
+const divisao = useDivisaoLetiva();
 
 interface Turma {
     id: string;
@@ -125,9 +128,9 @@ const breadcrumbItems: BreadcrumbItem[] = [
                                 <p class="mt-1">{{ props.test.data_prova_formatted }}</p>
                             </div>
                             <div v-if="props.test.bimestre">
-                                <p class="text-sm font-medium text-muted-foreground">Bimestre</p>
+                                <p class="text-sm font-medium text-muted-foreground">{{ divisao.unidadeTitulo }}</p>
                                 <p class="mt-1">
-                                    <Badge variant="secondary">{{ props.test.bimestre }}º Bimestre</Badge>
+                                    <Badge variant="secondary">{{ divisao.rotulo(props.test.bimestre) }}</Badge>
                                 </p>
                             </div>
                             <div v-if="props.test.horario_formatted">

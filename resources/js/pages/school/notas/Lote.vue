@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDivisaoLetiva } from '@/composables/useDivisaoLetiva';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,8 @@ import type { BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, ClipboardList, Save } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+
+const divisao = useDivisaoLetiva();
 
 interface Turma {
     id: string;
@@ -168,7 +171,7 @@ const preenchidas = computed(
                 <div class="mt-2">
                     <Heading
                         title="Lançar notas em lote"
-                        description="Preencha as notas da turma por disciplina e bimestre"
+                        :description="`Preencha as notas da turma por disciplina e ${divisao.unidade}`"
                         :icon="ClipboardList"
                     />
                 </div>
@@ -230,17 +233,20 @@ const preenchidas = computed(
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="filtro_bimestre">Bimestre</Label>
+                        <Label for="filtro_bimestre">{{ divisao.unidadeTitulo }}</Label>
                         <select
                             id="filtro_bimestre"
                             v-model="bimestre"
                             class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         >
                             <option value="">Selecione</option>
-                            <option value="1">1º Bimestre</option>
-                            <option value="2">2º Bimestre</option>
-                            <option value="3">3º Bimestre</option>
-                            <option value="4">4º Bimestre</option>
+                            <option
+                                v-for="opcao in divisao.opcoes"
+                                :key="opcao.value"
+                                :value="opcao.value"
+                            >
+                                {{ opcao.label }}
+                            </option>
                         </select>
                     </div>
 
@@ -276,7 +282,7 @@ const preenchidas = computed(
                             {{ props.disciplina?.nome }}
                         </Badge>
                         <Badge variant="outline">
-                            {{ form.bimestre }}º bimestre
+                            {{ divisao.rotulo(form.bimestre) }}
                         </Badge>
                         <Badge variant="outline">
                             {{ preenchidas }}/{{ form.notas.length }} preenchidas
@@ -367,7 +373,7 @@ const preenchidas = computed(
                 v-else
                 class="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground shadow-sm"
             >
-                Selecione turma, disciplina e bimestre para carregar a lista de alunos.
+                Selecione turma, disciplina e {{ divisao.unidade }} para carregar a lista de alunos.
             </div>
         </div>
     </AppLayout>

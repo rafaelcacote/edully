@@ -5,6 +5,7 @@ namespace App\Actions\School;
 use App\Models\Student;
 use App\Models\Tenant;
 use App\Models\Turma;
+use App\Support\Bimestre;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -18,10 +19,12 @@ class BuildBoletimAction
      *         id: string,
      *         nome: string,
      *         sigla: ?string,
-     *         bimestres: array{1: ?float, 2: ?float, 3: ?float, 4: ?float},
+     *         bimestres: array<int, ?float>,
      *         media: ?float
      *     }>,
-     *     media_geral: ?float
+     *     media_geral: ?float,
+     *     divisao_letiva: string,
+     *     periodos: list<int>
      * }
      */
     public function execute(Tenant $tenant, Student $aluno, Turma $turma): array
@@ -72,20 +75,21 @@ class BuildBoletimAction
             ->get(['disciplina_id', 'bimestre', 'nota'])
             ->groupBy('disciplina_id');
 
-        $linhas = $disciplinas->map(function ($disciplina) use ($notas) {
+        $divisao = $tenant->divisaoLetiva();
+        $periodos = Bimestre::numeros($divisao);
+
+        $linhas = $disciplinas->map(function ($disciplina) use ($notas, $periodos) {
             /** @var Collection<int, object> $notasDisciplina */
             $notasDisciplina = $notas->get($disciplina->id, collect());
 
-            $bimestres = [
-                1 => null,
-                2 => null,
-                3 => null,
-                4 => null,
-            ];
+            $bimestres = [];
+            foreach ($periodos as $periodo) {
+                $bimestres[$periodo] = null;
+            }
 
             foreach ($notasDisciplina as $nota) {
                 $bimestre = (int) $nota->bimestre;
-                if ($bimestre >= 1 && $bimestre <= 4) {
+                if (array_key_exists($bimestre, $bimestres)) {
                     $bimestres[$bimestre] = round((float) $nota->nota, 1);
                 }
             }
@@ -126,6 +130,8 @@ class BuildBoletimAction
             ],
             'disciplinas' => $linhas,
             'media_geral' => $mediaGeral,
+            'divisao_letiva' => $divisao->value,
+            'periodos' => $periodos,
         ];
     }
 }

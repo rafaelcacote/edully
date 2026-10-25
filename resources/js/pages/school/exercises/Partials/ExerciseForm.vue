@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
+import { useDivisaoLetiva } from '@/composables/useDivisaoLetiva';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Save } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+
+const divisao = useDivisaoLetiva();
 
 interface ExerciseData {
     id?: string;
@@ -149,7 +152,7 @@ const removeFile = () => {
             </div>
 
             <div class="grid gap-2">
-                <Label for="bimestre">Bimestre</Label>
+                <Label for="bimestre">{{ divisao.unidadeTitulo }}</Label>
                 <select
                     id="bimestre"
                     name="bimestre"
@@ -157,11 +160,14 @@ const removeFile = () => {
                     required
                     class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <option value="">Selecione o bimestre</option>
-                    <option value="1">1º Bimestre</option>
-                    <option value="2">2º Bimestre</option>
-                    <option value="3">3º Bimestre</option>
-                    <option value="4">4º Bimestre</option>
+                    <option value="">Selecione o {{ divisao.unidade }}</option>
+                    <option
+                        v-for="opcao in divisao.opcoes"
+                        :key="opcao.value"
+                        :value="opcao.value"
+                    >
+                        {{ opcao.label }}
+                    </option>
                 </select>
                 <InputError :message="errors.bimestre" />
             </div>

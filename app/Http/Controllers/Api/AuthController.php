@@ -96,25 +96,16 @@ class AuthController extends Controller
         if ($responsavel) {
             // Para responsáveis, buscar todas as escolas onde tem alunos vinculados
             $responsaveis = \App\Models\Responsavel::where('usuario_id', $user->id)
-                ->with(['tenant:id,nome,logo_url'])
+                ->with(['tenant:id,nome,logo_url,divisao_letiva'])
                 ->get();
 
             $schools = $responsaveis->map(function ($resp) {
-                return $resp->tenant ? [
-                    'id' => $resp->tenant->id,
-                    'nome' => $resp->tenant->nome,
-                    'logo_url' => $resp->tenant->logo_url,
-                ] : null;
+                return $resp->tenant?->schoolSummary();
             })->filter()->unique('id')->values();
         } elseif ($teacher) {
-            // Para professores, buscar a escola do professor
-            $teacher->load(['tenant:id,nome,logo_url']);
+            $teacher->load(['tenant:id,nome,logo_url,divisao_letiva']);
             if ($teacher->tenant) {
-                $schools = [[
-                    'id' => $teacher->tenant->id,
-                    'nome' => $teacher->tenant->nome,
-                    'logo_url' => $teacher->tenant->logo_url,
-                ]];
+                $schools = [$teacher->tenant->schoolSummary()];
             }
         }
 

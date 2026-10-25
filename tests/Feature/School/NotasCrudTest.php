@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DivisaoLetiva;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Disciplina;
 use App\Models\Nota;
@@ -127,6 +128,54 @@ it('stores a bimestral nota', function () {
         'nota' => 8.5,
         'disciplina' => 'Matemática',
         'ano_letivo' => 2026,
+    ], 'shared');
+});
+
+it('rejects the fourth period for a trimestral school', function () {
+    disableNotasAuthMiddleware();
+
+    ['tenant' => $tenant, 'user' => $user, 'turma' => $turma, 'aluno' => $aluno, 'professor' => $professor, 'disciplina' => $disciplina] = setupNotaContext();
+    $tenant->update(['divisao_letiva' => DivisaoLetiva::Trimestral]);
+
+    $response = $this->actingAs($user)->post('/school/notas', [
+        'aluno_id' => $aluno->id,
+        'professor_id' => $professor->id,
+        'turma_id' => $turma->id,
+        'disciplina_id' => $disciplina->id,
+        'bimestre' => 4,
+        'nota' => 7.0,
+        'ano_letivo' => 2026,
+    ]);
+
+    $response->assertSessionHasErrors(['bimestre']);
+    $this->assertDatabaseMissing('notas', [
+        'aluno_id' => $aluno->id,
+        'bimestre' => 4,
+    ], 'shared');
+});
+
+it('stores a third period grade for a trimestral school', function () {
+    disableNotasAuthMiddleware();
+
+    ['tenant' => $tenant, 'user' => $user, 'turma' => $turma, 'aluno' => $aluno, 'professor' => $professor, 'disciplina' => $disciplina] = setupNotaContext();
+    $tenant->update(['divisao_letiva' => DivisaoLetiva::Trimestral]);
+
+    $response = $this->actingAs($user)->post('/school/notas', [
+        'aluno_id' => $aluno->id,
+        'professor_id' => $professor->id,
+        'turma_id' => $turma->id,
+        'disciplina_id' => $disciplina->id,
+        'bimestre' => 3,
+        'nota' => 9.0,
+        'ano_letivo' => 2026,
+    ]);
+
+    $response->assertRedirect(route('school.notas.index', absolute: false));
+
+    $this->assertDatabaseHas('notas', [
+        'aluno_id' => $aluno->id,
+        'bimestre' => 3,
+        'nota' => 9.0,
     ], 'shared');
 });
 

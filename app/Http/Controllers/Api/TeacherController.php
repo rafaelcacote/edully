@@ -40,12 +40,8 @@ class TeacherController extends Controller
             ->orderBy($turmasTable.'.turma_letra')
             ->get();
 
-        $teacher->loadMissing(['tenant:id,nome,logo_url']);
-        $school = $teacher->tenant ? [
-            'id' => $teacher->tenant->id,
-            'nome' => $teacher->tenant->nome,
-            'logo_url' => $teacher->tenant->logo_url,
-        ] : null;
+        $teacher->loadMissing(['tenant:id,nome,logo_url,divisao_letiva']);
+        $school = $teacher->tenant?->schoolSummary();
 
         return response()->json([
             'turmas' => $turmas->map(function ($turma) use ($school) {

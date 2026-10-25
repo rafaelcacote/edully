@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Support\Bimestre;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,10 +23,12 @@ class IndexStudentNotasRequest extends FormRequest
      */
     public function rules(): array
     {
+        $divisao = Bimestre::fromStudentId($this->route('id'));
+
         return [
             'turma_id' => ['nullable', 'uuid'],
             'disciplina_id' => ['nullable', 'uuid'],
-            'bimestre' => ['nullable', 'integer', Rule::in([1, 2, 3, 4])],
+            'bimestre' => ['nullable', 'integer', Rule::in(Bimestre::numeros($divisao))],
             'ano_letivo' => ['nullable', 'integer', 'min:2000', 'max:2100'],
         ];
     }
@@ -38,7 +41,7 @@ class IndexStudentNotasRequest extends FormRequest
         return [
             'turma_id.uuid' => 'A turma informada é inválida.',
             'disciplina_id.uuid' => 'A disciplina informada é inválida.',
-            'bimestre.in' => 'O bimestre deve ser um valor entre 1 e 4.',
+            ...Bimestre::messages(Bimestre::fromStudentId($this->route('id'))),
             'ano_letivo.integer' => 'O ano letivo informado é inválido.',
         ];
     }

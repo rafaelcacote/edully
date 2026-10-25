@@ -150,6 +150,7 @@ function clearFilters() {
                                 <th class="px-4 py-3">E-mail</th>
                                 <th class="px-4 py-3">Subdomínio</th>
                                 <th class="px-4 py-3">Telefone</th>
+                                <th class="px-4 py-3">Ano letivo</th>
                                 <th class="px-4 py-3">Status</th>
                                 <th class="px-4 py-3 text-right">Ações</th>
                             </tr>
@@ -178,6 +179,9 @@ function clearFilters() {
                                 </td>
                                 <td class="px-4 py-3">
                                     {{ t.phone ?? '—' }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    {{ t.divisao_letiva === 'trimestral' ? 'Trimestre' : 'Bimestre' }}
                                 </td>
                                 <td class="px-4 py-3">
                                     <Badge
@@ -221,7 +225,7 @@ function clearFilters() {
 
                             <tr v-if="props.tenants.data.length === 0">
                                 <td
-                                    colspan="6"
+                                    colspan="7"
                                     class="px-4 py-10 text-center text-sm text-muted-foreground"
                                 >
                                     Nenhuma escola encontrada.

@@ -58,7 +58,7 @@ class TestsController extends Controller
         $filters = $request->only(['search', 'turma_id', 'disciplina_id', 'bimestre']);
 
         if (! $request->has('bimestre')) {
-            $filters['bimestre'] = (string) Bimestre::atual();
+            $filters['bimestre'] = (string) Bimestre::atual($tenant->divisaoLetiva());
         }
 
         $tests = Test::query()
@@ -173,7 +173,7 @@ class TestsController extends Controller
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
             'filters' => $filters,
-            'defaultBimestre' => Bimestre::atual(),
+            'defaultBimestre' => Bimestre::atual($tenant->divisaoLetiva()),
         ]);
     }
 
@@ -244,7 +244,7 @@ class TestsController extends Controller
         return Inertia::render('school/tests/Create', [
             'turmas' => $turmas,
             'disciplinas' => $disciplinas,
-            'defaultBimestre' => Bimestre::atual(),
+            'defaultBimestre' => Bimestre::atual($tenant->divisaoLetiva()),
         ]);
     }
 
