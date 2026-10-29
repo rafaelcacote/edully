@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -232,30 +233,34 @@ function toggleStatus(disciplinaId: string, nextStatus: boolean) {
                                     <div
                                         class="flex items-center justify-center gap-2"
                                     >
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/disciplinas/${disciplina.id}`">
-                                                <Eye
-                                                    class="h-4 w-4 text-blue-500 dark:text-blue-400"
-                                                />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/disciplinas/${disciplina.id}/edit`">
-                                                <Edit
-                                                    class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                />
-                                            </Link>
-                                        </Button>
+                                        <ActionTooltip label="Visualizar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/disciplinas/${disciplina.id}`">
+                                                    <Eye
+                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
+                                        <ActionTooltip label="Editar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/disciplinas/${disciplina.id}/edit`">
+                                                    <Edit
+                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
                                     </div>
                                 </td>
                             </tr>

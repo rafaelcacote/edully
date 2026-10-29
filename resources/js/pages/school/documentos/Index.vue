@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Can from '@/components/Can.vue';
 import DeleteDocumentoDialog from '@/components/documentos/DeleteDocumentoDialog.vue';
 import Heading from '@/components/Heading.vue';
@@ -253,32 +254,35 @@ function getStatusVariant(
                                         v-if="documento.anexo_url"
                                         class="flex items-center justify-center"
                                     >
-                                        <a
-                                            :href="documento.anexo_url"
-                                            target="_blank"
-                                            class="flex items-center gap-1 rounded p-1 text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950 dark:hover:text-blue-400"
-                                            title="Visualizar anexo"
-                                        >
-                                            <FileText class="h-4 w-4" />
-                                        </a>
+                                        <ActionTooltip label="Visualizar anexo">
+                                            <a
+                                                :href="documento.anexo_url"
+                                                target="_blank"
+                                                class="flex items-center gap-1 rounded p-1 text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950 dark:hover:text-blue-400"
+                                            >
+                                                <FileText class="h-4 w-4" />
+                                            </a>
+                                        </ActionTooltip>
                                     </div>
                                     <span v-else class="text-muted-foreground">—</span>
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center justify-end gap-2">
                                         <Can permission="escola.documentos.visualizar">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/documentos/${documento.id}`">
-                                                    <Eye
-                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Visualizar">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/documentos/${documento.id}`">
+                                                        <Eye
+                                                            class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                         <Can permission="escola.documentos.excluir">
                                             <DeleteDocumentoDialog :documento="documento" />

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Can from '@/components/Can.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
@@ -253,60 +254,68 @@ function toggleStatus(classId: string, nextStatus: boolean) {
                                         class="flex items-center justify-center gap-2"
                                     >
                                         <Can permission="escola.turmas.alunos">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/classes/${classItem.id}/students`">
-                                                    <GraduationCap
-                                                        class="h-4 w-4 text-green-500 dark:text-green-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Alunos">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/classes/${classItem.id}/students`">
+                                                        <GraduationCap
+                                                            class="h-4 w-4 text-green-500 dark:text-green-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                         <Can permission="escola.turmas.disciplinas">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/classes/${classItem.id}/disciplinas`">
-                                                    <BookMarked
-                                                        class="h-4 w-4 text-violet-500 dark:text-violet-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Disciplinas">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/classes/${classItem.id}/disciplinas`">
+                                                        <BookMarked
+                                                            class="h-4 w-4 text-violet-500 dark:text-violet-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                         <Can permission="escola.turmas.visualizar">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/classes/${classItem.id}`">
-                                                    <Eye
-                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Visualizar">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/classes/${classItem.id}`">
+                                                        <Eye
+                                                            class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                         <Can permission="escola.turmas.editar">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/classes/${classItem.id}/edit`">
-                                                    <Edit
-                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Editar">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/classes/${classItem.id}/edit`">
+                                                        <Edit
+                                                            class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                     </div>
                                 </td>

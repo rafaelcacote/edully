@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Can from '@/components/Can.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
@@ -283,58 +284,65 @@ function deleteAviso(avisoId: string) {
                                 </td>
                                 <td class="px-4 py-3">
                                     <div v-if="aviso.anexo_url" class="flex items-center justify-center">
-                                        <a
-                                            :href="aviso.anexo_url"
-                                            target="_blank"
-                                            class="flex items-center gap-1 rounded p-1 text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950 dark:hover:text-blue-400"
-                                            title="Visualizar PDF"
-                                        >
-                                            <FileText class="h-4 w-4" />
-                                        </a>
+                                        <ActionTooltip label="Visualizar PDF">
+                                            <a
+                                                :href="aviso.anexo_url"
+                                                target="_blank"
+                                                class="flex items-center gap-1 rounded p-1 text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950 dark:hover:text-blue-400"
+                                            >
+                                                <FileText class="h-4 w-4" />
+                                            </a>
+                                        </ActionTooltip>
                                     </div>
                                     <span v-else class="text-muted-foreground">—</span>
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center justify-end gap-2">
                                         <Can permission="escola.avisos.visualizar">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/avisos/${aviso.id}`">
-                                                    <Eye
-                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Visualizar">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/avisos/${aviso.id}`">
+                                                        <Eye
+                                                            class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                         <Can permission="escola.avisos.editar">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/avisos/${aviso.id}/edit`">
-                                                    <Edit
-                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Editar">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/avisos/${aviso.id}/edit`">
+                                                        <Edit
+                                                            class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                         <Can permission="escola.avisos.excluir">
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                                @click="deleteAviso(aviso.id)"
-                                            >
-                                                <Trash2
-                                                    class="h-4 w-4 text-red-500 dark:text-red-400"
-                                                />
-                                            </Button>
+                                            <ActionTooltip label="Excluir">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                    @click="deleteAviso(aviso.id)"
+                                                >
+                                                    <Trash2
+                                                        class="h-4 w-4 text-red-500 dark:text-red-400"
+                                                    />
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                     </div>
                                 </td>

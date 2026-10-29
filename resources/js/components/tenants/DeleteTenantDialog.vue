@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TenantsController from '@/actions/App/Http/Controllers/TenantsController';
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,15 +24,17 @@ defineProps<{
 
 <template>
     <Dialog>
-        <DialogTrigger as-child>
-            <Button
-                variant="ghost"
-                size="sm"
-                class="hover:bg-transparent"
-            >
-                <Trash2 class="h-4 w-4 text-red-500 dark:text-red-400" />
-            </Button>
-        </DialogTrigger>
+        <ActionTooltip label="Excluir">
+            <DialogTrigger as-child>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="hover:bg-transparent"
+                >
+                    <Trash2 class="h-4 w-4 text-red-500 dark:text-red-400" />
+                </Button>
+            </DialogTrigger>
+        </ActionTooltip>
 
         <DialogContent class="sm:max-w-lg">
             <Form

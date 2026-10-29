@@ -25,6 +25,16 @@ interface Turma {
     ano_letivo?: string | null;
 }
 
+interface Parent {
+    id: string;
+    nome_completo?: string | null;
+    email?: string | null;
+    telefone?: string | null;
+    parentesco?: string | null;
+    principal?: boolean;
+    ativo: boolean;
+}
+
 interface Student {
     id: string;
     nome: string;
@@ -34,11 +44,7 @@ interface Student {
     ativo: boolean;
     informacoes_medicas?: string | null;
     turma?: Turma | null;
-    parents?: Array<{
-        id: string;
-        nome_completo: string;
-        parentesco?: string | null;
-    }>;
+    parents?: Parent[];
 }
 
 interface Props {
@@ -48,6 +54,24 @@ interface Props {
 
 const props = defineProps<Props>();
 const reenrollDialogOpen = ref(false);
+
+function formatPhone(phone: string | null | undefined): string {
+    if (!phone) {
+        return '—';
+    }
+
+    const numbers = phone.replace(/\D/g, '');
+
+    if (numbers.length === 10) {
+        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+    }
+
+    if (numbers.length === 11) {
+        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+    }
+
+    return phone;
+}
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -169,19 +193,54 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         </div>
                     </div>
 
-                    <div v-if="props.student.parents && props.student.parents.length > 0">
+                    <div>
                         <h3 class="mb-4 text-lg font-semibold">Responsáveis</h3>
-                        <div class="space-y-2">
+
+                        <div
+                            v-if="props.student.parents && props.student.parents.length > 0"
+                            class="space-y-3"
+                        >
                             <div
                                 v-for="parent in props.student.parents"
                                 :key="parent.id"
-                                class="rounded-lg border p-3"
+                                class="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
                             >
-                                <p class="font-medium">{{ parent.nome_completo }}</p>
-                                <p v-if="parent.parentesco" class="text-sm text-muted-foreground">
-                                    {{ parent.parentesco }}
-                                </p>
+                                <div class="space-y-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <p class="font-medium">
+                                            {{ parent.nome_completo || 'Sem nome' }}
+                                        </p>
+                                        <Badge v-if="parent.principal" variant="secondary">
+                                            Principal
+                                        </Badge>
+                                        <Badge :variant="parent.ativo ? 'default' : 'destructive'">
+                                            {{ parent.ativo ? 'Ativo' : 'Inativo' }}
+                                        </Badge>
+                                    </div>
+                                    <p v-if="parent.parentesco" class="text-sm text-muted-foreground">
+                                        Parentesco: {{ parent.parentesco }}
+                                    </p>
+                                    <p class="text-sm text-muted-foreground">
+                                        Telefone: {{ formatPhone(parent.telefone) }}
+                                    </p>
+                                    <p class="text-sm text-muted-foreground">
+                                        E-mail: {{ parent.email || '—' }}
+                                    </p>
+                                </div>
+
+                                <Button as-child size="sm" variant="outline">
+                                    <Link :href="`/school/parents/${parent.id}`">
+                                        Ver responsável
+                                    </Link>
+                                </Button>
                             </div>
+                        </div>
+
+                        <div
+                            v-else
+                            class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
+                        >
+                            Nenhum responsável vinculado a este aluno.
                         </div>
                     </div>
 

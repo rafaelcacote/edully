@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Can from '@/components/Can.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
@@ -227,23 +228,27 @@ function deleteEvento(id: string) {
                                 <td class="px-4 py-3">{{ evento.cobrancas_count }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center justify-end gap-2">
-                                        <Button as-child size="sm" variant="ghost" class="hover:bg-transparent">
-                                            <Link :href="`/school/cobrancas/eventos/${evento.id}`">
-                                                <Eye class="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                            </Link>
-                                        </Button>
+                                        <ActionTooltip label="Visualizar">
+                                            <Button as-child size="sm" variant="ghost" class="hover:bg-transparent">
+                                                <Link :href="`/school/cobrancas/eventos/${evento.id}`">
+                                                    <Eye class="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
                                         <Can
                                             v-if="evento.status === 'rascunho'"
                                             permission="escola.financeiro.excluir"
                                         >
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                                @click="deleteEvento(evento.id)"
-                                            >
-                                                <Trash2 class="h-4 w-4 text-red-500 dark:text-red-400" />
-                                            </Button>
+                                            <ActionTooltip label="Excluir">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                    @click="deleteEvento(evento.id)"
+                                                >
+                                                    <Trash2 class="h-4 w-4 text-red-500 dark:text-red-400" />
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                     </div>
                                 </td>

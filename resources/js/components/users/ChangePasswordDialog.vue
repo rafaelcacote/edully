@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { changePassword } from '@/actions/App/Http/Controllers/UsersController';
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,15 +26,17 @@ defineProps<{
 
 <template>
     <Dialog>
-        <DialogTrigger as-child>
-            <Button
-                variant="ghost"
-                size="sm"
-                class="hover:bg-transparent"
-            >
-                <KeyRound class="h-4 w-4 text-blue-500 dark:text-blue-400" />
-            </Button>
-        </DialogTrigger>
+        <ActionTooltip label="Alterar senha">
+            <DialogTrigger as-child>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="hover:bg-transparent"
+                >
+                    <KeyRound class="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                </Button>
+            </DialogTrigger>
+        </ActionTooltip>
 
         <DialogContent class="sm:max-w-lg">
             <Form

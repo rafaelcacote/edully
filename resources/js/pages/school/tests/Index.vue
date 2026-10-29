@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Can from '@/components/Can.vue';
 import DeleteTestDialog from '@/components/tests/DeleteTestDialog.vue';
 import Heading from '@/components/Heading.vue';
@@ -263,32 +264,36 @@ function clearFilters() {
                                         class="flex items-center justify-center gap-2"
                                     >
                                         <Can permission="escola.provas.visualizar">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/tests/${test.id}`">
-                                                    <Eye
-                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Visualizar">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/tests/${test.id}`">
+                                                        <Eye
+                                                            class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                         <Can permission="escola.provas.editar">
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link :href="`/school/tests/${test.id}/edit`">
-                                                    <Edit
-                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                            <ActionTooltip label="Editar">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
+                                                >
+                                                    <Link :href="`/school/tests/${test.id}/edit`">
+                                                        <Edit
+                                                            class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                         </Can>
                                         <Can permission="escola.provas.excluir">
                                             <DeleteTestDialog :test="test" />

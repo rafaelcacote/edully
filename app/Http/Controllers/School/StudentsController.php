@@ -236,7 +236,11 @@ class StudentsController extends Controller
                 'parents' => $student->parents->map(fn ($parent) => [
                     'id' => $parent->id,
                     'nome_completo' => $parent->user?->nome_completo,
+                    'email' => $parent->user?->email,
+                    'telefone' => $parent->user?->telefone,
                     'parentesco' => $parent->parentesco,
+                    'principal' => (bool) ($parent->pivot->principal ?? false),
+                    'ativo' => $parent->user?->ativo ?? false,
                 ])->values(),
             ],
             'turmas' => $turmas->map(fn ($t) => [
