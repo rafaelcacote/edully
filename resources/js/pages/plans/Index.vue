@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -217,18 +218,20 @@ function clearFilters() {
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center justify-end gap-2">
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="edit({ plan: plan.id })">
-                                                <Edit
-                                                    class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                />
-                                            </Link>
-                                        </Button>
+                                        <ActionTooltip label="Editar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="edit({ plan: plan.id })">
+                                                    <Edit
+                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
                                     </div>
                                 </td>
                             </tr>

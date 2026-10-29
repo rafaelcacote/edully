@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -343,28 +344,32 @@ function deleteNota(notaId: string) {
                                     <div
                                         class="flex items-center justify-center gap-2"
                                     >
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/notas/${nota.id}/edit`">
-                                                <Edit
-                                                    class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                        <ActionTooltip label="Editar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/notas/${nota.id}/edit`">
+                                                    <Edit
+                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
+                                        <ActionTooltip label="Excluir">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                                @click="deleteNota(nota.id)"
+                                            >
+                                                <Trash2
+                                                    class="h-4 w-4 text-red-500 dark:text-red-400"
                                                 />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                            @click="deleteNota(nota.id)"
-                                        >
-                                            <Trash2
-                                                class="h-4 w-4 text-red-500 dark:text-red-400"
-                                            />
-                                        </Button>
+                                            </Button>
+                                        </ActionTooltip>
                                     </div>
                                 </td>
                             </tr>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -241,30 +242,34 @@ function clearFilters() {
                                     <div
                                         class="flex items-center justify-end gap-2"
                                     >
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/students/${student.id}`">
-                                                <User
-                                                    class="h-4 w-4 text-blue-500 dark:text-blue-400"
-                                                />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/students/${student.id}/edit`">
-                                                <Edit
-                                                    class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                />
-                                            </Link>
-                                        </Button>
+                                        <ActionTooltip label="Visualizar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/students/${student.id}`">
+                                                    <User
+                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
+                                        <ActionTooltip label="Editar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/students/${student.id}/edit`">
+                                                    <Edit
+                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
                                     </div>
                                 </td>
                             </tr>

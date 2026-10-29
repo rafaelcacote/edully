@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import DeleteExerciseDialog from '@/components/exercises/DeleteExerciseDialog.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
@@ -273,23 +274,24 @@ function clearFilters() {
                                 <td class="px-4 py-3">{{ exercise.data_entrega }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center justify-center">
-                                        <Button
-                                            v-if="exercise.anexo_url"
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <a
-                                                :href="exercise.anexo_url"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                        <ActionTooltip v-if="exercise.anexo_url" label="Abrir anexo">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
                                             >
-                                                <ExternalLink
-                                                    class="h-4 w-4 text-green-500 dark:text-green-400"
-                                                />
-                                            </a>
-                                        </Button>
+                                                <a
+                                                    :href="exercise.anexo_url"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <ExternalLink
+                                                        class="h-4 w-4 text-green-500 dark:text-green-400"
+                                                    />
+                                                </a>
+                                            </Button>
+                                        </ActionTooltip>
                                         <span v-else class="text-muted-foreground">—</span>
                                     </div>
                                 </td>
@@ -297,30 +299,34 @@ function clearFilters() {
                                     <div
                                         class="flex items-center justify-center gap-2"
                                     >
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/exercises/${exercise.id}`">
-                                                <Eye
-                                                    class="h-4 w-4 text-blue-500 dark:text-blue-400"
-                                                />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            as-child
-                                            size="sm"
-                                            variant="ghost"
-                                            class="hover:bg-transparent"
-                                        >
-                                            <Link :href="`/school/exercises/${exercise.id}/edit`">
-                                                <Edit
-                                                    class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                />
-                                            </Link>
-                                        </Button>
+                                        <ActionTooltip label="Visualizar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/exercises/${exercise.id}`">
+                                                    <Eye
+                                                        class="h-4 w-4 text-blue-500 dark:text-blue-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
+                                        <ActionTooltip label="Editar">
+                                            <Button
+                                                as-child
+                                                size="sm"
+                                                variant="ghost"
+                                                class="hover:bg-transparent"
+                                            >
+                                                <Link :href="`/school/exercises/${exercise.id}/edit`">
+                                                    <Edit
+                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        </ActionTooltip>
                                         <DeleteExerciseDialog :exercise="exercise" />
                                     </div>
                                 </td>

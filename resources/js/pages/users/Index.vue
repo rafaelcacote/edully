@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionTooltip from '@/components/ActionTooltip.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import { Badge } from '@/components/ui/badge';
@@ -566,20 +567,22 @@ function changeTenant() {
                                         <div
                                             class="flex items-center justify-end gap-2"
                                         >
-                                            <Button
-                                                as-child
-                                                size="sm"
-                                                variant="ghost"
-                                                class="hover:bg-transparent"
-                                            >
-                                                <Link
-                                                    :href="edit({ user: u.id })"
+                                            <ActionTooltip label="Editar">
+                                                <Button
+                                                    as-child
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    class="hover:bg-transparent"
                                                 >
-                                                    <Edit
-                                                        class="h-4 w-4 text-amber-500 dark:text-amber-400"
-                                                    />
-                                                </Link>
-                                            </Button>
+                                                    <Link
+                                                        :href="edit({ user: u.id })"
+                                                    >
+                                                        <Edit
+                                                            class="h-4 w-4 text-amber-500 dark:text-amber-400"
+                                                        />
+                                                    </Link>
+                                                </Button>
+                                            </ActionTooltip>
                                             <ChangePasswordDialog :user="u" />
                                             <DeleteUserDialog :user="u" />
                                         </div>
