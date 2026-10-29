@@ -110,9 +110,15 @@ class Student extends Model
      */
     public function parents(): BelongsToMany
     {
-        return $this->belongsToMany(Responsavel::class, $this->alunoResponsavelPivotTable(), 'aluno_id', 'responsavel_id')
-            ->withPivot(['tenant_id', 'principal'])
-            ->wherePivot('tenant_id', $this->tenant_id);
+        $relation = $this->belongsToMany(Responsavel::class, $this->alunoResponsavelPivotTable(), 'aluno_id', 'responsavel_id')
+            ->withPivot(['tenant_id', 'principal']);
+
+        // Aplicar filtro de tenant_id apenas se estiver disponível (mesmo padrão de Responsavel::students).
+        if ($this->tenant_id) {
+            $relation->wherePivot('tenant_id', $this->tenant_id);
+        }
+
+        return $relation;
     }
 
     /**
