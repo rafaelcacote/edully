@@ -8,11 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\School\ReenrollStudentRequest;
 use App\Http\Requests\School\StoreStudentRequest;
 use App\Http\Requests\School\UpdateStudentRequest;
+use App\Models\Responsavel;
 use App\Models\Student;
 use App\Models\Turma;
 use App\Support\MatriculaTurmaRowBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -30,6 +32,59 @@ class StudentsController extends Controller
         return DB::connection('shared')->getDriverName() === 'sqlite'
             ? 'alunos'
             : 'escola.alunos';
+    }
+
+    protected function alunoResponsavelPivotTable(): string
+    {
+        return DB::connection('shared')->getDriverName() === 'sqlite'
+            ? 'aluno_responsavel'
+            : 'escola.aluno_responsavel';
+    }
+
+    /**
+     * Load guardians linked to the student via the pivot table.
+     *
+     * @return Collection<int, array{id: string, nome_completo: string|null, email: string|null, telefone: string|null, parentesco: string|null, principal: bool, ativo: bool}>
+     */
+    protected function linkedParentsForStudent(Student $student, string $tenantId): Collection
+    {
+        $links = DB::connection('shared')
+            ->table($this->alunoResponsavelPivotTable())
+            ->where('tenant_id', $tenantId)
+            ->where('aluno_id', $student->id)
+            ->get(['responsavel_id', 'principal']);
+
+        if ($links->isEmpty()) {
+            return collect();
+        }
+
+        $parentsById = Responsavel::query()
+            ->with('user')
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $links->pluck('responsavel_id'))
+            ->get()
+            ->keyBy('id');
+
+        return $links
+            ->map(function ($link) use ($parentsById) {
+                $parent = $parentsById->get($link->responsavel_id);
+
+                if (! $parent) {
+                    return null;
+                }
+
+                return [
+                    'id' => $parent->id,
+                    'nome_completo' => $parent->user?->nome_completo,
+                    'email' => $parent->user?->email,
+                    'telefone' => $parent->user?->telefone,
+                    'parentesco' => $parent->parentesco,
+                    'principal' => (bool) $link->principal,
+                    'ativo' => $parent->user?->ativo ?? false,
+                ];
+            })
+            ->filter()
+            ->values();
     }
 
     /**
@@ -182,7 +237,7 @@ class StudentsController extends Controller
             abort(404);
         }
 
-        $student->load(['parents.user']);
+        $parents = $this->linkedParentsForStudent($student, $tenant->id);
 
         // Buscar turma do aluno
         $driver = DB::connection('shared')->getDriverName();
@@ -233,15 +288,7 @@ class StudentsController extends Controller
                     'turma_letra' => $turma->turma_letra,
                     'ano_letivo' => $turma->ano_letivo,
                 ] : null,
-                'parents' => $student->parents->map(fn ($parent) => [
-                    'id' => $parent->id,
-                    'nome_completo' => $parent->user?->nome_completo,
-                    'email' => $parent->user?->email,
-                    'telefone' => $parent->user?->telefone,
-                    'parentesco' => $parent->parentesco,
-                    'principal' => (bool) ($parent->pivot->principal ?? false),
-                    'ativo' => $parent->user?->ativo ?? false,
-                ])->values(),
+                'parents' => $parents,
             ],
             'turmas' => $turmas->map(fn ($t) => [
                 'id' => $t->id,
